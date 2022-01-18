@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import sys
+import os
+sys.path.append(os.path.join(os.getcwd(), '..'))
 import argparse
 import json
 from termcolor import cprint
@@ -23,6 +27,8 @@ from scaaml.utils import get_model_stub
 from scaaml.intro.generator import create_dataset
 from scaaml.intro.model import get_model
 from scaaml.utils import get_num_gpu
+
+from models import Discriminator, Generator
 
 
 def train_model(config):
@@ -58,6 +64,8 @@ def train_model(config):
 
             # infers shape
             input_shape = x_train.shape[1:]
+            
+            print('\n\nInput shape: ', input_shape, '\n\n')
 
             # reset graph and load a new model
             K.clear_session()

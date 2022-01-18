@@ -1,18 +1,3 @@
-# Copyright 2020 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-from scaaml.utils import display_config
 from tensorflow.keras import layers
 from tensorflow.keras import Model
 from tensorflow.keras.optimizers import Adam
@@ -110,7 +95,7 @@ def stack(x, filters, blocks, kernel_size=3, strides=2, activation='relu'):
     return x
 
 
-def Resnet1D(trace_shape, attack_point, mdl_cfg, optim_cfg):
+def Discriminator(trace_shape, mdl_cfg, optim_cfg):
 
     pool_size = mdl_cfg['initial_pool_size']
     filters = mdl_cfg['initial_filters']
@@ -122,8 +107,8 @@ def Resnet1D(trace_shape, attack_point, mdl_cfg, optim_cfg):
         mdl_cfg['blocks_stack3'], mdl_cfg['blocks_stack4']
     ]
 
-    inputs = layers.Input(shape=(input_shape))
-    x = inputs
+    trace = layers.Input(shape=trace_shape)
+    x = trace
 
     # stem
     x = layers.MaxPool1D(pool_size=pool_size)(x)
@@ -144,10 +129,26 @@ def Resnet1D(trace_shape, attack_point, mdl_cfg, optim_cfg):
         x = layers.Dense(256)(x)
         x = layers.BatchNormalization()(x)
         x = layers.Activation(activation)(x)
-
+        
+        
+    ap_candidate = layers.Input(shape=(8,)) # One input per bit
+    k = ap_candidate
+    k = layers.Dense(256)(k)
+    k = layers.Activation(activation)(k)
+    k = layers.Dense(1024)(k)
+    k = layers.Activation(activation)(k)
+    k = layers.Dense(256)(k)
+    k = layers.Activation(activation)(k)
     
+    pred = layers.Concatenate()([x, k])
+    pred = layers.Dense(1024)(pred)
+    pred = layers.Activation(activation)(pred)
+    pred = layers.Dense(256)(pred)
+    pred = layers.Activation(activation)(pred)
+    pred = layers.Dense(1)(pred)
+    pred = layers.Activation('sigmoid')(pred)
 
-    model = Model(inputs=inputs, outputs=outputs)
+    model = Model(inputs=[trace, ap_candidate], outputs=pred)
     model.summary()
 
     if get_num_gpu() > 1:
@@ -160,17 +161,27 @@ def Resnet1D(trace_shape, attack_point, mdl_cfg, optim_cfg):
                   optimizer=Adam(lr))
     return model
 
-
-def get_model(input_shape, attack_point, config):
-    """Return an instanciated model based of the config provided.
-
-    Args:
-        config (dict): scald config.
-    """
-
-    mdl_cfg = config['model_parameters']
-    optim_cfg = config['optimizer_parameters']
-
-    display_config("model", mdl_cfg)
-    display_config("optimizer", optim_cfg)
-    return Resnet1D(input_shape, attack_point, mdl_cfg, optim_cfg)
+def Generator(trace_shape):    
+    attack_point = layers.Input(shape=(8,))
+    x = attack_point
+    
+    x = layers.Dense(1000)(x)
+    x = layers.Activation('relu')(x)
+    additive_noise = layers.Dense(int(trace_shape[0]))(x)
+    additive_noise = layers.Reshape(trace_shape)(additive_noise)
+    
+    trace = layers.Input(shape=trace_shape)
+    
+    visible_trace = layers.Add()([trace, additive_noise])
+    
+    model = Model(inputs=[attack_point, trace], outputs=visible_trace)
+    model.summary()
+    
+    return model
+    
+    
+    
+    
+    
+    
+    
