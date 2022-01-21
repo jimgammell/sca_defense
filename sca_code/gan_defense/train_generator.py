@@ -1,3 +1,8 @@
+# To do:
+#   Try using gradient of discriminator in objective of generator
+#   Try minimizing inf-norm of discriminator prediction, rather than magnitude of correct guess
+#   Use early stopping when training networks
+
 import os
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -6,7 +11,7 @@ import time
 import datetime
 from keras.utils import to_categorical
 
-N_TRACES = 8
+N_TRACES = 16
 DATA_PATH = os.path.join(os.getcwd(), 'datasets', 'tinyaes')
 OUTPUT_PATH = os.path.join(os.getcwd(), 'results')
 dt = datetime.datetime.now()
@@ -14,7 +19,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_PATH,
     '%d-%d-%d_%d-%d-%d'%(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 assert not(os.path.exists(OUTPUT_PATH))
 os.makedirs(OUTPUT_PATH)
-N_EPOCHS = 500
+N_EPOCHS = 100
 BATCH_SIZE = 32
 
 def printl(s):
@@ -72,7 +77,7 @@ targets_train = tf.squeeze(targets_train)
 times = [t for t in range(20000)]
 times = tf.constant(times, dtype='float32')
 times = tf.expand_dims(times, axis=0)
-times = [times for _ in range(2048)]
+times = [times for _ in range(256*N_TRACES)]
 times = tf.concat(times, axis=0)
 times_e = [t for t in range(20000)]
 times_e = tf.constant(times_e, dtype='float32')
@@ -114,7 +119,7 @@ keys_test = np.concatenate(keys)
 printl('\tDone. Time taken: %f seconds.'%(time.time()-t0))
 
 from generator import IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator
-from discriminator import PretrainedDiscriminator
+from discriminator import NormalizedDiscriminator
 from models import cumulative_model
 from keras.losses import CategoricalCrossentropy
 from keras.utils import plot_model
@@ -124,10 +129,43 @@ sys.path.append(os.path.join(os.getcwd(), '..'))
 from scaaml.aes import ap_preds_to_key_preds
 from scaaml.utils import from_categorical
 import pickle
+from scipy.stats import linregress
+from keras.utils.layer_utils import count_params
+from keras.optimizers import Adam
 
-for gen_fn in [FourierGenerator]:
+printl('Creating discriminator...')
+t1 = time.time()
+disc = NormalizedDiscriminator(0, 'sub_bytes_in')
+disc.summary(print_fn=printl)
+plot_model(disc, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'discriminator_model.png'))
+printl('\tDone. Time taken: %f seconds.'%(time.time()-t1))
+
+printl('Training modified discriminator...')
+t1 = time.time()
+disc.compile(loss=CategoricalCrossentropy(),
+             optimizer=Adam(lr=.001))
+disc_init_hist = disc.fit(traces_train, targets_train,
+          validation_data=(traces_test, targets_test),
+          epochs=N_EPOCHS,
+          batch_size=BATCH_SIZE,
+          shuffle=True)
+fig = plt.figure()
+ax = plt.gca()
+ax.plot(disc_init_hist.history['loss'], '--', color='blue', label='Training loss')
+ax.plot(disc_init_hist.history['val_loss'], '-', color='blue', label='Validation loss')
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Loss')
+ax.legend()
+fig.savefig(os.path.join(OUTPUT_PATH, 'training_discini.png'))
+disc.save(os.path.join(OUTPUT_PATH, 'initial_discriminator'))
+printl('\tDone. Time taken: %f seconds.'%(time.time()-t1))
+
+for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator]:
     printl('Beginning trial with %s generator.'%(gen_fn.__name__))
     t0 = time.time()
+    
+    disc_ = keras.models.clone_model(disc)
+    disc_.set_weights(disc.get_weights())
     
     printl('\tCreating generator...')
     t1 = time.time()
@@ -136,47 +174,43 @@ for gen_fn in [FourierGenerator]:
     plot_model(gen, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'generator_model_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
-    printl('\tCreating discriminator...')
-    t1 = time.time()
-    disc = PretrainedDiscriminator(0, 'sub_bytes_in')
-    disc.trainable = False
-    disc.summary(print_fn=printl)
-    plot_model(disc, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'discriminator_model_%s.png'%(gen_fn.__name__)))
-    printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
-    
     printl('\tCreating cumulative model...')
     t1 = time.time()
     time_input = gen_fn==FourierGenerator
-    mdl = cumulative_model(disc, gen, time_input=time_input)
+    mdl = cumulative_model(disc_, gen, time_input=time_input)
     mdl.summary(print_fn=printl)
     def negative_ccc(y_true, y_pred):
         return -CategoricalCrossentropy()(y_true, y_pred)
-    mdl.compile(loss=negative_ccc)
     plot_model(mdl, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'cumulative_model_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
     printl('\tTraining model...')
     t1 = time.time()
+    disc_.trainable = False
+    gen.trainable = True
+    mdl.compile(loss=negative_ccc,
+                optimizer=Adam(lr=.001))
     if time_input:
-        history = mdl.fit([ap_train, traces_train, times], targets_train,
+        gen_hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
                 shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
     else:
-        history = mdl.fit([ap_train, traces_train], targets_train,
+        gen_hist = mdl.fit([ap_train, traces_train], targets_train,
                 validation_data=([ap_test, traces_test], targets_test),
                 shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
     fig = plt.figure()
     ax = plt.gca()
-    ax.plot(history.history['loss'], '--', color='blue', label='Training loss')
-    ax.plot(history.history['val_loss'], '-', color='blue', label='Validation loss')
+    ax.plot(gen_hist.history['loss'], '--', color='blue', label='Training loss')
+    ax.plot(gen_hist.history['val_loss'], '-', color='blue', label='Validation loss')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
     ax.legend()
-    fig.savefig(os.path.join(OUTPUT_PATH, 'training_%s.png'%(gen_fn.__name__)))
+    fig.savefig(os.path.join(OUTPUT_PATH, 'gen_training_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
     printl('\tPlotting some power traces...')
     t1 = time.time()
+    correlation_coefficients = []
     for i in [0, 500, 1000, 1500, 2000]:
         x = tf.expand_dims(traces_test[i], axis=0)
         y = tf.expand_dims(ap_test[i], axis=0)
@@ -184,18 +218,36 @@ for gen_fn in [FourierGenerator]:
             visible_trace = gen.predict([y, x, times_e])
         else:
             visible_trace = gen.predict([y, x])
-        (fig, ax) = plt.subplots(1, 2, sharey=True)
-        ax[0].plot(tf.squeeze(x), '.', color='blue')
+        x = traces_test[i]
+        x -= np.mean(x)
+        x /= np.std(x)
+        x = np.squeeze(x)
+        visible_trace -= np.mean(visible_trace)
+        visible_trace /= np.std(visible_trace)
+        visible_trace = np.squeeze(visible_trace)
+        res = linregress(x, visible_trace)
+        correlation_coefficients.append(res.rvalue)
+        lin_approx = res.slope*x+res.intercept
+        diff = visible_trace-lin_approx
+        (fig, ax) = plt.subplots(1, 4, sharey=True, figsize=(20, 5))
+        ax[0].plot(x, '.', color='blue', markersize=.5)
         ax[0].set_title('Original trace')
         ax[0].set_xlabel('Time')
         ax[0].set_ylabel('Magnitude')
-        ax[1].plot(tf.squeeze(visible_trace), '.', color='blue')
+        ax[1].plot(visible_trace, '.', color='blue', markersize=.5)
         ax[1].set_title('Visible trace')
         ax[1].set_xlabel('Time')
+        ax[2].plot(lin_approx, '.', color='blue', markersize=.5)
+        ax[2].set_xlabel('Time')
+        ax[2].set_title('Linear approximation')
+        ax[3].plot(diff, '.', color='blue', markersize=.5)
+        ax[3].set_title('Error')
+        ax[3].set_xlabel('Time')
+        plt.tight_layout()
         fig.savefig(os.path.join(OUTPUT_PATH, 'traces_%s_%d.svg'%(gen_fn.__name__, i)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
-    printl('\tEvaluating model performance...')
+    printl('\tEvaluating model performance with untrained discriminator...')
     t1 = time.time()
     confusion_matrix = np.zeros((256, 256))
     n_correct = 0
@@ -218,17 +270,70 @@ for gen_fn in [FourierGenerator]:
     ax.set_xlabel('Correct attack point')
     ax.set_ylabel('Predicted attack point')
     plt.colorbar(img, ax=ax)
-    fig.savefig(os.path.join(OUTPUT_PATH, 'performance_%s.png'%(gen_fn.__name__)))
+    fig.savefig(os.path.join(OUTPUT_PATH, 'gen_performance_%s.png'%(gen_fn.__name__)))
+    printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
+    
+    printl('\tRetraining discriminator on protected trace...')
+    t1 = time.time()
+    disc_.trainable = True
+    gen.trainable = False
+    mdl.compile(loss=CategoricalCrossentropy(),
+                optimizer=Adam(lr=.001))
+    if time_input:
+        disc_hist = mdl.fit([ap_train, traces_train, times], targets_train,
+                validation_data=([ap_test, traces_test, times], targets_test),
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+    else:
+        disc_hist = mdl.fit([ap_train, traces_train], targets_train,
+                validation_data=([ap_test, traces_test], targets_test),
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+    fig = plt.figure()
+    ax = plt.gca()
+    ax.plot(disc_hist.history['loss'], '--', color='blue', label='Training loss')
+    ax.plot(disc_hist.history['val_loss'], '-', color='blue', label='Validation loss')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Loss')
+    ax.legend()
+    fig.savefig(os.path.join(OUTPUT_PATH, 'disc_training_%s.png'%(gen_fn.__name__)))
+    printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
+    
+    printl('\tEvaluating model performance with retrained discriminator...')
+    t1 = time.time()
+    confusion_matrix = np.zeros((256, 256))
+    n_correct = 0
+    for (x, y, key) in zip(traces_test, ap_test, keys_test):
+        x = tf.expand_dims(x, 0)
+        y = tf.expand_dims(y, 0)
+        if time_input:
+            predictions = mdl.predict([y, x, times_e])
+        else:
+            predictions = mdl.predict([y, x])
+        c_preds = from_categorical(predictions)[0]
+        if c_preds==key:
+            n_correct += 1
+        confusion_matrix[key, c_preds] += 1
+    n_correct /= len(traces_test)
+    printl('\t\tProportion of attack points correct: %f.'%(n_correct))
+    fig = plt.figure()
+    ax = plt.gca()
+    img = ax.imshow(confusion_matrix, cmap='plasma', interpolation='nearest', aspect='equal')
+    ax.set_xlabel('Correct attack point')
+    ax.set_ylabel('Predicted attack point')
+    plt.colorbar(img, ax=ax)
+    fig.savefig(os.path.join(OUTPUT_PATH, 'disc_performance_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
     results = {
-        'loss': history.history['loss'],
-        'validation loss': history.history['val_loss'],
+        'initial discriminator history': disc_init_hist.history,
+        'generator history': gen_hist.history,
+        'discriminator history': disc_hist.history,
         'confusion matrix': confusion_matrix,
-        'accuracy': n_correct}
+        'accuracy': n_correct,
+        'correlation coefficients': correlation_coefficients}
     with open(os.path.join(OUTPUT_PATH, 'results_%s.pickle'%(gen_fn.__name__)), 'wb') as F:
         pickle.dump(results, F)
     gen.save(os.path.join(OUTPUT_PATH, 'generator_%s'%(gen_fn.__name__)))
+    disc_.save(os.path.join(OUTPUT_PATH, 'discriminator_%s'%(gen_fn.__name__)))
     
     printl('\tDone with trial. Time taken: %f seconds.'%(time.time()-t0))
     

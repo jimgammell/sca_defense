@@ -1,0 +1,22 @@
+Results will be stored in /local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-1-20_12-43-29.
+Generating training data...
+	Done. Time taken: 51.091047 seconds.
+Generating test data...
+	Done. Time taken: 50.440053 seconds.
+Creating discriminator...
+Model: "Discriminator"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         [(None, 20000)]           0         
+_________________________________________________________________
+lambda (Lambda)              (None, 20000)             0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 20000)             0         
+_________________________________________________________________
+model (Functional)           (None, 256)               1122388   
+=================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+_________________________________________________________________

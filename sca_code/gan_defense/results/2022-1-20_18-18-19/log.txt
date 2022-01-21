@@ -1,0 +1,176 @@
+Results will be stored in /local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-1-20_18-18-19.
+Generating training data...
+	Done. Time taken: 51.106724 seconds.
+Generating test data...
+	Done. Time taken: 50.596866 seconds.
+Creating discriminator...
+Model: "Discriminator"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         [(None, 20000)]           0         
+_________________________________________________________________
+lambda (Lambda)              (None, 20000)             0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 20000)             0         
+_________________________________________________________________
+model (Functional)           (None, 256)               1122388   
+=================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+_________________________________________________________________
+	Done. Time taken: 7.710929 seconds.
+Training modified discriminator...
+	Done. Time taken: 211.371662 seconds.
+Beginning trial with IdentityGenerator generator.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_3 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_4 (InputLayer)            [(None, 20000)]      0                                            
+==================================================================================================
+Total params: 0
+Trainable params: 0
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.256398 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_5 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_6 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        0           input_5[0][0]                    
+                                                                 input_6[0][0]                    
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 0.630114 seconds.
+	Training model...
+		Done. Time taken: 80.892821 seconds.
+	Plotting some power traces...
+		Done. Time taken: 9.497276 seconds.
+	Evaluating model performance with untrained discriminator...
+		Proportion of attack points correct: 0.416260.
+		Done. Time taken: 124.809997 seconds.
+	Retraining discriminator on protected trace...
+		Done. Time taken: 186.312001 seconds.
+	Evaluating model performance with retrained discriminator...
+		Proportion of attack points correct: 0.320801.
+		Done. Time taken: 122.799461 seconds.
+	Done with trial. Time taken: 546.810713 seconds.
+Beginning trial with LinearGenerator generator.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_7 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+dense (Dense)                   (None, 20000)        180000      input_7[0][0]                    
+__________________________________________________________________________________________________
+tf.math.sigmoid (TFOpLambda)    (None, 20000)        0           dense[0][0]                      
+__________________________________________________________________________________________________
+lambda_2 (Lambda)               (None, 20000)        0           tf.math.sigmoid[0][0]            
+__________________________________________________________________________________________________
+input_8 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+add (Add)                       (None, 20000)        0           lambda_2[0][0]                   
+                                                                 input_8[0][0]                    
+==================================================================================================
+Total params: 180,000
+Trainable params: 180,000
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.293722 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_9 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_10 (InputLayer)           [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        180000      input_9[0][0]                    
+                                                                 input_10[0][0]                   
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 1,302,388
+Trainable params: 1,293,106
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 0.644048 seconds.
+	Training model...
+		Done. Time taken: 114.688983 seconds.
+	Plotting some power traces...
+		Done. Time taken: 9.349541 seconds.
+	Evaluating model performance with untrained discriminator...
+		Proportion of attack points correct: 0.003418.
+		Done. Time taken: 125.468236 seconds.
+	Retraining discriminator on protected trace...
+		Done. Time taken: 186.412191 seconds.
+	Evaluating model performance with retrained discriminator...
+		Proportion of attack points correct: 0.057861.
+		Done. Time taken: 126.287934 seconds.
+	Done with trial. Time taken: 584.533722 seconds.
+Beginning trial with Mlp1Generator generator.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_11 (InputLayer)           [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+dense_1 (Dense)                 (None, 64)           576         input_11[0][0]                   
+__________________________________________________________________________________________________
+re_lu (ReLU)                    (None, 64)           0           dense_1[0][0]                    
+__________________________________________________________________________________________________
+dense_2 (Dense)                 (None, 20000)        1300000     re_lu[0][0]                      
+__________________________________________________________________________________________________
+tf.math.sigmoid_1 (TFOpLambda)  (None, 20000)        0           dense_2[0][0]                    
+__________________________________________________________________________________________________
+lambda_3 (Lambda)               (None, 20000)        0           tf.math.sigmoid_1[0][0]          
+__________________________________________________________________________________________________
+input_12 (InputLayer)           [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+add_1 (Add)                     (None, 20000)        0           lambda_3[0][0]                   
+                                                                 input_12[0][0]                   
+==================================================================================================
+Total params: 1,300,576
+Trainable params: 1,300,576
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.322539 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_13 (InputLayer)           [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_14 (InputLayer)           [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        1300576     input_13[0][0]                   
+                                                                 input_14[0][0]                   
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 2,422,964
+Trainable params: 2,413,682
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 0.662060 seconds.
+	Training model...

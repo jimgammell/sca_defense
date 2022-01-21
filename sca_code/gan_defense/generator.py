@@ -11,7 +11,6 @@ def IdentityGenerator():
     trace = trace_inp
     
     generator_model = Model(inputs=[inp, trace_inp], outputs=trace, name='Generator')
-    generator_model.summary()
     return generator_model
 
 def MlpGenerator(layer_sizes=[], min_val=-1, max_val=1):
@@ -31,7 +30,6 @@ def MlpGenerator(layer_sizes=[], min_val=-1, max_val=1):
     lg_output = layers.add([lg_x, lg_trace])
     
     generator_model = Model(inputs=[lg_inp, lg_trace_inp], outputs=lg_output, name='Generator')
-    generator_model.summary()
     return generator_model
 
 def LinearGenerator(min_val=-1, max_val=1):
@@ -60,7 +58,6 @@ def CnnTransposeGenerator(min_val=-1, max_val=1):
     output = layers.add([x, trace])
     
     model = Model(inputs=[inp, trace_inp], outputs=output, name='Generator')
-    model.summary()
     return model
 
 def FourierGenerator(min_val=-1, max_val=1, n_terms=100):
@@ -93,7 +90,7 @@ def FourierGenerator(min_val=-1, max_val=1, n_terms=100):
     
     time_inp = layers.Input(shape=(20000,))
     time = time_inp
-    time = layers.RepeatVector(100)(time)
+    time = layers.RepeatVector(n_terms)(time)
     time = layers.Permute((2, 1))(time)
     
     time = layers.Multiply()([o, time])
@@ -107,6 +104,5 @@ def FourierGenerator(min_val=-1, max_val=1, n_terms=100):
     output = layers.Add()([series, trace])
     
     model = Model(inputs=[inp, trace_inp, time_inp], outputs=output, name='Generator')
-    model.summary()
     return model
     
