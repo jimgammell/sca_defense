@@ -1,7 +1,8 @@
 # To do:
 #   Try using gradient of discriminator in objective of generator
 #   Try minimizing inf-norm of discriminator prediction, rather than magnitude of correct guess
-#   Use early stopping when training networks
+#   Plot discriminator accuracy after each timestep
+#   Train discriminator at beginning of each trial
 
 import os
 import tensorflow as tf
@@ -142,13 +143,17 @@ printl('\tDone. Time taken: %f seconds.'%(time.time()-t1))
 
 printl('Training modified discriminator...')
 t1 = time.time()
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                            patience=5,
+                                            restore_best_weights=True)
 disc.compile(loss=CategoricalCrossentropy(),
              optimizer=Adam(lr=.001))
 disc_init_hist = disc.fit(traces_train, targets_train,
           validation_data=(traces_test, targets_test),
           epochs=N_EPOCHS,
           batch_size=BATCH_SIZE,
-          shuffle=True)
+          shuffle=True,
+          callbacks=[callback])
 fig = plt.figure()
 ax = plt.gca()
 ax.plot(disc_init_hist.history['loss'], '--', color='blue', label='Training loss')
@@ -188,16 +193,21 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     t1 = time.time()
     disc_.trainable = False
     gen.trainable = True
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                patience=5,
+                                                restore_best_weights=True)
     mdl.compile(loss=negative_ccc,
                 optimizer=Adam(lr=.001))
     if time_input:
         gen_hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
     else:
         gen_hist = mdl.fit([ap_train, traces_train], targets_train,
                 validation_data=([ap_test, traces_test], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
     fig = plt.figure()
     ax = plt.gca()
     ax.plot(gen_hist.history['loss'], '--', color='blue', label='Training loss')
@@ -229,7 +239,7 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
         correlation_coefficients.append(res.rvalue)
         lin_approx = res.slope*x+res.intercept
         diff = visible_trace-lin_approx
-        (fig, ax) = plt.subplots(1, 4, sharey=True, figsize=(20, 5))
+        (fig, ax) = plt.subplots(1, 3, sharey=True, figsize=(15, 5))
         ax[0].plot(x, '.', color='blue', markersize=.5)
         ax[0].set_title('Original trace')
         ax[0].set_xlabel('Time')
@@ -237,12 +247,9 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
         ax[1].plot(visible_trace, '.', color='blue', markersize=.5)
         ax[1].set_title('Visible trace')
         ax[1].set_xlabel('Time')
-        ax[2].plot(lin_approx, '.', color='blue', markersize=.5)
+        ax[2].plot(visible_trace-x, color='blue', markersize=.5)
         ax[2].set_xlabel('Time')
-        ax[2].set_title('Linear approximation')
-        ax[3].plot(diff, '.', color='blue', markersize=.5)
-        ax[3].set_title('Error')
-        ax[3].set_xlabel('Time')
+        ax[2].set_title('Difference')
         plt.tight_layout()
         fig.savefig(os.path.join(OUTPUT_PATH, 'traces_%s_%d.svg'%(gen_fn.__name__, i)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
@@ -277,16 +284,21 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     t1 = time.time()
     disc_.trainable = True
     gen.trainable = False
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                patience=5,
+                                                restore_best_weights=True)
     mdl.compile(loss=CategoricalCrossentropy(),
                 optimizer=Adam(lr=.001))
     if time_input:
         disc_hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
     else:
         disc_hist = mdl.fit([ap_train, traces_train], targets_train,
                 validation_data=([ap_test, traces_test], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE)
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
     fig = plt.figure()
     ax = plt.gca()
     ax.plot(disc_hist.history['loss'], '--', color='blue', label='Training loss')
