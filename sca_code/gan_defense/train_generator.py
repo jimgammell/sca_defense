@@ -1,8 +1,6 @@
 # To do:
 #   Try using gradient of discriminator in objective of generator
 #   Try minimizing inf-norm of discriminator prediction, rather than magnitude of correct guess
-#   Plot discriminator accuracy after each timestep
-#   Train discriminator at beginning of each trial
 
 import os
 import tensorflow as tf
@@ -134,43 +132,16 @@ from scipy.stats import linregress
 from keras.utils.layer_utils import count_params
 from keras.optimizers import Adam
 
-printl('Creating discriminator...')
-t1 = time.time()
-disc = NormalizedDiscriminator(0, 'sub_bytes_in')
-disc.summary(print_fn=printl)
-plot_model(disc, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'discriminator_model.png'))
-printl('\tDone. Time taken: %f seconds.'%(time.time()-t1))
-
-printl('Training modified discriminator...')
-t1 = time.time()
-callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                            patience=5,
-                                            restore_best_weights=True)
-disc.compile(loss=CategoricalCrossentropy(),
-             optimizer=Adam(lr=.001))
-disc_init_hist = disc.fit(traces_train, targets_train,
-          validation_data=(traces_test, targets_test),
-          epochs=N_EPOCHS,
-          batch_size=BATCH_SIZE,
-          shuffle=True,
-          callbacks=[callback])
-fig = plt.figure()
-ax = plt.gca()
-ax.plot(disc_init_hist.history['loss'], '--', color='blue', label='Training loss')
-ax.plot(disc_init_hist.history['val_loss'], '-', color='blue', label='Validation loss')
-ax.set_xlabel('Epoch')
-ax.set_ylabel('Loss')
-ax.legend()
-fig.savefig(os.path.join(OUTPUT_PATH, 'training_discini.png'))
-disc.save(os.path.join(OUTPUT_PATH, 'initial_discriminator'))
-printl('\tDone. Time taken: %f seconds.'%(time.time()-t1))
-
 for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator]:
     printl('Beginning trial with %s generator.'%(gen_fn.__name__))
     t0 = time.time()
     
-    disc_ = keras.models.clone_model(disc)
-    disc_.set_weights(disc.get_weights())
+    printl('\tCreating discriminator...')
+    t1 = time.time()
+    disc = NormalizedDiscriminator(0, 'sub_bytes_in')
+    disc.summary(print_fn=printl)
+    plot_model(disc, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'discriminator_model_%s.png'%(gen_fn.__name__)))
+    printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
     printl('\tCreating generator...')
     t1 = time.time()
@@ -182,22 +153,59 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     printl('\tCreating cumulative model...')
     t1 = time.time()
     time_input = gen_fn==FourierGenerator
-    mdl = cumulative_model(disc_, gen, time_input=time_input)
+    mdl = cumulative_model(disc, gen, time_input=time_input)
     mdl.summary(print_fn=printl)
     def negative_ccc(y_true, y_pred):
         return -CategoricalCrossentropy()(y_true, y_pred)
     plot_model(mdl, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'cumulative_model_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
-    
-    printl('\tTraining model...')
+               
+    printl('\tTraining modified discriminator...')
     t1 = time.time()
-    disc_.trainable = False
+    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                patience=5)
+    disc.trainable = True
+    gen.trainable = False
+    mdl.compile(loss=CategoricalCrossentropy(),
+                optimizer=Adam(lr=.001),
+                metrics=['accuracy'])
+    if time_input:
+        disc_init_hist = mdl.fit([ap_train, traces_train, times], targets_train,
+                validation_data=([ap_test, traces_test, times], targets_test),
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
+    else:
+        disc_init_hist = mdl.fit([ap_train, traces_train], targets_train,
+                validation_data=([ap_test, traces_test], targets_test),
+                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                callbacks=[callback])
+    fig = plt.figure()
+    ax = plt.gca()
+    ax.plot(disc_init_hist.history['loss'], '--', color='blue', label='Training loss')
+    ax.plot(disc_init_hist.history['val_loss'], '-', color='blue', label='Validation loss')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Loss')
+    ax.legend()
+    tax = ax.twinx()
+    tax.plot(disc_init_hist.history['accuracy'], '--', color='red', label='Training accuracy')
+    tax.plot(disc_init_hist.history['val_accuracy'], '-', color='red', label='Validation accuracy')
+    tax.plot(np.ones(len(disc_init_hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
+    tax.legend()
+    tax.set_ylabel('Accuracy (proportion)')
+    tax.set_ylim([0, 1])
+    fig.savefig(os.path.join(OUTPUT_PATH, 'training_discini_%s.png'%(gen_fn.__name__)))
+    disc.save(os.path.join(OUTPUT_PATH, 'initial_discriminator_%s'%(gen_fn.__name__)))
+    printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
+    
+    printl('\tTraining generator...')
+    t1 = time.time()
+    disc.trainable = False
     gen.trainable = True
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                patience=5,
-                                                restore_best_weights=True)
+                                                patience=5)
     mdl.compile(loss=negative_ccc,
-                optimizer=Adam(lr=.001))
+                optimizer=Adam(lr=.001),
+                metrics=['accuracy'])
     if time_input:
         gen_hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
@@ -215,6 +223,13 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
     ax.legend()
+    tax = ax.twinx()
+    tax.plot(gen_hist.history['accuracy'], '--', color='red', label='Training accuracy')
+    tax.plot(gen_hist.history['val_accuracy'], '-', color='red', label='Test accuracy')
+    tax.legend()
+    tax.set_ylabel('Accuracy (proportion)')
+    tax.set_ylim([0, 1])    
+    tax.plot(np.ones(len(disc_init_hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
     fig.savefig(os.path.join(OUTPUT_PATH, 'gen_training_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
@@ -235,10 +250,6 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
         visible_trace -= np.mean(visible_trace)
         visible_trace /= np.std(visible_trace)
         visible_trace = np.squeeze(visible_trace)
-        res = linregress(x, visible_trace)
-        correlation_coefficients.append(res.rvalue)
-        lin_approx = res.slope*x+res.intercept
-        diff = visible_trace-lin_approx
         (fig, ax) = plt.subplots(1, 3, sharey=True, figsize=(15, 5))
         ax[0].plot(x, '.', color='blue', markersize=.5)
         ax[0].set_title('Original trace')
@@ -247,7 +258,7 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
         ax[1].plot(visible_trace, '.', color='blue', markersize=.5)
         ax[1].set_title('Visible trace')
         ax[1].set_xlabel('Time')
-        ax[2].plot(visible_trace-x, color='blue', markersize=.5)
+        ax[2].plot(visible_trace-x, '.', color='blue', markersize=.5)
         ax[2].set_xlabel('Time')
         ax[2].set_title('Difference')
         plt.tight_layout()
@@ -282,13 +293,13 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     
     printl('\tRetraining discriminator on protected trace...')
     t1 = time.time()
-    disc_.trainable = True
+    disc.trainable = True
     gen.trainable = False
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                patience=5,
-                                                restore_best_weights=True)
+                                                patience=5)
     mdl.compile(loss=CategoricalCrossentropy(),
-                optimizer=Adam(lr=.001))
+                optimizer=Adam(lr=.001),
+                metrics=['accuracy'])
     if time_input:
         disc_hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
@@ -306,6 +317,13 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
     ax.legend()
+    tax = ax.twinx()
+    tax.plot(disc_hist.history['accuracy'], '--', color='red', label='Training accuracy')
+    tax.plot(disc_hist.history['val_accuracy'], '-', color='red', label='Validation accuracy')
+    tax.set_ylabel('Accuracy (proportion)')
+    tax.set_ylim([0, 1])
+    tax.plot(np.ones(len(disc_init_hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
+    tax.legend()
     fig.savefig(os.path.join(OUTPUT_PATH, 'disc_training_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
@@ -340,12 +358,12 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
         'generator history': gen_hist.history,
         'discriminator history': disc_hist.history,
         'confusion matrix': confusion_matrix,
-        'accuracy': n_correct,
-        'correlation coefficients': correlation_coefficients}
+        'accuracy': n_correct}
     with open(os.path.join(OUTPUT_PATH, 'results_%s.pickle'%(gen_fn.__name__)), 'wb') as F:
         pickle.dump(results, F)
     gen.save(os.path.join(OUTPUT_PATH, 'generator_%s'%(gen_fn.__name__)))
-    disc_.save(os.path.join(OUTPUT_PATH, 'discriminator_%s'%(gen_fn.__name__)))
+    disc.save(os.path.join(OUTPUT_PATH, 'discriminator_%s'%(gen_fn.__name__)))
+    plt.close('all')
     
     printl('\tDone with trial. Time taken: %f seconds.'%(time.time()-t0))
     
