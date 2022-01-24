@@ -1,0 +1,140 @@
+Results will be stored in /local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-1-22_13-55-53.
+Generating training data...
+	Done. Time taken: 52.543595 seconds.
+Generating test data...
+	Done. Time taken: 51.011065 seconds.
+Beginning trial with IdentityGenerator generator.
+	Creating discriminator...
+Model: "Discriminator"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         [(None, 20000)]           0         
+_________________________________________________________________
+lambda (Lambda)              (None, 20000)             0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 20000)             0         
+_________________________________________________________________
+model (Functional)           (None, 256)               1122388   
+=================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+_________________________________________________________________
+		Done. Time taken: 8.265873 seconds.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_3 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_4 (InputLayer)            [(None, 20000)]      0                                            
+==================================================================================================
+Total params: 0
+Trainable params: 0
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.155126 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_5 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_6 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        0           input_5[0][0]                    
+                                                                 input_6[0][0]                    
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 0.526852 seconds.
+	Training modified discriminator...
+		Done. Time taken: 276.815121 seconds.
+	Training generator...
+		Done. Time taken: 181.157393 seconds.
+	Plotting some power traces...
+		Done. Time taken: 1.430947 seconds.
+	Retraining discriminator on protected trace...
+		Done. Time taken: 271.001445 seconds.
+	Done with trial. Time taken: 739.488106 seconds.
+Beginning trial with LinearGenerator generator.
+	Creating discriminator...
+Model: "Discriminator"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         [(None, 20000)]           0         
+_________________________________________________________________
+lambda (Lambda)              (None, 20000)             0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 20000)             0         
+_________________________________________________________________
+model (Functional)           (None, 256)               1122388   
+=================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+_________________________________________________________________
+		Done. Time taken: 8.371457 seconds.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_3 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+dense (Dense)                   (None, 20000)        180000      input_3[0][0]                    
+__________________________________________________________________________________________________
+lambda_2 (Lambda)               (None, 20000)        0           dense[0][0]                      
+__________________________________________________________________________________________________
+lambda_3 (Lambda)               (None, 20000)        0           lambda_2[0][0]                   
+__________________________________________________________________________________________________
+lambda_4 (Lambda)               (None, 20000)        0           lambda_3[0][0]                   
+__________________________________________________________________________________________________
+input_4 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+add (Add)                       (None, 20000)        0           lambda_4[0][0]                   
+                                                                 input_4[0][0]                    
+==================================================================================================
+Total params: 180,000
+Trainable params: 180,000
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.310609 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_5 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_6 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        180000      input_5[0][0]                    
+                                                                 input_6[0][0]                    
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 1,302,388
+Trainable params: 1,293,106
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 1.250440 seconds.
+	Training modified discriminator...
+		Done. Time taken: 274.476502 seconds.
+	Training generator...
+		Done. Time taken: 205.490993 seconds.
+	Plotting some power traces...
+		Done. Time taken: 1.613920 seconds.
+	Retraining discriminator on protected trace...
+		Done. Time taken: 271.776065 seconds.
+	Done with trial. Time taken: 763.432265 seconds.
+Beginning trial with Mlp1Generator generator.
+	Creating discriminator...

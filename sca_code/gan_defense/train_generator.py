@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_PATH,
     '%d-%d-%d_%d-%d-%d'%(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 assert not(os.path.exists(OUTPUT_PATH))
 os.makedirs(OUTPUT_PATH) # Folder within results folder in which output of this trial will be stored
-N_EPOCHS = 2 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
+N_EPOCHS = 100 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
 BATCH_SIZE = 32 # Number of trace/AP pairs per batch during training
 
 # Function to be used in place of print -- prints both to the terminal and to a log file
@@ -52,22 +52,22 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     
     # Train either the generator or discriminator for 100 epochs or until validation loss does not improve for 5 epochs -- whichever comes first
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                patience=5)
+                                                patience=5 if not(time_input and gen_trainable) else 20)
     disc.trainable = disc_trainable
     gen.trainable = gen_trainable
     if disc_trainable:
         loss = CategoricalCrossentropy()
     else:  
-        def negative_ccc(y_true, y_pred):
+        def negative_cce(y_true, y_pred):
             return -CategoricalCrossentropy()(y_true, y_pred)
-        loss = negative_vvv
+        loss = negative_cce
     mdl.compile(loss=loss,
                 optimizer=Adam(lr=.001),
                 metrics=['accuracy'])
     if time_input:
         hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
+                shuffle=True, epochs=(5*N_EPOCHS if gen_trainable else N_EPOCHS), batch_size=BATCH_SIZE,
                 callbacks=[callback])
     else:
         hist = mdl.fit([ap_train, traces_train], targets_train,
@@ -78,15 +78,15 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     # Plot the training/validation loss/accuracy during training
     t_fig = plt.figure()
     ax = plt.gca()
-    ax.plot(disc_init_hist.history['loss'], '--', color='blue', label='Training loss')
-    ax.plot(disc_init_hist.history['val_loss'], '-', color='blue', label='Validation loss')
+    ax.plot(hist.history['loss'], '--', color='blue', label='Training loss')
+    ax.plot(hist.history['val_loss'], '-', color='blue', label='Validation loss')
     ax.set_xlabel('Epoch')
     ax.set_ylabel('Loss')
     ax.legend()
     tax = ax.twinx()
-    tax.plot(disc_init_hist.history['accuracy'], '--', color='red', label='Training accuracy')
-    tax.plot(disc_init_hist.history['val_accuracy'], '-', color='red', label='Validation accuracy')
-    tax.plot(np.ones(len(disc_init_hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
+    tax.plot(hist.history['accuracy'], '--', color='red', label='Training accuracy')
+    tax.plot(hist.history['val_accuracy'], '-', color='red', label='Validation accuracy')
+    tax.plot(np.ones(len(hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
     tax.legend()
     tax.set_ylabel('Accuracy (proportion)')
     tax.set_ylim([0, 1])
@@ -104,7 +104,7 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
         c_preds = from_categorical(predictions)[0]
         if c_preds==key:
             n_correct += 1
-        disc_confusion_matrix[key, c_preds] += 1
+        confusion_matrix[key, c_preds] += 1
     n_correct /= len(traces_test)
     cm_fig = plt.figure()
     ax = plt.gca()
@@ -266,7 +266,7 @@ for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator,
     t1 = time.time()
     traces = {}
     for i in [0, 500, 1000, 1500, 2000]:
-        traces[i].append({})
+        traces[i] = {}
         x = tf.expand_dims(traces_test[i], axis=0)
         y = tf.expand_dims(ap_test[i], axis=0)
         if time_input:

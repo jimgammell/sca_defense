@@ -25,8 +25,10 @@ def MlpGenerator(layer_sizes=[], min_val=-1, max_val=1):
         lg_x = layers.ReLU()(lg_x)
     
     lg_x = layers.Dense(20000)(lg_x)
-    lg_x = activations.sigmoid(lg_x)
-    lg_x = layers.Lambda(lambda x: (max_val-min_val)*x+min_val)(lg_x)
+    lg_x = layers.Lambda(lambda x: x-.5*(tf.reduce_max(x)+tf.reduce_min(x)))(lg_x)
+    lg_x = layers.Lambda(lambda x: .5*(max_val-min_val)*x/tf.reduce_max(x))(lg_x)
+    lg_x = layers.Lambda(lambda x: x+.5*(max_val+min_val))(lg_x)
+    
     lg_output = layers.add([lg_x, lg_trace])
     
     generator_model = Model(inputs=[lg_inp, lg_trace_inp], outputs=lg_output, name='Generator')
@@ -53,8 +55,10 @@ def CnnTransposeGenerator(min_val=-1, max_val=1):
     x = layers.ReLU()(x)
     x = layers.Conv1DTranspose(20, 3, strides=5)(x)
     x = layers.Flatten()(x)
-    x = activations.sigmoid(x)
-    x = layers.Lambda(lambda x: (max_val-min_val)*x+min_val)(x)
+    x = layers.Lambda(lambda x: x-.5*(tf.reduce_max(x)+tf.reduce_min(x)))(x)
+    x = layers.Lambda(lambda x: .5*(max_val-min_val)*x/tf.reduce_max(x))(x)
+    x = layers.Lambda(lambda x: x+.5*(max_val+min_val))(x)
+    
     output = layers.add([x, trace])
     
     model = Model(inputs=[inp, trace_inp], outputs=output, name='Generator')
@@ -77,7 +81,7 @@ def FourierGenerator(min_val=-1, max_val=1, n_terms=100):
     ox = layers.ReLU()(ox)
     o = layers.Dense(n_terms)(ox)
     o = activations.sigmoid(o)
-    o = layers.Lambda(lambda x: 2*np.pi*x)(o)
+    o = layers.Lambda(lambda x: 2*np.pi*x-np.pi)(o)
     o = layers.RepeatVector(20000)(o)
     
     # Phases
@@ -98,8 +102,9 @@ def FourierGenerator(min_val=-1, max_val=1, n_terms=100):
     series = layers.Lambda(lambda x:sin(x))(time)
     series = layers.Multiply()([c, series])
     series = layers.Lambda(lambda x: tf.math.reduce_sum(x, axis=-1))(series)
-    series = activations.sigmoid(series)
-    series = layers.Lambda(lambda x: (max_val-min_val)*x+min_val)(series)
+    series = layers.Lambda(lambda x: x-.5*(tf.reduce_max(x)+tf.reduce_min(x)))(series)
+    series = layers.Lambda(lambda x: .5*(max_val-min_val)*x/tf.reduce_max(x))(series)
+    series = layers.Lambda(lambda x: x+.5*(max_val+min_val))(series)
     
     output = layers.Add()([series, trace])
     
