@@ -59,7 +59,8 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
         loss = CategoricalCrossentropy()
     else:  
         def negative_cce(y_true, y_pred):
-            return -CategoricalCrossentropy()(y_true, y_pred)
+            #return -CategoricalCrossentropy()(y_true, y_pred)
+            return tf.norm(y_pred, ord=np.inf)
         loss = negative_cce
     mdl.compile(loss=loss,
                 optimizer=Adam(lr=.001),
