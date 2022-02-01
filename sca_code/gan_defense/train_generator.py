@@ -46,31 +46,28 @@ def int_to_ohbinary(y_int):
     y = tf.stack(y, axis=0)
     return y
 
+    
+def gen_cost(y_true, y_pred, d_grads):
+    return tf.norm(d_grads, ord=2)
+def disc_cost(y_true, y_pred):
+    return CategoricalCrossentropy()(y_true, y_pred)
+
 # Function to train one part of the cumulative model
 def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     assert disc_trainable != gen_trainable
     
-    def gen_cost(y_true, y_pred):
-        return tf.norm(y_pred, ord=np.inf)
-    def disc_cost(y_true, y_pred):
-        return CategoricalCrossentropy()(y_true, y_pred)
-    
-    # Train either the generator or discriminator for 100 epochs or until validation loss does not improve for 5 epochs -- whichever comes first
-    #callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy',
-    #                                            patience=100,
-    #                                            restore_best_weights=False)
-    disc.trainable = disc_trainable
-    gen.trainable = gen_trainable
-    printl('Disc trainable: %s. Gen trainable: %s.'%(disc_trainable, gen_trainable))
     if disc_trainable:
-        loss = disc_cost
         optimizer = Adam(lr=.001)
     else:  
-        loss = gen_cost
         optimizer = Adam(lr=.0001)
-    mdl.compile(loss=loss,
-                optimizer=optimizer,
-                metrics=['categorical_accuracy', gen_cost, disc_cost])
+    mdl.training_disc = disc_trainable
+    mdl.training_gen = gen_trainable
+    mdl.compile(optimizer=optimizer,
+                loss=disc_cost,
+                metrics=['categorical_crossentropy',
+                         'disc_cost'])
+    printl('Disc trainable: %s. Gen trainable: %s.'%(disc_trainable, gen_trainable))
+
     if time_input:
         print('Training with provided time vector.')
         hist = mdl.fit([ap_train, traces_train, times], targets_train,
@@ -85,6 +82,7 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
                 shuffle=True, epochs=N_EPOCHS, 
                 batch_size=BATCH_SIZE, verbose=2)
                 #callbacks=[callback], verbose=2)
+    hist['gen_cost'] = mdl.gen_loss_list
     
     # Plot the training/validation loss/accuracy during training
     t_fig = plt.figure()
@@ -101,17 +99,6 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     tax.legend()
     tax.set_ylabel('Accuracy (proportion)')
     tax.set_ylim([0, 1])
-    
-    acc1 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=1)
-    acc16 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=16)
-    acc32 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=32)
-    acc64 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=64)
-    acc128 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=128)
-    printl('Keras-computed evaluation with batch size 1: {}.'.format(acc1))
-    printl('Keras-computed evaluation with batch size 16: {}.'.format(acc16))
-    printl('Keras-computed evaluation with batch size 32: {}.'.format(acc32))
-    printl('Keras-computed evaluation with batch size 64: {}.'.format(acc64))
-    printl('Keras-computed evaluation with batch size 128: {}.'.format(acc128))
     
     # Print confusion matrix of discriminator on generator-produced traces
     confusion_matrix = np.zeros((256, 256))
@@ -262,10 +249,8 @@ for gen_fn in [Mlp3Generator]:#[IdentityGenerator, LinearGenerator, Mlp1Generato
     printl('\tCreating cumulative model...')
     t1 = time.time()
     time_input = gen_fn==FourierGenerator
-    mdl = cumulative_model(disc, gen, time_input=time_input)
+    mdl = cumulative_model(disc, gen, disc_cost, gen_cost, time_input=time_input)
     mdl.summary(print_fn=printl)
-    def negative_ccc(y_true, y_pred):
-        return -CategoricalCrossentropy()(y_true, y_pred)
     plot_model(mdl, show_shapes=True, to_file=os.path.join(OUTPUT_PATH, 'cumulative_model_%s.png'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
