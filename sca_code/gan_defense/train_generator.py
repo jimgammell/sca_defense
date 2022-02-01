@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_PATH,
     '%d-%d-%d_%d-%d-%d'%(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 assert not(os.path.exists(OUTPUT_PATH))
 os.makedirs(OUTPUT_PATH) # Folder within results folder in which output of this trial will be stored
-N_EPOCHS = 100 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
+N_EPOCHS = 2 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
 BATCH_SIZE = 32 # Number of trace/AP pairs per batch during training
 
 # Function to be used in place of print -- prints both to the terminal and to a log file
@@ -48,7 +48,7 @@ def int_to_ohbinary(y_int):
 
     
 def gen_cost(y_true, y_pred, d_grads):
-    return tf.norm(d_grads, ord=2)
+    return tf.norm(d_grads)
 def disc_cost(y_true, y_pred):
     return CategoricalCrossentropy()(y_true, y_pred)
 
@@ -63,9 +63,8 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     mdl.training_disc = disc_trainable
     mdl.training_gen = gen_trainable
     mdl.compile(optimizer=optimizer,
-                loss=disc_cost,
-                metrics=['categorical_crossentropy',
-                         'disc_cost'])
+                loss=None,
+                metrics=['categorical_accuracy', disc_cost])
     printl('Disc trainable: %s. Gen trainable: %s.'%(disc_trainable, gen_trainable))
 
     if time_input:
@@ -73,7 +72,7 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
         hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
                 shuffle=True, epochs=(5*N_EPOCHS if gen_trainable else N_EPOCHS),
-                       batch_size=BATCH_SIZE, verbose=2)
+                batch_size=BATCH_SIZE, verbose=2)
                 #callbacks=[callback], verbose=2)
     else:
         print('Training with no provided time vector.')
@@ -82,23 +81,6 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
                 shuffle=True, epochs=N_EPOCHS, 
                 batch_size=BATCH_SIZE, verbose=2)
                 #callbacks=[callback], verbose=2)
-    hist['gen_cost'] = mdl.gen_loss_list
-    
-    # Plot the training/validation loss/accuracy during training
-    t_fig = plt.figure()
-    ax = plt.gca()
-    ax.plot(hist.history['loss'], '--', color='blue', label='Training loss')
-    ax.plot(hist.history['val_loss'], '-', color='blue', label='Validation loss')
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Loss')
-    ax.legend()
-    tax = ax.twinx()
-    tax.plot(hist.history['categorical_accuracy'], '--', color='red', label='Training accuracy')
-    tax.plot(hist.history['val_categorical_accuracy'], '-', color='red', label='Validation accuracy')
-    tax.plot(np.ones(len(hist.history['categorical_accuracy']))/256, '--', color='black', label='Baseline: 1/256')
-    tax.legend()
-    tax.set_ylabel('Accuracy (proportion)')
-    tax.set_ylim([0, 1])
     
     # Print confusion matrix of discriminator on generator-produced traces
     confusion_matrix = np.zeros((256, 256))
@@ -115,17 +97,9 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
         confusion_matrix[key, c_preds] += 1
     n_correct /= len(traces_test)
     printl('Done evaluating network. Proportion correct: %f.'%(n_correct))
-    cm_fig = plt.figure()
-    ax = plt.gca()
-    img = ax.imshow(confusion_matrix, cmap='plasma', interpolation='nearest', aspect='equal')
-    ax.set_xlabel('Correct attack point')
-    ax.set_ylabel('Predicted attack point')
-    plt.colorbar(img, ax=ax)
     
     return {'history': hist.history,
-            'confusion matrix': confusion_matrix,
-            'training figure': t_fig,
-            'confusion matrix figure': cm_fig}
+            'confusion matrix': confusion_matrix}
 
 printl('Results will be stored in %s.'%(OUTPUT_PATH))
 
@@ -258,10 +232,6 @@ for gen_fn in [Mlp3Generator]:#[IdentityGenerator, LinearGenerator, Mlp1Generato
     printl('\tTraining modified discriminator...')
     t1 = time.time()
     discini_data = train_model(mdl, disc, gen, True, False, time_input)
-    discini_data['training figure'].savefig(os.path.join(OUTPUT_PATH, 'training_discini_%s.png'%(gen_fn.__name__)))
-    del discini_data['training figure']
-    discini_data['confusion matrix figure'].savefig(os.path.join(OUTPUT_PATH, 'performance_discini_%s.png'%(gen_fn.__name__)))
-    del discini_data['confusion matrix figure']
     disc.save(os.path.join(OUTPUT_PATH, 'initial_discriminator_%s'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
@@ -269,10 +239,6 @@ for gen_fn in [Mlp3Generator]:#[IdentityGenerator, LinearGenerator, Mlp1Generato
     printl('\tTraining generator...')
     t1 = time.time()
     gen_data = train_model(mdl, disc, gen, False, True, time_input)
-    gen_data['training figure'].savefig(os.path.join(OUTPUT_PATH, 'gen_training_%s.png'%(gen_fn.__name__)))
-    del gen_data['training figure']
-    gen_data['confusion matrix figure'].savefig(os.path.join(OUTPUT_PATH, 'gen_performance_%s.png'%(gen_fn.__name__)))
-    del gen_data['confusion matrix figure']
     gen.save(os.path.join(OUTPUT_PATH, 'generator_%s'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
@@ -297,29 +263,12 @@ for gen_fn in [Mlp3Generator]:#[IdentityGenerator, LinearGenerator, Mlp1Generato
         visible_trace = np.squeeze(visible_trace)
         traces[i]['original trace'] = x
         traces[i]['visible trace'] = visible_trace
-        (fig, ax) = plt.subplots(1, 3, sharey=True, figsize=(15, 5))
-        ax[0].plot(x, '.', color='blue', markersize=.5)
-        ax[0].set_title('Original trace')
-        ax[0].set_xlabel('Time')
-        ax[0].set_ylabel('Magnitude')
-        ax[1].plot(visible_trace, '.', color='blue', markersize=.5)
-        ax[1].set_title('Visible trace')
-        ax[1].set_xlabel('Time')
-        ax[2].plot(visible_trace-x, '.', color='blue', markersize=.5)
-        ax[2].set_xlabel('Time')
-        ax[2].set_title('Difference')
-        plt.tight_layout()
-        fig.savefig(os.path.join(OUTPUT_PATH, 'traces_%s_%d.png'%(gen_fn.__name__, i)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
     # Training the discriminator again on the traces produced by the generator
     printl('\tRetraining discriminator on protected trace...')
     t1 = time.time()
     disc_data = train_model(mdl, disc, gen, True, False, time_input)
-    disc_data['training figure'].savefig(os.path.join(OUTPUT_PATH, 'disc_training_%s.png'%(gen_fn.__name__)))
-    del disc_data['training figure']
-    disc_data['confusion matrix figure'].savefig(os.path.join(OUTPUT_PATH, 'disc_performance_%s.png'%(gen_fn.__name__)))
-    del disc_data['confusion matrix figure']
     disc.save(os.path.join(OUTPUT_PATH, 'discriminator_%s'%(gen_fn.__name__)))
     printl('\t\tDone. Time taken: %f seconds.'%(time.time()-t1))
     
