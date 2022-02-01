@@ -1,0 +1,116 @@
+Results will be stored in /local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-1-31_16-17-34.
+Generating training data...
+	Done. Time taken: 50.911333 seconds.
+Generating test data...
+	Done. Time taken: 50.691939 seconds.
+Keys shape: (4096,).
+Targets shape: (4096, 256).
+Proportion of targets/keys which match: 1.0.
+Beginning trial with Mlp3Generator generator.
+	Creating discriminator...
+Model: "Discriminator"
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         [(None, 20000)]           0         
+_________________________________________________________________
+lambda (Lambda)              (None, 20000)             0         
+_________________________________________________________________
+lambda_1 (Lambda)            (None, 20000)             0         
+_________________________________________________________________
+model (Functional)           (None, 256)               1122388   
+=================================================================
+Total params: 1,122,388
+Trainable params: 1,113,106
+Non-trainable params: 9,282
+_________________________________________________________________
+		Done. Time taken: 7.935050 seconds.
+	Creating generator...
+Model: "Generator"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_3 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+dense (Dense)                   (None, 64)           576         input_3[0][0]                    
+__________________________________________________________________________________________________
+re_lu (ReLU)                    (None, 64)           0           dense[0][0]                      
+__________________________________________________________________________________________________
+dense_1 (Dense)                 (None, 64)           4160        re_lu[0][0]                      
+__________________________________________________________________________________________________
+re_lu_1 (ReLU)                  (None, 64)           0           dense_1[0][0]                    
+__________________________________________________________________________________________________
+dense_2 (Dense)                 (None, 64)           4160        re_lu_1[0][0]                    
+__________________________________________________________________________________________________
+re_lu_2 (ReLU)                  (None, 64)           0           dense_2[0][0]                    
+__________________________________________________________________________________________________
+dense_3 (Dense)                 (None, 20000)        1300000     re_lu_2[0][0]                    
+__________________________________________________________________________________________________
+lambda_2 (Lambda)               (None, 20000)        0           dense_3[0][0]                    
+__________________________________________________________________________________________________
+lambda_3 (Lambda)               (None, 20000)        0           lambda_2[0][0]                   
+__________________________________________________________________________________________________
+lambda_4 (Lambda)               (None, 20000)        0           lambda_3[0][0]                   
+__________________________________________________________________________________________________
+input_4 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+add (Add)                       (None, 20000)        0           lambda_4[0][0]                   
+                                                                 input_4[0][0]                    
+==================================================================================================
+Total params: 1,308,896
+Trainable params: 1,308,896
+Non-trainable params: 0
+__________________________________________________________________________________________________
+		Done. Time taken: 0.226671 seconds.
+	Creating cumulative model...
+Model: "Cumulative_model"
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+input_5 (InputLayer)            [(None, 8)]          0                                            
+__________________________________________________________________________________________________
+input_6 (InputLayer)            [(None, 20000)]      0                                            
+__________________________________________________________________________________________________
+Generator (Functional)          (None, 20000)        1308896     input_5[0][0]                    
+                                                                 input_6[0][0]                    
+__________________________________________________________________________________________________
+Discriminator (Functional)      (None, 256)          1122388     Generator[0][0]                  
+==================================================================================================
+Total params: 2,431,284
+Trainable params: 2,422,002
+Non-trainable params: 9,282
+__________________________________________________________________________________________________
+		Done. Time taken: 0.502567 seconds.
+	Training modified discriminator...
+Disc trainable: True. Gen trainable: False.
+Keras-computed evaluation with batch size 1: [9.524794578552246, 0.27099609375, 0.8120286464691162, 9.524794578552246].
+Keras-computed evaluation with batch size 16: [0.8792808651924133, 0.7998046875, 0.9999892711639404, 0.8792808651924133].
+Keras-computed evaluation with batch size 32: [0.7919085621833801, 0.8154296875, 0.9999989867210388, 0.7919085621833801].
+Keras-computed evaluation with batch size 64: [0.7850407361984253, 0.81787109375, 0.9999998807907104, 0.7850407361984253].
+Keras-computed evaluation with batch size 128: [0.8176408410072327, 0.810791015625, 1.0, 0.8176408410072327].
+Predictions shape: (4096, 256)
+Done evaluating network. Proportion correct: 0.815430.
+		Done. Time taken: 6170.508050 seconds.
+	Training generator...
+Disc trainable: False. Gen trainable: True.
+Keras-computed evaluation with batch size 1: [0.17420418560504913, 0.00439453125, 0.17420418560504913, 26.142955780029297].
+Keras-computed evaluation with batch size 16: [0.281820684671402, 0.00439453125, 0.281820684671402, 25.61309814453125].
+Keras-computed evaluation with batch size 32: [0.3148583173751831, 0.004638671875, 0.3148583173751831, 25.549367904663086].
+Keras-computed evaluation with batch size 64: [0.3431774973869324, 0.003662109375, 0.3431774973869324, 25.5080509185791].
+Keras-computed evaluation with batch size 128: [0.37927207350730896, 0.003662109375, 0.37927207350730896, 25.482763290405273].
+Predictions shape: (4096, 256)
+Done evaluating network. Proportion correct: 0.004639.
+		Done. Time taken: 3852.940834 seconds.
+	Plotting some power traces...
+		Done. Time taken: 1.943821 seconds.
+	Retraining discriminator on protected trace...
+Disc trainable: True. Gen trainable: False.
+Keras-computed evaluation with batch size 1: [4.150425434112549, 0.5322265625, 0.8543463349342346, 4.150425434112549].
+Keras-computed evaluation with batch size 16: [0.9338571429252625, 0.775390625, 0.999984860420227, 0.9338571429252625].
+Keras-computed evaluation with batch size 32: [0.890386700630188, 0.78515625, 0.9999973177909851, 0.890386700630188].
+Keras-computed evaluation with batch size 64: [0.9029178619384766, 0.7841796875, 0.9999996423721313, 0.9029178619384766].
+Keras-computed evaluation with batch size 128: [0.9120248556137085, 0.782958984375, 0.9999999403953552, 0.9120248556137085].
+Predictions shape: (4096, 256)
+Done evaluating network. Proportion correct: 0.785156.
+		Done. Time taken: 6184.324852 seconds.
+	Done with trial. Time taken: 16218.517374 seconds.

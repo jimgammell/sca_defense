@@ -50,31 +50,41 @@ def int_to_ohbinary(y_int):
 def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     assert disc_trainable != gen_trainable
     
+    def gen_cost(y_true, y_pred):
+        return tf.norm(y_pred, ord=np.inf)
+    def disc_cost(y_true, y_pred):
+        return CategoricalCrossentropy()(y_true, y_pred)
+    
     # Train either the generator or discriminator for 100 epochs or until validation loss does not improve for 5 epochs -- whichever comes first
-    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                patience=5 if not(time_input and gen_trainable) else 20)
+    #callback = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy',
+    #                                            patience=100,
+    #                                            restore_best_weights=False)
     disc.trainable = disc_trainable
     gen.trainable = gen_trainable
+    printl('Disc trainable: %s. Gen trainable: %s.'%(disc_trainable, gen_trainable))
     if disc_trainable:
-        loss = CategoricalCrossentropy()
+        loss = disc_cost
+        optimizer = Adam(lr=.001)
     else:  
-        def negative_cce(y_true, y_pred):
-            #return -CategoricalCrossentropy()(y_true, y_pred)
-            return tf.norm(y_pred, ord=np.inf)
-        loss = negative_cce
+        loss = gen_cost
+        optimizer = Adam(lr=.0001)
     mdl.compile(loss=loss,
-                optimizer=Adam(lr=.001),
-                metrics=['accuracy'])
+                optimizer=optimizer,
+                metrics=['categorical_accuracy', gen_cost, disc_cost])
     if time_input:
+        print('Training with provided time vector.')
         hist = mdl.fit([ap_train, traces_train, times], targets_train,
                 validation_data=([ap_test, traces_test, times], targets_test),
-                shuffle=True, epochs=(5*N_EPOCHS if gen_trainable else N_EPOCHS), batch_size=BATCH_SIZE,
-                callbacks=[callback])
+                shuffle=True, epochs=(5*N_EPOCHS if gen_trainable else N_EPOCHS),
+                       batch_size=BATCH_SIZE, verbose=2)
+                #callbacks=[callback], verbose=2)
     else:
+        print('Training with no provided time vector.')
         hist = mdl.fit([ap_train, traces_train], targets_train,
                 validation_data=([ap_test, traces_test], targets_test),
-                shuffle=True, epochs=N_EPOCHS, batch_size=BATCH_SIZE,
-                callbacks=[callback])
+                shuffle=True, epochs=N_EPOCHS, 
+                batch_size=BATCH_SIZE, verbose=2)
+                #callbacks=[callback], verbose=2)
     
     # Plot the training/validation loss/accuracy during training
     t_fig = plt.figure()
@@ -85,28 +95,39 @@ def train_model(mdl, disc, gen, disc_trainable, gen_trainable, time_input):
     ax.set_ylabel('Loss')
     ax.legend()
     tax = ax.twinx()
-    tax.plot(hist.history['accuracy'], '--', color='red', label='Training accuracy')
-    tax.plot(hist.history['val_accuracy'], '-', color='red', label='Validation accuracy')
-    tax.plot(np.ones(len(hist.history['accuracy']))/256, '--', color='black', label='Baseline: 1/256')
+    tax.plot(hist.history['categorical_accuracy'], '--', color='red', label='Training accuracy')
+    tax.plot(hist.history['val_categorical_accuracy'], '-', color='red', label='Validation accuracy')
+    tax.plot(np.ones(len(hist.history['categorical_accuracy']))/256, '--', color='black', label='Baseline: 1/256')
     tax.legend()
     tax.set_ylabel('Accuracy (proportion)')
     tax.set_ylim([0, 1])
     
+    acc1 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=1)
+    acc16 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=16)
+    acc32 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=32)
+    acc64 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=64)
+    acc128 = mdl.evaluate([ap_test, traces_test], targets_test, batch_size=128)
+    printl('Keras-computed evaluation with batch size 1: {}.'.format(acc1))
+    printl('Keras-computed evaluation with batch size 16: {}.'.format(acc16))
+    printl('Keras-computed evaluation with batch size 32: {}.'.format(acc32))
+    printl('Keras-computed evaluation with batch size 64: {}.'.format(acc64))
+    printl('Keras-computed evaluation with batch size 128: {}.'.format(acc128))
+    
     # Print confusion matrix of discriminator on generator-produced traces
     confusion_matrix = np.zeros((256, 256))
     n_correct = 0
-    for (x, y, key) in zip(traces_test, ap_test, keys_test):
-        x = tf.expand_dims(x, 0)
-        y = tf.expand_dims(y, 0)
-        if time_input:
-            predictions = mdl.predict([y, x, times_e])
-        else:
-            predictions = mdl.predict([y, x])
-        c_preds = from_categorical(predictions)[0]
+    if time_input:
+        predictions = mdl.predict([ap_test, traces_test, times_e], batch_size=BATCH_SIZE)
+    else:
+        predictions = mdl.predict([ap_test, traces_test], batch_size=BATCH_SIZE)
+    printl('Predictions shape: {}'.format(predictions.shape))
+    for (prediction, key) in zip(predictions, keys_test):
+        c_preds = np.argmax(prediction)
         if c_preds==key:
             n_correct += 1
         confusion_matrix[key, c_preds] += 1
     n_correct /= len(traces_test)
+    printl('Done evaluating network. Proportion correct: %f.'%(n_correct))
     cm_fig = plt.figure()
     ax = plt.gca()
     img = ax.imshow(confusion_matrix, cmap='plasma', interpolation='nearest', aspect='equal')
@@ -194,6 +215,14 @@ targets_test = tf.squeeze(targets_test)
 keys_test = np.concatenate(keys)
 printl('\tDone. Time taken: %f seconds.'%(time.time()-t0))
 
+printl('Keys shape: {}.'.format(keys_test.shape))
+printl('Targets shape: {}.'.format(targets_test.shape))
+n_matching = 0
+for (key, target) in zip(keys_test, targets_test):
+    if key == np.argmax(target):
+        n_matching += 1
+printl('Proportion of targets/keys which match: {}.'.format(n_matching/len(keys_test)))
+
 from generator import IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator
 from discriminator import NormalizedDiscriminator
 from models import cumulative_model
@@ -209,7 +238,7 @@ from scipy.stats import linregress
 from keras.utils.layer_utils import count_params
 from keras.optimizers import Adam
 
-for gen_fn in [IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator]:
+for gen_fn in [Mlp3Generator]:#[IdentityGenerator, LinearGenerator, Mlp1Generator, Mlp3Generator, CnnTransposeGenerator, FourierGenerator]:
     printl('Beginning trial with %s generator.'%(gen_fn.__name__))
     t0 = time.time()
     
