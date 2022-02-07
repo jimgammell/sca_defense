@@ -18,7 +18,7 @@ OUTPUT_PATH = os.path.join(OUTPUT_PATH,
     '%d-%d-%d_%d-%d-%d'%(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
 assert not(os.path.exists(OUTPUT_PATH))
 os.makedirs(OUTPUT_PATH) # Folder within results folder in which output of this trial will be stored
-N_EPOCHS = 2 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
+N_EPOCHS = 100 # Number of epochs to train for during each phase of trial (initial discriminator training, generator training, discriminator training on generator outputs
 BATCH_SIZE = 32 # Number of trace/AP pairs per batch during training
 
 # Function to be used in place of print -- prints both to the terminal and to a log file

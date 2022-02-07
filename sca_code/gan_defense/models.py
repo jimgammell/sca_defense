@@ -54,6 +54,20 @@ class GanModel(Model):
             assert False
             out = None
         return out
+    def test_step(self, data):
+        x, y = data
+        disc_otp_vars = self.get_layer(name='Discriminator').get_layer(name='model').get_layer(index=-1).trainable_variables
+        with tf.GradientTape(watch_accessed_variables=False) as dtape:
+            dtape.watch(disc_otp_vars)
+            pred = self(x, training=False)
+            dloss = self.disc_cost(y, pred)
+        d_grads_otp = dtape.gradient(dloss, disc_otp_vars)
+        d_grads_otp = tf.concat([tf.reshape(t, [-1]) for t in d_grads_otp], axis=0)
+        gloss = self.gen_cost(y, pred, d_grads_otp)
+        self.compiled_metrics.update_state(y, pred)
+        otp = {m.name: m.result() for m in self.metrics}
+        otp.update({'gen_cost': gloss})
+        return otp
 
 def cumulative_model(discriminator, generator, disc_cost, gen_cost, time_input=False):
     ap_bin_inp = layers.Input(shape=(8,))
