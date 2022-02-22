@@ -1,0 +1,31 @@
+(main): Beginning experiments.
+(main): 	Config path: '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/config/template.json'
+(main): 	Output path: '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-2-21_17-41-50'
+(main): 
+(main): Setting random seed to 1614828151.
+(main): 	Done.
+(main): Loading dataset.
+(datasets): Loading dataset: 'google_scaaml'
+(datasets): 	Number of keys: 16
+(datasets): 	Attack point: 'sub_bytes_in'
+(datasets): 	Byte: 7
+(datasets): 	Trace length: 10000
+(datasets): 	Loading data from '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/datasets/tinyaes/train'
+(datasets): 	Keys to be used:
+(datasets): 		0x11c7cc36e2d3a5ebcf1db6b3f6c290ee
+(datasets): 		0x888e765fec331e1f5d638130641350f
+(datasets): 		0xe506a06d14b9b7b5a3ff85321b55dba1
+(datasets): 		0x56d3cb2ac365d89f211fe0fc63979b3a
+(datasets): 		0x9ec3830fc568c912964052226dd4ebcd
+(datasets): 		0x25caf07f86a5923f08c45bf165014abc
+(datasets): 		0xa55b9202258da88da080f31007829cb4
+(datasets): 		0x8b4bf7928abadb3de2d980de3faa0cad
+(datasets): 		0xa9d2f9d01158a62f168c5b84f696afd8
+(datasets): 		0xe9094ab53304413510c46b460ad263a4
+(datasets): 		0x2ee9f3bc488d00ad29df031b043e55c4
+(datasets): 		0xfdfd2963948c3c7d076c675a1e39749f
+(datasets): 		0x556ba9d263cfe23c5e2be64b406c4164
+(datasets): 		0x36b954fb5f248ad1c950cc3cfe1c8ba6
+(datasets): 		0xdde8fb500596ff8ff4c093b822d42588
+(datasets): 		0x70b086804b30d0259fb4218a6aceea02
+(datasets): 	Constructing dataset.

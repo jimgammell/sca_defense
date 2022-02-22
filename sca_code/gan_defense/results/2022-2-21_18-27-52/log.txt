@@ -1,0 +1,15 @@
+(main): Beginning experiments.
+(main): 	Config path: '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/config/template.json'
+(main): 	Output path: '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/results/2022-2-21_18-27-52'
+(main): 
+(main): Setting random seed to 1609605150.
+(main): 	Done.
+(main): Loading dataset.
+(datasets): Loading dataset: 'google_scaaml'
+(datasets): 	Number of keys: 16
+(datasets): 	Attack point: 'sub_bytes_in'
+(datasets): 	Byte: 7
+(datasets): 	Trace length: 10000
+(datasets): 	Loading data from '/local/scratch/a/jgammell/sca_defense/sca_code/gan_defense/datasets/tinyaes/train'
+(datasets): 	Keys to be used:
+(datasets): 		0x11c7cc36e2d3a5ebcf1db6b3f6c290ee

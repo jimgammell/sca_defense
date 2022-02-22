@@ -1,7 +1,3 @@
-# To do:
-#   Try using gradient of discriminator in objective of generator
-#   Try minimizing inf-norm of discriminator prediction, rather than magnitude of correct guess
-
 import os
 import tensorflow as tf
 import tensorflow.keras as keras
