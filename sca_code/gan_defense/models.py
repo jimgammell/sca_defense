@@ -1,3 +1,4 @@
+import os
 import tqdm
 import numpy as np
 import tensorflow as tf
@@ -55,15 +56,6 @@ class GAN:
         self.discriminator = discriminator
         self.disc_optimizer = disc_optimizer(**disc_optimizer_kwargs)
         self.disc_loss = disc_loss(**disc_loss_kwargs)
-        self.results = {
-            'disc_training_loss': {'epoch': [], 'loss': []},
-            'gen_training_loss': {'epoch': [], 'loss': {key: [] for key in self.generators}},
-            'disc_test_loss': {'epoch': [], 'loss': []},
-            'gen_test_loss': {'epoch': [], 'loss': {key: [] for key in self.generators}},
-            'disc_training_accuracy': {'epoch': [], 'accuracy': []},
-            'gen_training_accuracy': {'epoch': [], 'accuracy': {key: [] for key in self.generators}},
-            'disc_test_accuracy': {'epoch': [], 'accuracy': []},
-            'gen_test_accuracy': {'epoch': [], 'accuracy': {key: [] for key in self.generators}}}
     def gen_train_step(self, key, batch):
         (trace, plaintext, attack_point) = batch
         trainable_vars = self.generators[key].trainable_variables
@@ -75,7 +67,8 @@ class GAN:
             generator_loss = self.gen_loss(attack_point, discriminator_prediction)
         gradients = tape.gradient(generator_loss, trainable_vars)
         self.gen_optimizer.apply_gradients(zip(gradients, trainable_vars))
-        return generator_loss
+        discriminator_loss = self.disc_loss(attack_point, discriminator_prediction)
+        return (generator_loss, discriminator_loss)
     def disc_train_step(self, key, batch):
         (trace, plaintext, attack_point) = batch
         trainable_vars = self.discriminator.trainable_variables
@@ -87,50 +80,86 @@ class GAN:
             discriminator_loss = self.disc_loss(attack_point, discriminator_prediction)
         gradients = tape.gradient(discriminator_loss, trainable_vars)
         self.disc_optimizer.apply_gradients(zip(gradients, trainable_vars))
-        return discriminator_loss
-    def gen_eval_step(self, key, batch):
-        pass
-    def disc_eval_step(self, key, batch):
-        pass
+        generator_loss = self.gen_loss(attack_point, discriminator_prediction)
+        return (generator_loss, discriminator_loss)
+    def eval_step(self, key, batch):
+        (trace, plaintext, attack_point) = batch
+        g_trace = self.generators[key](plaintext, training=False)
+        protected_trace = trace + g_trace
+        discriminator_prediction = self.discriminator(protected_trace, training=False)
+        generator_loss = self.gen_loss(attack_point, discriminator_prediction)
+        discriminator_loss = self.disc_loss(attack_point, discriminator_prediction)
+        return (generator_loss, discriminator_loss)
+    def calculate_saliency(self, key, batch):
+        (trace, plaintext, attack_point) = batch
+        trace = tf.convert_to_tensor(trace)
+        with tf.GradientTape(watch_accessed_variables=False) as tape:
+            tape.watch(trace)
+            g_trace = self.generators[key](plaintext, training=False)
+            protected_trace = trace + g_trace
+            disc_prediction = self.discriminator(protected_trace, training=False)
+        gradients = tape.gradient(tf.math.maximum(disc_prediction), trace)
+        return gradients
     def train(self, dataset,
               num_steps=100,
               gen_epochs_per_step=1,
-              disc_epochs_per_step=1):
+              disc_epochs_per_step=1,
+              measure_saliency_period=20):
         step = 0
         d_epoch = 0
         d_loss = np.nan
         g_epoch = 0
         g_loss = np.nan
+        results = {
+            'gen_training_loss' = {k: {} for k in self.generators}
+            'disc_training_loss' = {k: {} for k in self.generators},
+            'saliency' = {k: {} for k in self.generators}}
+        
+        # Calculate initial model performance
+        for key in self.generators:
+            results['disc_training_loss'][d_key].update({0: []})
+            results['gen_training_loss'][d_key].update({0: []})
+            for batch in dataset.get_batch_iterator(key):
+                g_loss, d_loss = self.eval_step(key, batch)
+                results['disc_training_loss'][key][0].extend(d_loss)
+                results['gen_training_loss'][key][0].extend(g_loss)
+        
         def tqdm_update(t):
-            t.set_description('Step: %d, Disc loss: %.05f, Gen loss: %.05f'%(step, d_loss, g_loss))
+            t.set_description('Step: %d, Disc loss: %.04e, Gen loss: %.04e'%(step, d_loss, g_loss))
         for step in range(1, num_steps+1):
             d_epoch = 0
             g_epoch = 0
             for d_epoch in range(1, disc_epochs_per_step+1):
-                d_losses = []
                 with tqdm.tqdm(self.generators, position=0, leave=True, ncols=100) as t:
-                    for d_key in t:
-                        d_losses_k = []
-                        for d_batch in dataset.get_batch_iterator(d_key):
-                            d_loss = self.disc_train_step(d_key, d_batch)
-                            d_losses_k.append(d_loss)
+                    for key in t:
+                        results['disc_training_loss'][key].update({step: []})
+                        results['gen_training_loss'][key].update({step: []})
+                        for d_batch in dataset.get_batch_iterator(key):
+                            g_loss, d_loss = self.disc_train_step(key, d_batch)
                             tqdm_update(t)
-                        d_losses.append(np.mean(d_losses_k))
-                    self.results['disc_training_loss']['epoch'].append(step)
-                    self.results['disc_training_loss']['loss'].append(d_losses)
-            for g_epoch in range(1, gen_epochs_per_step+1):
+                            results['disc_training_loss'][key][step].extend(d_loss)
+                            results['gen_training_loss'][key][step].extend(g_loss)
                 with tqdm.tqdm(self.generators, position=0, leave=True, ncols=100) as t:
-                    for g_key in t:
-                        g_losses = []
-                        for g_batch in dataset.get_batch_iterator(g_key):
-                            g_loss = self.gen_train_step(g_key, g_batch)
-                            g_losses.append(g_loss)
+                    for key in t:
+                        results['disc_training_loss'][key].update({step+.5: []})
+                        results['gen_training_loss'][key].update({step+.5: []})
+                        for g_batch in dataset.get_batch_iterator(key):
+                            g_loss, d_loss = self.gen_train_step(key, g_batch)
                             tqdm_update(t)
-                        self.results['gen_training_loss']['loss'][g_key].append(g_losses)
-                    self.results['gen_training_loss']['epoch'].append(step)
-    def calculate_saliency(self, key, trace):
-        pass
-
+                            results['disc_training_loss'][key][step+.5].extend(d_loss)
+                            results['gen_training_loss'][key][step+.5].extend(g_loss)
+            if (measure_saliency_period != None) and (step%measure_saliency_period == 0):
+                for key in self.generators:
+                    batch = next(dataset.get_batch_iterator(key))
+                    saliency = self.calculate_saliency(key, batch)
+                    results['saliency'][key].update({step: (batch[0], saliency)})
+        return results
+    def save(self, dest):
+        path = os.path.join(os.getcwd(), dest)
+        for gen_key in self.generators:
+            self.generators[gen_key].save(os.path.join(os.getcwd(), dest, 'gen_%x'))
+        self.discriminator.save(os.path.join(os.getcwd(), dest, 'disc'))
+    
 def get_mlp_model(key, trace_length, **kwargs):
     printl('Generating multilayer perceptron model.')
     printl('\tKey: %s'%(hex(key)))

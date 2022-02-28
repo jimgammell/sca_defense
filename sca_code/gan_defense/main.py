@@ -84,18 +84,18 @@ def main():
     printl()
     
     printl('Training GAN.')
-    gan.train(dataset, **exp_params['training_kwargs'])
+    training_results = gan.train(dataset, **exp_params['training_kwargs'])
     printl('\tDone.')
     printl()
     
     printl('Saving models.')
-    results.save_model(gan, os.path.join(output_path, 'trained_gan.pth'))
+    gan.save(output_path)
     printl('\tDone.')
     printl()
     
     printl('Saving results.')
-    res = results.display_results(gan, **exp_params['display_kwards'])
-    results.save_results(res, output)
+    figures = results.display_results(training_results, **exp_params['display_kwargs'])
+    results.save_results(figures, training_results, output)
     printl('\tDone.')
     printl()
 
