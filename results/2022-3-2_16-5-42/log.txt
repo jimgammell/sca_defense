@@ -1,0 +1,291 @@
+(main):         Parsing configuration settings...
+(main):         	No configuration file path provided. Using default settings.
+(main):         	Using default output path: '/local/scratch/a/jgammell/sca_defense/results/2022-3-2_16-5-42'
+(main):         	Using default random seed: 2109963564
+(main):         	Using default number of keys: 16
+(main):         	Using default trace length: 20000
+(main):         	Using default attack point: sub_bytes_in
+(main):         	Using default byte: 0
+(main):         	Using default dataset: google_scaaml
+(main):         	Using no dataset kwargs
+(main):         	Using default generator type: mlp
+(main):         	Using no generator kwargs
+(main):         	Using default generator plaintext encoding: binary
+(main):         	Using default generator batch size: 16
+(main):         	Using default generator optimizer: SGD
+(main):         	Using no generator kwargs
+(main):         	Using default generator loss: CategoricalCrossentropy
+(main):         	Using no generator loss kwargs
+(main):         	Using default discriminator type: google_resnet1d
+(main):         	Using default discriminator optimizer: SGD
+(main):         	Using no discriminator optimizer kwargs
+(main):         	Using default discriminator loss: CategoricalCrossentropy
+(main):         	Using no discriminator loss kwargs
+(main):         	Using no training kwargs
+(main):         	Using no display kwargs
+(main):         Done.
+(main):         
+(main):         Beginning experiments.
+(main):         	Output path: '/local/scratch/a/jgammell/sca_defense/results/2022-3-2_16-5-42'
+(main):         
+(main):         Setting random seed to 2109963564.
+(main):         Done.
+(main):         
+(main):         Loading dataset.
+(datasets):     Loading data.
+(datasets):     Loading google_scaaml dataset:
+(datasets):     	Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train'
+(datasets):     	Files found at path: 256
+(datasets):     	Keys to be used:
+(datasets):     		Value: 0x9201a8e00a363082b7c0317b5d24392a
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/9201a8e00a363082b7c0317b5d24392a.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xff3b590efc894d20c25c8d95a77ebb87
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/ff3b590efc894d20c25c8d95a77ebb87.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xe2e6033da83325f74cad893d13717750
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/e2e6033da83325f74cad893d13717750.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x2d7f583f64205643f2e5539f26990dba
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/2d7f583f64205643f2e5539f26990dba.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xc4828f51a188d439fed3b565b37bc0b8
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/c4828f51a188d439fed3b565b37bc0b8.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xe2e6033da83325f74cad893d13717750
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/e2e6033da83325f74cad893d13717750.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x891c6767e8c0c9d645c43bf41e741d7c
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/891c6767e8c0c9d645c43bf41e741d7c.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x1e3846ba00906331bec35d61eeaae7be
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/1e3846ba00906331bec35d61eeaae7be.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x6f9adcb5eb3ea3ee2dd13054fb15006d
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/6f9adcb5eb3ea3ee2dd13054fb15006d.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xd64e2ddcf5da70cd48fdb0821ff6fe48
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/d64e2ddcf5da70cd48fdb0821ff6fe48.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x3af89463282496871dd504eb4ae68348
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/3af89463282496871dd504eb4ae68348.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x1c1fceadbeb778098221830d314f50d4
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/1c1fceadbeb778098221830d314f50d4.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xa02c21dd577f871f54fa76d4024a0838
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/a02c21dd577f871f54fa76d4024a0838.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xdbcaed04d4834a01ee61645de10cb054
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/dbcaed04d4834a01ee61645de10cb054.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0xbff8a8261a8202b7fbc1b210930b5e51
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/bff8a8261a8202b7fbc1b210930b5e51.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     		Value: 0x289e8ea582f2fee480cbadabf222f262
+(datasets):     			Path: '/local/scratch/a/jgammell/sca_defense/datasets/google_scaaml/train/289e8ea582f2fee480cbadabf222f262.npz'
+(datasets):     			Entries in shard: traces, cts, sub_bytes_out, sub_bytes_in, pts, keys
+(datasets):     			Traces shape: (256, 80000, 1)
+(datasets):     			Extracted traces shape: (256, 20000, 1)
+(datasets):     			Number of bytes in shard: 16
+(datasets):     			Plaintexts shape: (16, 256)
+(datasets):     			Extracted plaintexts shape: (256,)
+(datasets):     			Encoding plaintexts as binary vector
+(datasets):     			Encoded plaintexts shape: (256, 8)
+(datasets):     			Attack points shape: (16, 256)
+(datasets):     			Extracted attack points shape: (256,)
+(datasets):     			Encoding attack points as one-hot vector
+(datasets):     			Encoded attack points shape: (256, 256)
+(datasets):     
+(datasets):     Constructing dataset.
+(datasets):     Generating dataset.
+(datasets):     	Keys in dataset: 0x9201a8e00a363082b7c0317b5d24392a, 0xff3b590efc894d20c25c8d95a77ebb87, 0xe2e6033da83325f74cad893d13717750, 0x2d7f583f64205643f2e5539f26990dba, 0xc4828f51a188d439fed3b565b37bc0b8, 0x891c6767e8c0c9d645c43bf41e741d7c, 0x1e3846ba00906331bec35d61eeaae7be, 0x6f9adcb5eb3ea3ee2dd13054fb15006d, 0xd64e2ddcf5da70cd48fdb0821ff6fe48, 0x3af89463282496871dd504eb4ae68348, 0x1c1fceadbeb778098221830d314f50d4, 0xa02c21dd577f871f54fa76d4024a0838, 0xdbcaed04d4834a01ee61645de10cb054, 0xbff8a8261a8202b7fbc1b210930b5e51, 0x289e8ea582f2fee480cbadabf222f262
+(datasets):     	Generator batch size: 16
+(datasets):     	Number of samples per key: 256
+(datasets):     	Number of batches per key: 16
+(datasets):     
+(datasets):     Determining and verifying dimensions of dataset.
+(datasets):     	Batch length: 3
+(datasets):     	Item 0 shape: (16, 20000, 1)
+(datasets):     	Item 1 shape: (16, 8)
+(datasets):     	Item 2 shape: (16, 256)
+(datasets):     	Total number of batches: 240 (16 per key)
+(datasets):     
+(main):         Done.
+(main):         
+(main):         Loading generators.
+(models):       Generating multilayer perceptron model.
+(models):       	Key: 0x9201a8e00a363082b7c0317b5d24392a
+(models):       	Trace length: 20000
+(models):       	Using default layers: [64, 64, 64]
+(models):       	Using default hidden activation: relu
+(models):       	Using default output activation: linear
+(models):       	Using default plaintext encoding: binary
+(models):       Generating multilayer perceptron model.
+(models):       	Key: 0x9201a8e00a363082b7c0317b5d24392a
+(models):       	Trace length: 20000

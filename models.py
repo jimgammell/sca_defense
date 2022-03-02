@@ -8,7 +8,7 @@ import utils
 import google_resnet1d
 
 def printl(s=''):
-    utils.printl('(models): ' + s)
+    utils.printl('(models):'.ljust(utils.get_pad_width()) + s)
 
 class Generator(keras.Sequential):
     def __init__(self, model_layers, key):
@@ -111,9 +111,9 @@ class GAN:
         g_epoch = 0
         g_loss = np.nan
         results = {
-            'gen_training_loss' = {k: {} for k in self.generators}
-            'disc_training_loss' = {k: {} for k in self.generators},
-            'saliency' = {k: {} for k in self.generators}}
+            'gen_training_loss': {k: {} for k in self.generators},
+            'disc_training_loss': {k: {} for k in self.generators},
+            'saliency': {k: {} for k in self.generators}}
         
         # Calculate initial model performance
         for key in self.generators:
@@ -160,14 +160,49 @@ class GAN:
             self.generators[gen_key].save(os.path.join(os.getcwd(), dest, 'gen_%x'))
         self.discriminator.save(os.path.join(os.getcwd(), dest, 'disc'))
     
-def get_mlp_model(key, trace_length, **kwargs):
+def get_mlp_model(key, trace_length,
+                  layers=None,
+                  hidden_activation=None,
+                  output_activation=None,
+                  plaintext_encoding=None):
     printl('Generating multilayer perceptron model.')
-    printl('\tKey: %s'%(hex(key)))
-    printl('\tTrace length: %d'%(trace_length))
-    layers = [64, 64, 64] if not('layers' in kwargs) else kwargs['layers']
-    hidden_activation = 'relu' if not('hidden_activation' in kwargs) else kwargs['hidden_activation']
-    output_activation = 'linear' if not('output_activation' in kwargs) else kwargs['output_activation']
-    plaintext_encoding = 'binary' if not('plaintext_encoding' in kwargs) else kwargs['plaintext_encoding']
+    if not(type(key) == int):
+        raise TypeError('key must be of type {} but is of type {}'.format(int, type(key)))
+    printl('\tKey: {}'.format(hex(key)))
+    if not(type(trace_length) == int):
+        raise TypeError('trace_length must be of type {} but is of type {}'.format(int, type(trace_length)))
+    printl('\tTrace length: {}'.format(trace_length))
+    if layers == None:
+        layers = [64, 64, 64]
+        printl('\tUsing default layers: {}'.format(layers))
+    else:
+        printl('\tUsing specified layers: {}'.format(layers))
+    if not(type(layers) == list):
+        raise TypeError('layers must be of type {} but is of type {}'.format(list, type(layers)))
+    if not(all([type(l) == int for l in layers])):
+        raise TypeError('items in layers must be of type {} but layers includes items of type {}'.format(int, ', '.join([type(l) for l in layers if type(l) != int])))
+    if hidden_activation == None:
+        hidden_activation = 'relu'
+        printl('\tUsing default hidden activation: {}'.format(hidden_activation))
+    else:
+        printl('\tUsing specified hidden activation: {}'.format(hidden_activation))
+    if not(type(hidden_activation) == str):
+        raise TypeError('hidden_activation must be of type {} but is of type {}'.format(str, type(hidden_activation)))
+    if output_activation == None:
+        output_activation = 'linear'
+        printl('\tUsing default output activation: {}'.format(output_activation))
+    else:
+        printl('\tUsing specified output activation: {}'.format(output_activation))
+    if not(type(output_activation) == str):
+        raise TypeError('output_activation must be of type {} but is of type {}'.format(str, type(output_activation)))
+    if plaintext_encoding == None:
+        plaintext_encoding = 'binary'
+        printl('\tUsing default plaintext encoding: {}'.format(plaintext_encoding))
+    else:
+        printl('\tUsing specified plaintext encoding: {}'.format(plaintext_encoding))
+    if not(type(plaintext_encoding) == str):
+        raise TypeError('plaintext_encoding must be of type {} but is of type {}'.format(str, type(plaintext_encoding)))
+    
     if plaintext_encoding == 'binary':
         input_shape = (8,)
     elif plaintext_encoding == 'scalar':
@@ -176,10 +211,9 @@ def get_mlp_model(key, trace_length, **kwargs):
         input_shape = (256,)
     else:
         raise Exception('Invalid plaintext encoding: \'{}\''.format(plaintext_encoding))
+    printl('\tInput shape: {}'.format(input_shape))
     output_shape = (trace_length, 1)
-    printl('\tHidden activation: {}'.format(hidden_activation))
-    printl('\tOutput activation: {}'.format(output_activation))
-    printl('\tPlaintext encoding format: {}'.format(plaintext_encoding))
+    printl('\tOutput shape: {}'.format(output_shape))
 
     model_layers = \
         [keras.layers.InputLayer(input_shape)] + \
@@ -187,10 +221,16 @@ def get_mlp_model(key, trace_length, **kwargs):
         [keras.layers.Dense(np.prod(output_shape), activation=output_activation)] + \
         [keras.layers.Reshape(output_shape)]
     model = Generator(model_layers, key)
-    printl('\tDone.')
     return model
 
 def get_generators(keys, gen_type, trace_length, **kwargs):
+    if not(type(keys) == list):
+        raise TypeError('keys must be of type {} but is of type {}'.format(list, type(keys)))
+    if not(all([type(k) == int for k in keys])):
+        raise TypeError('items in keys must be of type {} but keys includes items of type {}'.format(int, ', '.join([type(k) for k in keys if type(k) != int])))
+    if not(type(trace_length) == int):
+        raise TypeError('trace_length must be of type {} but is of type {}'.format(int, type(trace_length)))
+    
     models = {}
     for key in keys:
         if gen_type == 'mlp':
@@ -198,7 +238,7 @@ def get_generators(keys, gen_type, trace_length, **kwargs):
             model.summary(print_fn=printl)
             models.update({key: model})
         else:
-            raise Exception('Invalid generator type: {}'.format(gen_type))
+            raise ValueError('Invalid generator type: {}'.format(gen_type))
     return models
 
 def get_discriminator(disc_type, trace_length, **kwargs):

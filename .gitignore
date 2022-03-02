@@ -1,5 +1,1 @@
-sca_datasets/*
-sca_code/scaaml*
-sca_code/gan_defense/config/*
-sca_code/gan_defense/datasets/*
-sca_code/gan_defense/models/*
+datasets/*
