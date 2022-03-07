@@ -1,4 +1,5 @@
 import os
+import time
 import tqdm
 import numpy as np
 import tensorflow as tf
@@ -6,6 +7,7 @@ from tensorflow import keras
 
 import utils
 import google_resnet1d
+import datasets
 
 def printl(s=''):
     utils.printl('(models):'.ljust(utils.get_pad_width()) + s)
@@ -15,40 +17,97 @@ class Generator(keras.Sequential):
         super(Generator, self).__init__(model_layers, name='Generator_%s'%(hex(key)))
         self.key = key
 
+def one_norm_loss():
+    def loss(ground_truth, prediction):
+        return -tf.norm(prediction, ord=1)
+    return loss
+
 class GAN:
+    valid_optimizers = {
+        'SGD': keras.optimizers.SGD,
+        'RMSprop': keras.optimizers.RMSprop,
+        'Adam': keras.optimizers.Adam}
+    valid_losses = {
+        'CategoricalCrossentropy': keras.losses.CategoricalCrossentropy,
+        'one_norm': one_norm_loss}
     def __init__(self, 
                  generators,
                  discriminator,
-                 gen_optimizer='SGD',
-                 gen_optimizer_kwargs={},
-                 gen_loss='CategoricalCrossentropy',
-                 gen_loss_kwargs={},
-                 disc_optimizer='Adam',
-                 disc_optimizer_kwargs={'lr': 0.001},
-                 disc_loss='CategoricalCrossentropy',
-                 disc_loss_kwargs={}):
-        valid_optimizers = {
-            'SGD': keras.optimizers.SGD,
-            'RMSprop': keras.optimizers.RMSprop,
-            'Adam': keras.optimizers.Adam}
-        valid_losses = {
-            'CategoricalCrossentropy': keras.losses.CategoricalCrossentropy}
-        if gen_optimizer in valid_optimizers:
-            gen_optimizer = valid_optimizers[gen_optimizer]
+                 gen_optimizer = None,
+                 gen_optimizer_kwargs = None,
+                 gen_loss = None,
+                 gen_loss_kwargs = None,
+                 disc_optimizer = None,
+                 disc_optimizer_kwargs = None,
+                 disc_loss = None,
+                 disc_loss_kwargs = None):
+        printl('Generating full GAN model.')
+        if not(type(generators) == dict):
+            raise TypeError('generators must be of type {} but is of type {}'.format(dict, type(generators)))
+        if not(all([isinstance(generators[k], Generator) for k in generators])):
+            raise TypeError('all elements in generators must be instance of class {}'.format(Generator))
+        if not(isinstance(discriminator, keras.Model)):
+            raise TypeError('discriminator must be instance of class {}'.format(Discriminator))
+        if gen_optimizer == None:
+            gen_optimizer = keras.optimizers.Adam
+            printl('\tUsing default generator optimizer: {}'.format(gen_optimizer))
+        elif gen_optimizer in self.valid_optimizers:
+            gen_optimizer = self.valid_optimizers[gen_optimizer]
+            printl('\tUsing specified generator optimizer: {}'.format(gen_optimizer))
         else:
-            raise Exception('Invalid gen_optimizer: \'{}\''.format(gen_optimizer))
-        if disc_optimizer in valid_optimizers:
-            disc_optimizer = valid_optimizers[disc_optimizer]
+            raise ValueError('Invalid gen_optimizer: {}'.format(gen_optimizer))
+        if gen_optimizer_kwargs == None:
+            gen_optimizer_kwargs = {}
+            printl('\tUsing no generator optimizer kwargs.')
         else:
-            raise Exception('Invalid disc_optimizer: \'{}\''.format(disc_optimizer))
-        if gen_loss in valid_losses:
-            gen_loss = valid_losses[gen_loss]
+            printl('\tUsing specified generator optimizer kwargs: {}'.format(gen_optimizer_kwargs))
+        if not(type(gen_optimizer_kwargs) == dict):
+            raise TypeError('gen_optimizer_kwargs must be of type {} but is of type {}'.format(dict, type(gen_optimizer_kwargs)))
+        if gen_loss == None:
+            gen_loss = keras.losses.CategoricalCrossentropy
+            printl('\tUsing default generator loss: {}'.format(gen_loss))
+        elif gen_loss in self.valid_losses:
+            gen_loss = self.valid_losses[gen_loss]
+            printl('\tUsing specified generator loss: {}'.format(gen_loss))
         else:
-            raise Exception('Invalid gen_loss: \'{}\''.format(gen_loss))
-        if disc_loss in valid_losses:
-            disc_loss = valid_losses[disc_loss]
+            raise ValueError('Invalid gen_loss: {}'.format(gen_loss))
+        if gen_loss_kwargs == None:
+            gen_loss_kwargs = {}
+            printl('\tUsing no generator loss kwargs.')
         else:
-            raise Exception('Invalid disc_loss: \'{}\''.format(disc_loss))
+            printl('\tUsing specified generator loss kwargs: {}'.format(gen_loss_kwargs))
+        if not(type(gen_loss_kwargs) == dict):
+            raise TypeError('gen_loss_kwargs must be of type {} but is of type {}'.format(dict, type(gen_loss_kwargs)))
+        if disc_optimizer == None:
+            disc_optimizer = keras.optimizers.Adam
+            printl('\tUsing default discriminator optimizer: {}'.format(disc_optimizer))
+        elif disc_optimizer in self.valid_optimizers:
+            disc_optimizer = self.valid_optimizers[disc_optimizer]
+            printl('\tUsing specified discriminator optimizer: {}'.format(disc_optimizer))
+        else:
+            raise ValueError('Invalid disc_optimizer: {}'.format(disc_optimizer))
+        if disc_optimizer_kwargs == None:
+            disc_optimizer_kwargs = {'lr': 0.001}
+            printl('\tUsing default discriminator optimizer kwargs: {}'.format(disc_optimizer_kwargs))
+        else:
+            printl('\tUsing specified discriminator optimizer kwargs: {}'.format(disc_optimizer_kwargs))
+        if not(type(disc_optimizer_kwargs) == dict):
+            raise TypeError('disc_optimizer_kwargs must be of type {} but is of type {}'.format(dict, type(disc_optimizer_kwargs)))
+        if disc_loss == None:
+            disc_loss = keras.losses.CategoricalCrossentropy
+            printl('\tUsing default discriminator loss: {}'.format(disc_loss))
+        elif disc_loss in self.valid_losses:
+            disc_loss = self.valid_losses[disc_loss]
+            printl('\tUsing specified discriminator loss: {}'.format(disc_loss))
+        else:
+            raise ValueError('Invalid disc_loss value: {}'.format(disc_loss))
+        if disc_loss_kwargs == None:
+            disc_loss_kwargs = {}
+            printl('\tUsing no discriminator loss kwargs')
+        else:
+            printl('\tUsing specified discriminator loss kwargs: {}'.format(disc_loss_kwargs))
+        if not(type(disc_loss_kwargs) == dict):
+            raise TypeError('disc_loss_kwargs must be of type {} but is of type {}'.format(dict, type(disc_loss_kwargs)))
             
         self.generators = generators
         self.gen_optimizer = gen_optimizer(**gen_optimizer_kwargs)
@@ -68,6 +127,8 @@ class GAN:
         gradients = tape.gradient(generator_loss, trainable_vars)
         self.gen_optimizer.apply_gradients(zip(gradients, trainable_vars))
         discriminator_loss = self.disc_loss(attack_point, discriminator_prediction)
+        generator_loss = generator_loss.numpy()
+        discriminator_loss = discriminator_loss.numpy()
         return (generator_loss, discriminator_loss)
     def disc_train_step(self, key, batch):
         (trace, plaintext, attack_point) = batch
@@ -81,6 +142,8 @@ class GAN:
         gradients = tape.gradient(discriminator_loss, trainable_vars)
         self.disc_optimizer.apply_gradients(zip(gradients, trainable_vars))
         generator_loss = self.gen_loss(attack_point, discriminator_prediction)
+        generator_loss = generator_loss.numpy()
+        discriminator_loss = discriminator_loss.numpy()
         return (generator_loss, discriminator_loss)
     def eval_step(self, key, batch):
         (trace, plaintext, attack_point) = batch
@@ -89,22 +152,56 @@ class GAN:
         discriminator_prediction = self.discriminator(protected_trace, training=False)
         generator_loss = self.gen_loss(attack_point, discriminator_prediction)
         discriminator_loss = self.disc_loss(attack_point, discriminator_prediction)
+        generator_loss = generator_loss.numpy()
+        discriminator_loss = discriminator_loss.numpy()
         return (generator_loss, discriminator_loss)
     def calculate_saliency(self, key, batch):
         (trace, plaintext, attack_point) = batch
-        trace = tf.convert_to_tensor(trace)
-        with tf.GradientTape(watch_accessed_variables=False) as tape:
-            tape.watch(trace)
+        trace = tf.Variable(trace[0], dtype=float)
+        plaintext = np.expand_dims(plaintext[0], axis=0)
+        attack_point = np.expand_dims(attack_point[0], axis=0)
+        with tf.GradientTape() as tape:
             g_trace = self.generators[key](plaintext, training=False)
             protected_trace = trace + g_trace
             disc_prediction = self.discriminator(protected_trace, training=False)
-        gradients = tape.gradient(tf.math.maximum(disc_prediction), trace)
-        return gradients
+            sorted_idx = np.argsort(disc_prediction.numpy().flatten())[::-1]
+            out = disc_prediction[0][sorted_idx[0]]
+        gradients = tape.gradient(out, protected_trace)
+        saliency = np.squeeze(gradients.numpy())
+        return saliency
     def train(self, dataset,
-              num_steps=100,
-              gen_epochs_per_step=1,
-              disc_epochs_per_step=1,
-              measure_saliency_period=20):
+              num_steps = None,
+              gen_epochs_per_step = None,
+              disc_epochs_per_step = None,
+              measure_saliency_period = None):
+        if not(isinstance(dataset, datasets.Dataset)):
+            raise TypeError('dataset must be instance of class {}'.format(datasets.Dataset))
+        if num_steps == None:
+            num_steps = 1
+            printl('\tUsing default number of steps: {}'.format(num_steps))
+        else:
+            printl('\tUsing specified number of steps: {}'.format(num_steps))
+        if type(num_steps) != int:
+            raise TypeError('num_steps must be of type {} but is of type {}'.format(int, type(num_steps)))
+        if gen_epochs_per_step == None:
+            gen_epochs_per_step = 1
+            printl('\tUsing default generator epochs per step: {}'.format(gen_epochs_per_step))
+        else:
+            printl('\tUsing specified generator epochs per step: {}'.format(gen_epochs_per_step))
+        if not(type(gen_epochs_per_step) == int):
+            raise TypeError('gen_epochs_per_step must be of type {} but is of type {}'.format(int, type(gen_epochs_per_step)))
+        if disc_epochs_per_step == None:
+            disc_epochs_per_step = 1
+            printl('\tUsing default discriminator epochs per step: {}'.format(disc_epochs_per_step))
+        else:
+            printl('\tUsing specified discriminator epochs per step: {}'.format(disc_epochs_per_step))
+        if not(type(disc_epochs_per_step) == int):
+            raise TypeError('disc_epochs_per_step must be of type {} but is of type {}'.format(int, type(disc_epochs_per_step)))
+        printl('\tUsing specified saliency measurement period: {}'.format(measure_saliency_period))
+        if (measure_saliency_period != None) and not(type(measure_saliency_period) == int):
+            raise TypeError('measure_saliency_period must be None or of type {} but is of type {}'.format(int, type(measure_saliency_period)))
+        printl()
+        
         step = 0
         d_epoch = 0
         d_loss = np.nan
@@ -116,49 +213,89 @@ class GAN:
             'saliency': {k: {} for k in self.generators}}
         
         # Calculate initial model performance
+        printl('Calculating initial model performance:')
+        t0 = time.time()
         for key in self.generators:
-            results['disc_training_loss'][d_key].update({0: []})
-            results['gen_training_loss'][d_key].update({0: []})
+            printl('\tKey %x:'%(key))
+            results['disc_training_loss'][key].update({0: []})
+            results['gen_training_loss'][key].update({0: []})
             for batch in dataset.get_batch_iterator(key):
                 g_loss, d_loss = self.eval_step(key, batch)
-                results['disc_training_loss'][key][0].extend(d_loss)
-                results['gen_training_loss'][key][0].extend(g_loss)
+                results['disc_training_loss'][key][0].append(d_loss)
+                results['gen_training_loss'][key][0].append(g_loss)
+            results['disc_training_loss'][key][0] = np.mean(results['disc_training_loss'][key][0])
+            results['gen_training_loss'][key][0] = np.mean(results['gen_training_loss'][key][0])
+            printl('\t\tDiscriminator loss: %04e'%(results['disc_training_loss'][key][0]))
+            printl('\t\tGenerator loss: %04e'%(results['gen_training_loss'][key][0]))
+        time_taken = time.time()-t0
+        printl('Done. Time taken: %.04f sec'%(time_taken))
+        printl()
         
-        def tqdm_update(t):
-            t.set_description('Step: %d, Disc loss: %.04e, Gen loss: %.04e'%(step, d_loss, g_loss))
+        if measure_saliency_period != None:
+            t0 = time.time()
+            printl('Beginning initial saliency measurement:')
+            for key in self.generators:
+                printl('\t\tKey: %x'%(key))
+                batch = next(dataset.get_batch_iterator(key))
+                saliency = self.calculate_saliency(key, batch)
+                results['saliency'][key].update({0: (np.squeeze(batch[0][0]), saliency)})
+            time_taken = time.time()-t0
+            printl('Done. Time taken: %.04f sec'%(time_taken))
+            printl()
+        
         for step in range(1, num_steps+1):
+            t0 = time.time()
+            printl('Beginning step %d:'%(step))
             d_epoch = 0
             g_epoch = 0
-            for d_epoch in range(1, disc_epochs_per_step+1):
-                with tqdm.tqdm(self.generators, position=0, leave=True, ncols=100) as t:
-                    for key in t:
-                        results['disc_training_loss'][key].update({step: []})
-                        results['gen_training_loss'][key].update({step: []})
-                        for d_batch in dataset.get_batch_iterator(key):
-                            g_loss, d_loss = self.disc_train_step(key, d_batch)
-                            tqdm_update(t)
-                            results['disc_training_loss'][key][step].extend(d_loss)
-                            results['gen_training_loss'][key][step].extend(g_loss)
-                with tqdm.tqdm(self.generators, position=0, leave=True, ncols=100) as t:
-                    for key in t:
-                        results['disc_training_loss'][key].update({step+.5: []})
-                        results['gen_training_loss'][key].update({step+.5: []})
-                        for g_batch in dataset.get_batch_iterator(key):
-                            g_loss, d_loss = self.gen_train_step(key, g_batch)
-                            tqdm_update(t)
-                            results['disc_training_loss'][key][step+.5].extend(d_loss)
-                            results['gen_training_loss'][key][step+.5].extend(g_loss)
-            if (measure_saliency_period != None) and (step%measure_saliency_period == 0):
+            for epoch in range(1, disc_epochs_per_step+1):
+                printl('\tBeginning discriminator epoch %d:'%(epoch))
                 for key in self.generators:
+                    printl('\t\tKey: %x'%(key))
+                    results['disc_training_loss'][key].update({step: []})
+                    results['gen_training_loss'][key].update({step: []})
+                    for d_batch in dataset.get_batch_iterator(key):
+                        g_loss, d_loss = self.disc_train_step(key, d_batch)
+                        results['disc_training_loss'][key][step].append(d_loss)
+                        results['gen_training_loss'][key][step].append(g_loss)
+                    printl('\t\t\tDiscriminator loss: %04e'%(np.mean(results['disc_training_loss'][key][step])))
+                    printl('\t\t\tGenerator loss: %04e'%(np.mean(results['gen_training_loss'][key][step])))
+            for epoch in range(1, gen_epochs_per_step+1):
+                printl('\tBeginning generator epoch %d:'%(epoch))
+                for key in self.generators:
+                    printl('\t\tKey: %x'%(key))
+                    results['disc_training_loss'][key].update({step+.5: []})
+                    results['gen_training_loss'][key].update({step+.5: []})
+                    for g_batch in dataset.get_batch_iterator(key):
+                        g_loss, d_loss = self.gen_train_step(key, g_batch)
+                        results['disc_training_loss'][key][step+.5].append(d_loss)
+                        results['gen_training_loss'][key][step+.5].append(g_loss)
+                    printl('\t\t\tDiscriminator loss: %04e'%(np.mean(results['disc_training_loss'][key][step+.5])))
+                    printl('\t\t\tGenerator loss: %04e'%(np.mean(results['gen_training_loss'][key][step+.5])))
+            time_taken = time.time()-t0
+            printl('Done. Time taken: %.04f sec. ETA: %.04f sec'%(time_taken, time_taken*(num_steps-step)))
+            printl()
+            
+            if (measure_saliency_period != None) and (step%measure_saliency_period == 0):
+                t0 = time.time()
+                printl('Beginning saliency measurement:')
+                for key in self.generators:
+                    printl('\t\tKey: %x'%(key))
                     batch = next(dataset.get_batch_iterator(key))
                     saliency = self.calculate_saliency(key, batch)
-                    results['saliency'][key].update({step: (batch[0], saliency)})
+                    results['saliency'][key].update({step: (np.squeeze(batch[0][0]), saliency)})
+                time_taken = time.time()-t0
+                printl('Done. Time taken: %.04f sec'%(time_taken))
+                printl()
         return results
-    def save(self, dest):
-        path = os.path.join(os.getcwd(), dest)
+    def save(self, dest, prefix=''):
+        printl('Saving models:')
+        t0 = time.time()
         for gen_key in self.generators:
-            self.generators[gen_key].save(os.path.join(os.getcwd(), dest, 'gen_%x'))
-        self.discriminator.save(os.path.join(os.getcwd(), dest, 'disc'))
+            self.generators[gen_key].save(os.path.join(dest, prefix+'gen_%x'%(gen_key)))
+        self.discriminator.save(os.path.join(dest, prefix+'disc'))
+        time_taken = time.time()-t0
+        printl('Done. Time taken: %.04f sec'%(time_taken))
     
 def get_mlp_model(key, trace_length,
                   layers=None,
@@ -241,14 +378,39 @@ def get_generators(keys, gen_type, trace_length, **kwargs):
             raise ValueError('Invalid generator type: {}'.format(gen_type))
     return models
 
-def get_discriminator(disc_type, trace_length, **kwargs):
-    if disc_type == 'google_resnet1d':
-        model = google_resnet1d.Resnet1D((trace_length, 1), **kwargs)
-        model.summary(print_fn=printl)
-    else:
-        raise Exception('Invalid discriminator type: {}'.format(disc_type))
+def normalize_discriminator(discriminator, input_shape):
+    trace_inp = keras.layers.Input(shape=input_shape)
+    trace = trace_inp
+    trace = keras.layers.Lambda(lambda x: x-tf.math.reduce_mean(x))(trace)
+    trace = keras.layers.Lambda(lambda x: x/tf.math.reduce_std(x))(trace)
+    output = discriminator(trace)
+    model = keras.Model(inputs=trace_inp, outputs=output, name='Discriminator')
     return model
 
+def get_discriminator(disc_type, trace_length, **kwargs):
+    if not(type(disc_type) == str):
+        raise TypeError('disc_type must be of type {} but is of type {}'.format(str, type(disc_type)))
+    if not(type(trace_length) == int):
+        raise TypeError('trace_length must be of type {} but is of type {}'.format(int, type(trace_length)))
+    
+    if disc_type == 'google_resnet1d':
+        model = google_resnet1d.Resnet1D((trace_length, 1), printl, **kwargs)
+        model.summary(print_fn=printl)
+    elif disc_type == 'google_resnet1d_pretrained':
+        model = google_resnet1d.PretrainedResnet1D(printl, **kwargs)
+        model.summary(print_fn=printl)
+    else:
+        raise ValueError('Invalid discriminator type: {}'.format(disc_type))
+    discriminator = normalize_discriminator(model, (trace_length, 1))
+    return discriminator
+
 def get_gan(generators, discriminator, **kwargs):
+    if not(type(generators) == dict):
+        raise TypeError('generators must be of type {} but is of type {}'.format(dict, type(generators)))
+    if not(all([isinstance(generators[k], Generator) for k in generators])):
+        raise TypeError('all elements in generators must be instance of class {}'.format(Generator))
+    if not(isinstance(discriminator, keras.Model)):
+        raise TypeError('discriminator must be instance of class {}'.format(Discriminator))
+    
     gan = GAN(generators, discriminator, **kwargs)
     return gan

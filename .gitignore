@@ -1,1 +1,5 @@
-datasets/*
+datasets/
+__pycache__/
+.ipynb_checkpoints/
+google_pretrained_models/
+results/

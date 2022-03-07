@@ -65,7 +65,7 @@ def load_experiment(config_path: str) -> dict:
         del config_params['num_keys']
         printl('\tUsing specified number of keys: {}'.format(num_keys))
     else:
-        num_keys = 16
+        num_keys = 2
         printl('\tUsing default number of keys: {}'.format(num_keys))
     if not(type(num_keys) == int):
         raise TypeError('num_keys must be of type {} but is of type {}'.format(int, type(num_keys)))
@@ -208,6 +208,16 @@ def load_experiment(config_path: str) -> dict:
         printl('\tUsing default discriminator type: {}'.format(discriminator_type))
     if not(type(discriminator_type) == str):
         raise TypeError('discriminator_type must be of type {} but is of type {}'.format(str, type(discriminator_type)))
+    
+    if 'discriminator_kwargs' in config_params:
+        discriminator_kwargs = config_params['discriminator_kwargs']
+        del config_params['discriminator_kwargs']
+        printl('\tUsing specified discriminator kwargs: {}'.format(discriminator_kwargs))
+    else:
+        discriminator_kwargs = {}
+        printl('\tUsing no discriminator kwargs')
+    if not(type(discriminator_kwargs) == dict):
+        raise TypeError('discriminator_kwargs must be of type {} but is of type {}'.format(dict, type(discriminator_kwargs)))
         
     if 'discriminator_optimizer' in config_params:
         discriminator_optimizer = config_params['discriminator_optimizer']
@@ -248,6 +258,46 @@ def load_experiment(config_path: str) -> dict:
         printl('\tUsing no discriminator loss kwargs')
     if not(type(discriminator_loss_kwargs) == dict):
         raise TypeError('discriminator_loss_kwargs must be of type {} but is of type {}'.format(dict, type(discriminator_loss_kwargs)))
+        
+    if 'num_steps' in config_params:
+        num_steps = config_params['num_steps']
+        del config_params['num_steps']
+        printl('\tUsing specified number of steps: {}'.format(num_steps))
+    else:
+        num_steps = 1
+        printl('\tUsing default number of steps: {}'.format(num_steps))
+    if not(type(num_steps) == int):
+        raise TypeError('num_steps must be of type {} but is of type {}'.format(int, type(num_steps)))
+    
+    if 'gen_epochs_per_step' in config_params:
+        gen_epochs_per_step = config_params['gen_epochs_per_step']
+        del config_params['gen_epochs_per_step']
+        printl('\tUsing specified generator epochs per step: {}'.format(gen_epochs_per_step))
+    else:
+        gen_epochs_per_step = 1
+        printl('\tUsing default generator epochs per step: {}'.format(gen_epochs_per_step))
+    if not(type(gen_epochs_per_step) == int):
+        raise TypeError('gen_epochs_per_step must be of type {} but is of type {}'.format(int, type(gen_epochs_per_step)))
+    
+    if 'disc_epochs_per_step' in config_params:
+        disc_epochs_per_step = config_params['disc_epochs_per_step']
+        del config_params['disc_epochs_per_step']
+        printl('\tUsing specified discriminator epochs per step: {}'.format(disc_epochs_per_step))
+    else:
+        disc_epochs_per_step = 1
+        printl('\tUsing default discriminator epochs per step: {}'.format(disc_epochs_per_step))
+    if not(type(disc_epochs_per_step) == int):
+        raise TypeError('disc_epochs_per_step must be of type {} but is of type {}'.format(int, type(disc_epochs_per_step)))
+    
+    if 'measure_saliency_period' in config_params:
+        measure_saliency_period = config_params['measure_saliency_period']
+        del config_params['measure_saliency_period']
+        printl('\tUsing specified saliency measurement period: {}'.format(measure_saliency_period))
+    else:
+        measure_saliency_period = 1
+        printl('\tUsing default saliency measurement period: {}'.format(measure_saliency_period))
+    if (measure_saliency_period != None) and not(type(measure_saliency_period) == int):
+        raise TypeError('measure_saliency_period must be None or be of type {} but is of type {}'.format(int, type(measure_saliency_period)))
         
     if 'training_kwargs' in config_params:
         training_kwargs = config_params['training_kwargs']
@@ -294,10 +344,15 @@ def load_experiment(config_path: str) -> dict:
         'generator_loss': generator_loss,
         'generator_loss_kwargs': generator_loss_kwargs,
         'discriminator_type': discriminator_type,
+        'discriminator_kwargs': discriminator_kwargs,
         'discriminator_optimizer': discriminator_optimizer,
         'discriminator_optimizer_kwargs': discriminator_optimizer_kwargs,
         'discriminator_loss': discriminator_loss,
         'discriminator_loss_kwargs': discriminator_loss_kwargs,
+        'num_steps': num_steps,
+        'gen_epochs_per_step': gen_epochs_per_step,
+        'disc_epochs_per_step': disc_epochs_per_step,
+        'measure_saliency_period': measure_saliency_period,
         'training_kwargs': training_kwargs,
         'display_kwargs': display_kwargs }
     
@@ -352,11 +407,15 @@ def main():
     printl()
     
     printl('Loading discriminator.')
-    discriminator = models.get_discriminator(exp_params['discriminator_type'], trace_length, **exp_params['discriminator_kwargs'])
+    discriminator_kwargs = {
+        'disc_type': exp_params['discriminator_type'],
+        'trace_length': exp_params['trace_length'],
+        'byte': exp_params['byte'],
+        'attack_point': exp_params['attack_point']}
+    discriminator_kwargs.update(exp_params['discriminator_kwargs'])
+    discriminator = models.get_discriminator(**discriminator_kwargs)
     printl('\tDone.')
     printl()
-    
-    assert False
     
     printl('Loading GAN.')
     gan_kwargs = {
@@ -374,33 +433,50 @@ def main():
     printl('Done.')
     printl()
     
+    printl('Saving untrained models.')
+    os.mkdir(os.path.join(exp_params['output_path'], 'saved_models'))
+    os.mkdir(os.path.join(exp_params['output_path'], 'saved_models', 'untrained'))
+    save_model_kwargs = {
+        'dest': os.path.join(exp_params['output_path'], 'saved_models', 'untrained')}
+    gan.save(**save_model_kwargs)
+    printl('Done.')
+    printl()
+    
     printl('Training GAN.')
     training_kwargs = {
-        'dataset': dataset}
+        'dataset': dataset,
+        'num_steps': exp_params['num_steps'],
+        'gen_epochs_per_step': exp_params['gen_epochs_per_step'],
+        'disc_epochs_per_step': exp_params['disc_epochs_per_step'],
+        'measure_saliency_period': exp_params['measure_saliency_period']}
     training_kwargs.update(exp_params['training_kwargs'])
     training_results = gan.train(**training_kwargs)
     printl('Done.')
     printl()
     
-    printl('Saving models.')
+    printl('Saving trained models.')
+    os.mkdir(os.path.join(exp_params['output_path'], 'saved_models', 'trained'))
     save_model_kwargs = {
-        'dest': exp_params['output_path']}
+        'dest': os.path.join(exp_params['output_path'], 'saved_models', 'trained')}
     gan.save(**save_model_kwargs)
     printl('Done.')
     printl()
     
-    printl('Saving results.')
     if args.display:
+        printl('Displaying results.')
         display_kwargs = {
             'results': training_results}
         display_kwargs.update(exp_params['display_kwargs'])
         figures = results.display_results(**display_kwargs)
-    else:
-        figures = []
+        os.mkdir(os.path.join(exp_params['output_path'], 'figures'))
+        results.save_figures(figures, os.path.join(exp_params['output_path'], 'figures'))
+        printl('Done.')
+        printl()
+    
+    printl('Saving results.')
     save_results_kwargs = {
-        'figures': figures,
         'results': training_results,
-        'dest': exp_params['output']}
+        'dest': exp_params['output_path']}
     results.save_results(**save_results_kwargs)
     printl('Done.')
     printl()
