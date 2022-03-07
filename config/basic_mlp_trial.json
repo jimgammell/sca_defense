@@ -1,10 +1,12 @@
 {
 	"num_steps": 500,
+	"disc_pretrain_epochs": 5,
 	"generator_optimizer": "Adam",
 	"generator_optimizer_kwargs": {"lr": 0.002},
 	"generator_loss": "CategoricalCrossentropy",
 	"discriminator_type": "google_resnet1d_pretrained",
 	"discriminator_optimizer": "Adam",
 	"discriminator_optimizer_kwargs": {"lr": 0.001},
-	"discriminator_loss": "CategoricalCrossentropy"
+	"discriminator_loss": "CategoricalCrossentropy",
+	"measure_saliency_period": 50
 }

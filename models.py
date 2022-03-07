@@ -164,13 +164,16 @@ class GAN:
             g_trace = self.generators[key](plaintext, training=False)
             protected_trace = trace + g_trace
             disc_prediction = self.discriminator(protected_trace, training=False)
-            sorted_idx = np.argsort(disc_prediction.numpy().flatten())[::-1]
-            out = disc_prediction[0][sorted_idx[0]]
+            prediction_idx = np.argmax(disc_prediction.numpy()[0])
+            out = disc_prediction[0][prediction_idx]
         gradients = tape.gradient(out, protected_trace)
+        protected_trace = np.squeeze(protected_trace.numpy())
         saliency = np.squeeze(gradients.numpy())
-        return saliency
+        return (protected_trace, saliency)
     def train(self, dataset,
               num_steps = None,
+              gen_pretrain_epochs = None,
+              disc_pretrain_epochs = None,
               gen_epochs_per_step = None,
               disc_epochs_per_step = None,
               measure_saliency_period = None):
@@ -183,6 +186,20 @@ class GAN:
             printl('\tUsing specified number of steps: {}'.format(num_steps))
         if type(num_steps) != int:
             raise TypeError('num_steps must be of type {} but is of type {}'.format(int, type(num_steps)))
+        if gen_pretrain_epochs == None:
+            gen_pretrain_epochs = 0
+            printl('\tUsing default number of generator pretraining epochs: {}'.format(gen_pretrain_epochs))
+        else:
+            printl('\tUsing specified number of generator pretraining epochs: {}'.format(gen_pretrain_epochs))
+        if type(gen_pretrain_epochs) != int:
+            raise TypeError('gen_pretrain_epochs must be of type {} but is of type {}'.format(int, type(gen_pretrain_epochs)))
+        if disc_pretrain_epochs == None:
+            disc_pretrain_epochs = 0
+            printl('\tUsing default number of discriminator pretraining epochs: {}'.format(disc_pretrain_epochs))
+        else:
+            printl('\tUsing specified number of discriminator pretraining epochs: {}'.format(disc_pretrain_epochs))
+        if type(disc_pretrain_epochs) != int:
+            raise TypeError('disc_pretrain_epochs must be of type {} but is of type {}'.format(int, type(disc_pretrain_epochs)))
         if gen_epochs_per_step == None:
             gen_epochs_per_step = 1
             printl('\tUsing default generator epochs per step: {}'.format(gen_epochs_per_step))
@@ -212,24 +229,61 @@ class GAN:
             'disc_training_loss': {k: {} for k in self.generators},
             'saliency': {k: {} for k in self.generators}}
         
-        # Calculate initial model performance
-        printl('Calculating initial model performance:')
-        t0 = time.time()
-        for key in self.generators:
-            printl('\tKey %x:'%(key))
-            results['disc_training_loss'][key].update({0: []})
-            results['gen_training_loss'][key].update({0: []})
-            for batch in dataset.get_batch_iterator(key):
-                g_loss, d_loss = self.eval_step(key, batch)
-                results['disc_training_loss'][key][0].append(d_loss)
-                results['gen_training_loss'][key][0].append(g_loss)
-            results['disc_training_loss'][key][0] = np.mean(results['disc_training_loss'][key][0])
-            results['gen_training_loss'][key][0] = np.mean(results['gen_training_loss'][key][0])
-            printl('\t\tDiscriminator loss: %04e'%(results['disc_training_loss'][key][0]))
-            printl('\t\tGenerator loss: %04e'%(results['gen_training_loss'][key][0]))
-        time_taken = time.time()-t0
-        printl('Done. Time taken: %.04f sec'%(time_taken))
-        printl()
+        if (disc_pretrain_epochs == 0) and (gen_pretrain_epochs == 0):
+            # Calculate initial model performance
+            printl('Calculating initial model performance:')
+            t0 = time.time()
+            for key in self.generators:
+                printl('\tKey %x:'%(key))
+                results['disc_training_loss'][key].update({0: []})
+                results['gen_training_loss'][key].update({0: []})
+                for batch in dataset.get_batch_iterator(key):
+                    g_loss, d_loss = self.eval_step(key, batch)
+                    results['disc_training_loss'][key][0].append(d_loss)
+                    results['gen_training_loss'][key][0].append(g_loss)
+                results['disc_training_loss'][key][0] = np.mean(results['disc_training_loss'][key][0])
+                results['gen_training_loss'][key][0] = np.mean(results['gen_training_loss'][key][0])
+                printl('\t\tDiscriminator loss: %04e'%(results['disc_training_loss'][key][0]))
+                printl('\t\tGenerator loss: %04e'%(results['gen_training_loss'][key][0]))
+            time_taken = time.time()-t0
+            printl('Done. Time taken: %.04f sec'%(time_taken))
+            printl()
+        
+        if disc_pretrain_epochs != 0:
+            printl('Pretraining discriminator:')
+            t0 = time.time()
+            for epoch in range(-disc_pretrain_epochs-gen_pretrain_epochs+1, -gen_pretrain_epochs+1):
+                printl('\tBeginning epoch %d:'%(epoch))
+                for key in self.generators:
+                    printl('\t\tKey: %x'%(key))
+                    results['disc_training_loss'][key].update({epoch: []})
+                    results['gen_training_loss'][key].update({epoch: []})
+                    for d_batch in dataset.get_batch_iterator(key):
+                        g_loss, d_loss = self.disc_train_step(key, d_batch)
+                        results['disc_training_loss'][key][epoch].append(d_loss)
+                        results['gen_training_loss'][key][epoch].append(g_loss)
+                    printl('\t\t\tDiscriminator loss: %04e'%(np.mean(results['disc_training_loss'][key][epoch])))
+                    printl('\t\t\tGenerator loss: %04e'%(np.mean(results['gen_training_loss'][key][epoch])))
+            time_taken = time.time()-t0
+            printl('Done. Time taken: %.04f sec.'%(time_taken))
+        
+        if gen_pretrain_epochs != 0:
+            printl('Pretraining generators:')
+            t0 = time.time()
+            for epoch in range(-gen_pretrain_epochs+1, 1):
+                printl('\tBeginning generator epoch %d:'%(epoch))
+                for key in self.generators:
+                    printl('\t\tKey: %x'%(key))
+                    results['disc_training_loss'][key].update({epoch: []})
+                    results['gen_training_loss'][key].update({epoch: []})
+                    for g_batch in dataset.get_batch_iterator(key):
+                        g_loss, d_loss = self.gen_train_step(key, g_batch)
+                        results['disc_training_loss'][key][epoch].append(d_loss)
+                        results['gen_training_loss'][key][epoch].append(g_loss)
+                    printl('\t\t\tDiscriminator loss: %04e'%(np.mean(results['disc_training_loss'][key][epoch])))
+                    printl('\t\t\tGenerator loss: %04e'%(np.mean(results['gen_training_loss'][key][epoch])))
+            time_taken = time.time()-t0
+            printl('Done. Time taken: %.04f sec.'%(time_taken))
         
         if measure_saliency_period != None:
             t0 = time.time()
@@ -237,8 +291,8 @@ class GAN:
             for key in self.generators:
                 printl('\t\tKey: %x'%(key))
                 batch = next(dataset.get_batch_iterator(key))
-                saliency = self.calculate_saliency(key, batch)
-                results['saliency'][key].update({0: (np.squeeze(batch[0][0]), saliency)})
+                (protected_trace, saliency) = self.calculate_saliency(key, batch)
+                results['saliency'][key].update({0: (protected_trace, saliency)})
             time_taken = time.time()-t0
             printl('Done. Time taken: %.04f sec'%(time_taken))
             printl()
@@ -282,8 +336,8 @@ class GAN:
                 for key in self.generators:
                     printl('\t\tKey: %x'%(key))
                     batch = next(dataset.get_batch_iterator(key))
-                    saliency = self.calculate_saliency(key, batch)
-                    results['saliency'][key].update({step: (np.squeeze(batch[0][0]), saliency)})
+                    (protected_trace, saliency) = self.calculate_saliency(key, batch)
+                    results['saliency'][key].update({step: (protected_trace, saliency)})
                 time_taken = time.time()-t0
                 printl('Done. Time taken: %.04f sec'%(time_taken))
                 printl()
@@ -360,6 +414,93 @@ def get_mlp_model(key, trace_length,
     model = Generator(model_layers, key)
     return model
 
+def get_zero_model(key, trace_length,
+                   plaintext_encoding=None,
+                   **kwargs):
+    printl('Generating zero-output generator model:')
+    if not(type(key) == int):
+        raise TypeError('key must be of type {} but is of type {}'.format(int, type(key)))
+    printl('\tKey: {}'.format(hex(key)))
+    if not(type(trace_length) == int):
+        raise TypeError('trace_length must be of type {} but is of type {}'.format(int, type(trace_length)))
+    printl('\tTrace length: {}'.format(trace_length))
+    if plaintext_encoding == None:
+        plaintext_encoding = 'binary'
+        printl('\tUsing default plaintext encoding: {}'.format(plaintext_encoding))
+    else:
+        printl('\tUsing specified plaintext encoding: {}'.format(plaintext_encoding))
+    if not(type(plaintext_encoding) == str):
+        raise TypeError('plaintext_encoding must be of type {} but is of type {}'.format(str, type(plaintext_encoding)))
+    
+    if plaintext_encoding == 'binary':
+        input_shape = (8,)
+    elif plaintext_encoding == 'scalar':
+        input_shape = (1,)
+    elif plaintext_encoding == 'onehot':
+        input_shape = (256,)
+    else:
+        raise Exception('Invalid plaintext encoding: \'{}\''.format(plaintext_encoding))
+    printl('\tInput shape: {}'.format(input_shape))
+    output_shape = (trace_length, 1)
+    printl('\tOutput shape: {}'.format(output_shape))
+    
+    model_layers = \
+        [keras.layers.InputLayer(input_shape)] + \
+        [keras.layers.Dense(np.prod(output_shape), activation='linear', kernel_initializer='zeros', bias_initializer='zeros', trainable=False)] + \
+        [keras.layers.Reshape(output_shape)]
+    model = Generator(model_layers, key)
+
+def get_random_model(key, trace_length,
+                     plaintext_encoding=None,
+                     mean=None,
+                     var=None,
+                     **kwargs):
+    printl('Generating random generator model:')
+    if not(type(key) == int):
+        raise TypeError('key must be of type {} but is of type {}'.format(int, type(key)))
+    printl('\tKey: {}'.format(hex(key)))
+    if not(type(trace_length) == int):
+        raise TypeError('trace_length must be of type {} but is of type {}'.format(int, type(trace_length)))
+    printl('\tTrace length: {}'.format(trace_length))
+    if plaintext_encoding == None:
+        plaintext_encoding = 'binary'
+        printl('\tUsing default plaintext encoding: {}'.format(plaintext_encoding))
+    else:
+        printl('\tUsing specified plaintext encoding: {}'.format(plaintext_encoding))
+    if not(type(plaintext_encoding) == str):
+        raise TypeError('plaintext_encoding must be of type {} but is of type {}'.format(str, type(plaintext_encoding)))
+    if mean == None:
+        mean = 0.0
+        printl('\tUsing default mean for Gaussian noise: {}'.format(mean))
+    else:
+        printl('\tUsing specified mean for Gaussian noise: {}'.format(mean))
+    if not(type(mean) == float):
+        raise TypeError('mean must be of type {} but is of type {}'.format(float, type(mean)))
+    if var == None:
+        var = 1.0
+        printl('\tUsing default variance for Gaussian noise: {}'.format(var))
+    else:
+        printl('\tUsing specified variance for Gaussian noise: {}'.format(var))
+    if not(type(var) == float):
+        raise TypeError('var must be of type {} but is of type {}'.format(float, type(var)))
+    
+    if plaintext_encoding == 'binary':
+        input_shape = (8,)
+    elif plaintext_encoding == 'scalar':
+        input_shape = (1,)
+    elif plaintext_encoding == 'onehot':
+        input_shape = (256,)
+    else:
+        raise Exception('Invalid plaintext encoding: \'{}\''.format(plaintext_encoding))
+    printl('\tInput shape: {}'.format(input_shape))
+    output_shape = (trace_length, 1)
+    printl('\tOutput shape: {}'.format(output_shape))
+    
+    model_layers = \
+        [keras.layers.InputLayer(input_shape)] + \
+        [keras.layers.Lambda(lambda x: tf.random.normal(output_shape, mean=mean, stddev=var**.5))]
+    model = Generator(model_layers, key)
+
 def get_generators(keys, gen_type, trace_length, **kwargs):
     if not(type(keys) == list):
         raise TypeError('keys must be of type {} but is of type {}'.format(list, type(keys)))
@@ -372,10 +513,14 @@ def get_generators(keys, gen_type, trace_length, **kwargs):
     for key in keys:
         if gen_type == 'mlp':
             model = get_mlp_model(key, trace_length, **kwargs)
-            model.summary(print_fn=printl)
-            models.update({key: model})
+        elif gen_type == 'zero':
+            model = get_zero_model(key, trace_length, **kwargs)
+        elif gen_type == 'random':
+            model = get_random_model(key, trace_length, **kwargs)
         else:
             raise ValueError('Invalid generator type: {}'.format(gen_type))
+        model.summary(print_fn=printl)
+        models.update({key: model})
     return models
 
 def normalize_discriminator(discriminator, input_shape):
@@ -395,12 +540,11 @@ def get_discriminator(disc_type, trace_length, **kwargs):
     
     if disc_type == 'google_resnet1d':
         model = google_resnet1d.Resnet1D((trace_length, 1), printl, **kwargs)
-        model.summary(print_fn=printl)
     elif disc_type == 'google_resnet1d_pretrained':
         model = google_resnet1d.PretrainedResnet1D(printl, **kwargs)
-        model.summary(print_fn=printl)
     else:
         raise ValueError('Invalid discriminator type: {}'.format(disc_type))
+    model.summary(print_fn=printl)
     discriminator = normalize_discriminator(model, (trace_length, 1))
     return discriminator
 

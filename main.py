@@ -269,6 +269,26 @@ def load_experiment(config_path: str) -> dict:
     if not(type(num_steps) == int):
         raise TypeError('num_steps must be of type {} but is of type {}'.format(int, type(num_steps)))
     
+    if 'disc_pretrain_epochs' in config_params:
+        disc_pretrain_epochs = config_params['disc_pretrain_epochs']
+        del config_params['disc_pretrain_epochs']
+        printl('\tUsing specified discriminator pretrain epochs: {}'.format(disc_pretrain_epochs))
+    else:
+        disc_pretrain_epochs = 0
+        printl('\tUsing default discriminator pretrain epochs: {}'.format(disc_pretrain_epochs))
+    if not(type(disc_pretrain_epochs) == int):
+        raise TypeError('disc_pretrain_epochs must be of type {} but is of type {}'.format(int, type(disc_pretrain_epochs)))
+    
+    if 'gen_pretrain_epochs' in config_params:
+        gen_pretrain_epochs = config_params['gen_pretrain_epochs']
+        del config_params['gen_pretrain_epochs']
+        printl('\tUsing specified generator pretrain epochs: {}'.format(gen_pretrain_epochs))
+    else:
+        gen_pretrain_epochs = 0
+        printl('\tUsing default generator pretrain epochs: {}'.format(gen_pretrain_epochs))
+    if not(type(gen_pretrain_epochs) == int):
+        raise TypeError('gen_pretrain_epochs must be of type {} but is of type {}'.format(int, type(gen_pretrain_epochs)))
+    
     if 'gen_epochs_per_step' in config_params:
         gen_epochs_per_step = config_params['gen_epochs_per_step']
         del config_params['gen_epochs_per_step']
@@ -350,6 +370,8 @@ def load_experiment(config_path: str) -> dict:
         'discriminator_loss': discriminator_loss,
         'discriminator_loss_kwargs': discriminator_loss_kwargs,
         'num_steps': num_steps,
+        'disc_pretrain_epochs': disc_pretrain_epochs,
+        'gen_pretrain_epochs': gen_pretrain_epochs,
         'gen_epochs_per_step': gen_epochs_per_step,
         'disc_epochs_per_step': disc_epochs_per_step,
         'measure_saliency_period': measure_saliency_period,
@@ -446,6 +468,8 @@ def main():
     training_kwargs = {
         'dataset': dataset,
         'num_steps': exp_params['num_steps'],
+        'disc_pretrain_epochs': exp_params['disc_pretrain_epochs'],
+        'gen_pretrain_epochs': exp_params['gen_pretrain_epochs'],
         'gen_epochs_per_step': exp_params['gen_epochs_per_step'],
         'disc_epochs_per_step': exp_params['disc_epochs_per_step'],
         'measure_saliency_period': exp_params['measure_saliency_period']}
