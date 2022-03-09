@@ -1,8 +1,9 @@
 {
-	"num_steps": 500,
-	"disc_pretrain_epochs": 5,
+	"num_steps": 100,
+	"disc_pretrain_epochs": 25,
+	"disc_epochs_per_step": 1,
 	"generator_optimizer": "Adam",
-	"generator_optimizer_kwargs": {"lr": 0.002},
+	"generator_optimizer_kwargs": {"lr": 0.00001},
 	"generator_loss": "CategoricalCrossentropy",
 	"discriminator_type": "google_resnet1d_pretrained",
 	"discriminator_optimizer": "Adam",

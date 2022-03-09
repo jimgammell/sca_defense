@@ -24,7 +24,7 @@ def get_trace(results_dict):
     gloss = np.array(gloss)
     return (depochs, dloss, gepochs, gloss)
 
-def generate_loss_figure(Dloss, Gloss, key,
+def generate_loss_figure(Dloss, Gloss, Accuracy, key,
                         xticks0 = None,
                         xticks1 = None,
                         yticks0 = None,
@@ -39,8 +39,9 @@ def generate_loss_figure(Dloss, Gloss, key,
                         yscale1 = None):
     (ddepochs, ddloss, dgepochs, dgloss) = get_trace(Dloss[key])
     (gdepochs, gdloss, ggepochs, ggloss) = get_trace(Gloss[key])
-    (fig, ax) = plt.subplots(1, 2, figsize=(8, 4))
-    if not(xticks0 is None):
+    (daepochs, daacc, gaepochs, gaacc) = get_trace(Accuracy[key])
+    (fig, ax) = plt.subplots(1, 3, figsize=(12, 4))
+    """if not(xticks0 is None):
         ax[0].set_xticks(xticks0)
     if not(xticks1 is None):
         ax[1].set_xticks(xticks1)
@@ -48,18 +49,12 @@ def generate_loss_figure(Dloss, Gloss, key,
         ax[0].set_yticks(yticks0)
     if not(yticks1 is None):
         ax[1].set_yticks(yticks1)
-    if not(xlim0 is None):
-        ax[0].set_xlim(*xlim0)
-    if not(xlim1 is None):
-        ax[1].set_xlim(*xlim1)
-    if not(ylim0 is None):
-        ax[0].set_ylim(*ylim0)
-    if not(ylim1 is None):
-        ax[1].set_ylim(*ylim1)
     if grid0:
         ax[0].grid()
     if grid1:
-        ax[1].grid()
+        ax[1].grid()"""
+    ax[0].set_xlim(ddepochs[0], ddepochs[-1])
+    ax[1].set_xlim(ddepochs[0], ddepochs[-1])
     ax[0].plot(ddepochs, ddloss, '.', markersize=.5, color='blue', label='Discriminator training')
     ax[0].plot(dgepochs, dgloss, '.', markersize=.5, color='red', label='Generator training')
     ax[1].plot(gdepochs, gdloss, '.', markersize=.5, color='blue', label='Discriminator training')
@@ -68,9 +63,21 @@ def generate_loss_figure(Dloss, Gloss, key,
     ax[1].set_xlabel('Step')
     ax[0].set_ylabel('Loss')
     ax[1].set_ylabel('Loss')
+    ax[0].grid()
+    ax[1].grid()
+    ax[2].grid()
+    ax[2].plot(daepochs, daacc, '.', markersize=.5, color='blue', label='Discriminator training')
+    ax[2].plot(gaepochs, gaacc, '.', markersize=.5, color='red', label='Generator training')
+    ax[2].set_xlabel('Step')
+    ax[2].set_ylabel('Accuracy')
+    ax[2].set_ylim(0, 1)
     ax[0].set_title('Discriminator')
     ax[1].set_title('Generator')
-    if not(yscale0 is None):
+    ax[2].set_title('Discriminator')
+    ax[0].legend()
+    ax[1].legend()
+    ax[2].legend()
+    """if not(yscale0 is None):
         ax[0].set_yscale(yscale0)
     if not(yscale1 is None):
         ax[1].set_yscale(yscale1)
@@ -79,23 +86,36 @@ def generate_loss_figure(Dloss, Gloss, key,
         lh._legmarker.set_markersize(10)
     l = ax[1].legend()
     for lh in l.legendHandles:
-        lh._legmarker.set_markersize(10)
+        lh._legmarker.set_markersize(10)"""
     fig.suptitle('Performance on key %x'%(key))
     plt.tight_layout()
     return fig
 
 def generate_saliency_figure(Saliency, key, step):
-    (original_trace, saliency) = Saliency[key][step]
-    (fig, ax) = plt.subplots(1, 2, sharex=True, figsize=(8, 4))
+    (original_trace, disc_saliency, gen_saliency) = Saliency[key][step]
     
-    ax[0].plot(original_trace, '.', markersize=.5, color='blue')
+    fig = plt.figure(figsize=(8, 4))
+    ax = plt.gca()
+    ax.plot(original_trace, '.', markersize=.5, color='blue')
+    ax.set_xlabel('Sample')
+    ax.set_ylabel('Amplitude')
+    ax.set_title('Protected trace')
+    
+    (fig, ax) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(8, 4))
+    ax[0].plot(disc_saliency, '.', markersize=.5, color='blue')
     ax[0].set_xlabel('Sample')
-    ax[0].set_ylabel('Amplitude')
-    ax[0].set_title('Protected trace')
-    ax[1].plot(saliency, '.', markersize=.5, color='blue')
+    ax[0].set_ylabel('Saliency')
+    ax[0].set_title('Saliency after discriminator training')
+    ax[1].plot(gen_saliency, '.', markersize=.5, color='blue')
     ax[1].set_xlabel('Sample')
-    ax[1].set_ylabel('Value')
+    ax[1].set_ylabel('Saliency')
     ax[1].set_title('Saliency after generator training')
+    ax[0].set_yscale('symlog', linthresh=1e-2)
+    ax[1].set_yscale('symlog', linthresh=1e-2)
+    ax[0].set_ylim(-1e2, 1e2)
+    ax[1].set_ylim(-1e2, 1e2)
+    ax[0].grid()
+    ax[1].grid()
     fig.suptitle('Key: %x  ;  Step: %d'%(key, step))
     plt.tight_layout()
     
