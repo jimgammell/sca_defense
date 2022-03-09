@@ -110,14 +110,30 @@ def generate_saliency_figure(Saliency, key, step):
     ax[1].set_xlabel('Sample')
     ax[1].set_ylabel('Saliency')
     ax[1].set_title('Saliency after generator training')
-    ax[0].set_yscale('symlog', linthresh=1e-2)
-    ax[1].set_yscale('symlog', linthresh=1e-2)
+    ax[0].set_yscale('symlog', linthresh=1e-3)
+    ax[1].set_yscale('symlog', linthresh=1e-3)
     ax[0].set_ylim(-1e2, 1e2)
     ax[1].set_ylim(-1e2, 1e2)
     ax[0].grid()
     ax[1].grid()
     fig.suptitle('Key: %x  ;  Step: %d'%(key, step))
     plt.tight_layout()
+    
+    (fig, ax) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(8, 4))
+    disc_saliency = np.array(disc_saliency).flatten()
+    gen_saliency = np.array(gen_saliency).flatten()
+    bins = []
+    bins.extend([-x for x in np.logspace(2, -3, 50)])
+    bins.extend([0])
+    bins.extend([x for x in np.logspace(-3, 2, 50)])
+    ax[0].hist(disc_saliency, bins=bins, log=True)
+    ax[1].hist(gen_saliency, bins=bins, log=True)
+    ax[0].set_xscale('symlog', linthresh=1e-2)
+    ax[1].set_xscale('symlog', linthresh=1e-2)
+    ax[0].set_yscale('log')
+    ax[1].set_yscale('log')
+    ax[0].set_xlim(-1e2, 1e2)
+    ax[1].set_xlim(-1e2, 1e2)
     
     return fig
 
