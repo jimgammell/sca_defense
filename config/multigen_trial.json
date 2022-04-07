@@ -1,0 +1,45 @@
+{
+    "byte": 0,
+    "keys": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "key_dataset_kwargs":
+    {
+        "keep_data_in_memory": true,
+        "data_path": "./data",
+        "download": true,
+        "extract": true,
+        "preprocess": true,
+        "delete_download_after_extraction": false,
+        "delete_extracted_after_preprocess": false
+    },
+    "dataset_prop_for_validation": 0.2,
+    "trace_map_architecture": "mlp",
+    "trace_map_kwargs":
+    {
+        "layers": [256, 64],
+        "hidden_activation": "Relu"
+    },
+    "plaintext_map_architecture": "mlp",
+    "plaintext_map_kwargs":
+    {
+        "layers": [64],
+        "hidden_activation": "Relu"
+    },
+    "key_map_architecture": "zero",
+    "key_map_kwargs": {},
+    "cumulative_map_architecture": "mlp",
+    "cumulative_map_kwargs":
+    {
+        "layers": 256,
+        "hidden_activation": "Relu"
+    },
+    "discriminator_architecture": "google_style_resnet",
+    "discriminator_kwargs": {},
+    "discriminator_loss": "CrossEntropyLoss",
+    "discriminator_loss_kwargs": {},
+    "discriminator_optimizer": "Adam",
+    "discriminator_optimizer_kwargs": {},
+    "generator_loss": "CrossEntropyLoss",
+    "generator_loss_kwargs": {},
+    "generator_optimizer": "Adam",
+    "generator_optimizer_kwargs": {}
+}
