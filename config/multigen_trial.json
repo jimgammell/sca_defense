@@ -1,7 +1,7 @@
 {
     "exp_type": "multigen",
     "byte": 0,
-    "keys": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    "keys": [],
     "key_dataset_kwargs":
     {
         "keep_data_in_memory": true,
@@ -53,9 +53,9 @@
     "generator_optimizer_constructor": "Adam",
     "generator_optimizer_kwargs": {},
     "device": "cuda",
-    "discriminator_pretraining_epochs": 100,
+    "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 0,
-    "discriminator_posttraining_epochs": 0,
+    "gan_training_epochs": 100,
+    "discriminator_posttraining_epochs": 100,
     "seed": 0
 }

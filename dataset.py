@@ -52,7 +52,7 @@ class ToTensor1D:
     def __init__(self):
         pass
     def __call__(self, x):
-        return torch.tensor(x).type(torch.float)
+        return torch.tensor(x).type(torch.float).unsqueeze(0)
     def __repr__(self):
         return self.__class__.__name__ + '()'
 

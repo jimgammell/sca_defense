@@ -15,21 +15,23 @@ Experiment settings:
 		batch_size: 16
 		shuffle: True
 	dataset_prop_for_validation: 0.2
-	trace_map_constructor: <function get_mlp_map at 0x7f5a18b9a430>
+	trace_map_constructor: None
 	trace_map_kwargs:
 		layers: [256]
 		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
-	plaintext_map_constructor: <function get_mlp_map at 0x7f5a18b9a430>
+	plaintext_map_constructor: None
 	plaintext_map_kwargs:
 		layers: [64]
 		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
-	key_map_constructor: <function get_zero_map at 0x7f5a1c10b310>
+	key_map_constructor: <function get_mlp_map at 0x7f9332bda5e0>
 	key_map_kwargs:
-	cumulative_map_constructor: <function get_mlp_map at 0x7f5a18b9a430>
+		layers: []
+		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
+	cumulative_map_constructor: None
 	cumulative_map_kwargs:
 		layers: [256]
 		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
-	discriminator_constructor: <function get_google_style_resnet_discriminator at 0x7f5a18b9a5e0>
+	discriminator_constructor: <function get_google_style_resnet_discriminator at 0x7f9332bda790>
 	discriminator_kwargs:
 	discriminator_loss_constructor: <class 'torch.nn.modules.loss.CrossEntropyLoss'>
 	discriminator_loss_kwargs:
@@ -40,10 +42,10 @@ Experiment settings:
 	generator_optimizer_constructor: <class 'torch.optim.adam.Adam'>
 	generator_optimizer_kwargs:
 	device: cuda
-	discriminator_pretraining_epochs: 100
+	discriminator_pretraining_epochs: 0
 	generator_pretraining_epochs: 0
-	gan_training_epochs: 0
-	discriminator_posttraining_epochs: 0
+	gan_training_epochs: 100
+	discriminator_posttraining_epochs: 100
 	seed: 0
 Loading datasets.
 AesKeyGroupDataset:
@@ -54,461 +56,16 @@ AesKeyGroupDataset:
 )
 	Byte: 0
 	Number of samples available: 10112
-	Trace size: torch.Size([3000])
-	Key size: torch.Size([8])
-	Plaintext size: torch.Size([8])
+	Trace size: torch.Size([1, 3000])
+	Key size: torch.Size([1, 8])
+	Plaintext size: torch.Size([1, 8])
 	Key index size: ()
 Constructing generator.
-CompositeGenerator(
-  (generators): ModuleList(
-    (0): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (1): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (2): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (3): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (4): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (5): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (6): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (7): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (8): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (9): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (10): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (11): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (12): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (13): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (14): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
-    (15): Generator(
-      (trace_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3000, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-      (plaintext_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=64, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=64, out_features=8, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (key_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=8, out_features=8, bias=False)
-        (2): Unflatten(dim=-1, unflattened_size=torch.Size([8]))
-      )
-      (cumulative_map): Sequential(
-        (0): Flatten(start_dim=1, end_dim=-1)
-        (1): Linear(in_features=3016, out_features=256, bias=True)
-        (2): ReLU()
-        (3): Linear(in_features=256, out_features=3000, bias=True)
-        (4): Unflatten(dim=-1, unflattened_size=torch.Size([3000]))
-      )
-    )
+KeyOnlyGenerator(
+  (key_trace_map): Sequential(
+    (0): Flatten(start_dim=1, end_dim=-1)
+    (1): Linear(in_features=8, out_features=3000, bias=True)
+    (2): Unflatten(dim=-1, unflattened_size=torch.Size([1, 3000]))
   )
 )
 
@@ -736,640 +293,1840 @@ Discriminator(
 Calculating initial results.
 	Done.
 	Discriminator:
-		Training loss: -5.537492
+		Training loss: -5.593465
 		Training accuracy: 0.0
-		Validation loss: -5.540614
+		Validation loss: -5.598887
 		Validation accuracy: 0.0
 	Generator:
-		Training loss: -5.537492
+		Training loss: -5.593465
 		Training accuracy: 0.0
-		Validation loss: -5.540614
+		Validation loss: -5.598887
 		Validation accuracy: 0.0
 
 Pretraining discriminator.
 	Initial performamce
-		Training loss: 5.5362
+		Training loss: 5.5883784
 		Training accuracy: 0.0
-		Validation loss: 5.539698
+		Validation loss: 5.5945034
 		Validation accuracy: 0.0
-
-	Epoch 1
-		Training loss: 1.9551861
-		Training accuracy: 0.40470297029702973
-		Validation loss: 1.1100335
-		Validation accuracy: 0.566468253968254
-
-	Epoch 2
-		Training loss: 0.8937912
-		Training accuracy: 0.6523514851485148
-		Validation loss: 0.71270865
-		Validation accuracy: 0.7366071428571429
-
-	Epoch 3
-		Training loss: 0.6180468
-		Training accuracy: 0.7629950495049505
-		Validation loss: 0.7317673
-		Validation accuracy: 0.7276785714285714
-
-	Epoch 4
-		Training loss: 0.52876264
-		Training accuracy: 0.8023514851485148
-		Validation loss: 0.6089036
-		Validation accuracy: 0.7624007936507936
-
-	Epoch 5
-		Training loss: 0.451164
-		Training accuracy: 0.8383663366336633
-		Validation loss: 0.5109805
-		Validation accuracy: 0.8253968253968254
-
-	Epoch 6
-		Training loss: 0.47618854
-		Training accuracy: 0.8325495049504951
-		Validation loss: 0.3954366
-		Validation accuracy: 0.8432539682539683
-
-	Epoch 7
-		Training loss: 0.3916991
-		Training accuracy: 0.8591584158415841
-		Validation loss: 0.4409231
-		Validation accuracy: 0.8392857142857143
-
-	Epoch 8
-		Training loss: 0.40357697
-		Training accuracy: 0.8595297029702971
-		Validation loss: 0.8159845
-		Validation accuracy: 0.7579365079365079
-
-	Epoch 9
-		Training loss: 0.35080853
-		Training accuracy: 0.8767326732673267
-		Validation loss: 0.33663684
-		Validation accuracy: 0.871031746031746
-
-	Epoch 10
-		Training loss: 0.42040563
-		Training accuracy: 0.8612623762376238
-		Validation loss: 0.5322492
-		Validation accuracy: 0.8115079365079365
-
-	Epoch 11
-		Training loss: 0.3041774
-		Training accuracy: 0.8949257425742574
-		Validation loss: 0.40340644
-		Validation accuracy: 0.8655753968253969
-
-	Epoch 12
-		Training loss: 0.31238115
-		Training accuracy: 0.8918316831683168
-		Validation loss: 0.40953597
-		Validation accuracy: 0.8625992063492064
-
-	Epoch 13
-		Training loss: 0.30311486
-		Training accuracy: 0.8974009900990099
-		Validation loss: 0.48003298
-		Validation accuracy: 0.8591269841269841
-
-	Epoch 14
-		Training loss: 0.30223942
-		Training accuracy: 0.9016089108910891
-		Validation loss: 0.712098
-		Validation accuracy: 0.7986111111111112
-
-	Epoch 15
-		Training loss: 0.3171809
-		Training accuracy: 0.8959158415841584
-		Validation loss: 0.63006383
-		Validation accuracy: 0.847718253968254
-
-	Epoch 16
-		Training loss: 0.2687996
-		Training accuracy: 0.908539603960396
-		Validation loss: 0.41711396
-		Validation accuracy: 0.8779761904761905
-
-	Epoch 17
-		Training loss: 0.2960265
-		Training accuracy: 0.906559405940594
-		Validation loss: 0.30556533
-		Validation accuracy: 0.9007936507936508
-
-	Epoch 18
-		Training loss: 0.26238418
-		Training accuracy: 0.9201732673267327
-		Validation loss: 0.6303184
-		Validation accuracy: 0.8536706349206349
-
-	Epoch 19
-		Training loss: 0.22401553
-		Training accuracy: 0.9230198019801981
-		Validation loss: 0.331423
-		Validation accuracy: 0.908234126984127
-
-	Epoch 20
-		Training loss: 0.24700171
-		Training accuracy: 0.924009900990099
-		Validation loss: 0.31869608
-		Validation accuracy: 0.8993055555555556
-
-	Epoch 21
-		Training loss: 0.24553652
-		Training accuracy: 0.9287128712871288
-		Validation loss: 0.4805476
-		Validation accuracy: 0.8650793650793651
-
-	Epoch 22
-		Training loss: 0.24517128
-		Training accuracy: 0.9254950495049505
-		Validation loss: 0.32944962
-		Validation accuracy: 0.90625
-
-	Epoch 23
-		Training loss: 0.22517304
-		Training accuracy: 0.9316831683168317
-		Validation loss: 0.40294033
-		Validation accuracy: 0.8864087301587301
-
-	Epoch 24
-		Training loss: 0.20532085
-		Training accuracy: 0.938490099009901
-		Validation loss: 0.3549554
-		Validation accuracy: 0.8928571428571429
-
-	Epoch 25
-		Training loss: 0.22454968
-		Training accuracy: 0.9332920792079208
-		Validation loss: 0.59147954
-		Validation accuracy: 0.8606150793650794
-
-	Epoch 26
-		Training loss: 0.18105665
-		Training accuracy: 0.9445544554455445
-		Validation loss: 0.53620166
-		Validation accuracy: 0.8606150793650794
-
-	Epoch 27
-		Training loss: 0.18671073
-		Training accuracy: 0.9454207920792079
-		Validation loss: 1.2374884
-		Validation accuracy: 0.7653769841269841
-
-	Epoch 28
-		Training loss: 0.3352135
-		Training accuracy: 0.9136138613861386
-		Validation loss: 0.37954283
-		Validation accuracy: 0.8978174603174603
-
-	Epoch 29
-		Training loss: 0.14890353
-		Training accuracy: 0.9542079207920792
-		Validation loss: 0.5318085
-		Validation accuracy: 0.875
-
-	Epoch 30
-		Training loss: 0.13458182
-		Training accuracy: 0.959529702970297
-		Validation loss: 0.38435477
-		Validation accuracy: 0.908234126984127
-
-	Epoch 31
-		Training loss: 0.15687202
-		Training accuracy: 0.9519801980198019
-		Validation loss: 0.26139972
-		Validation accuracy: 0.9196428571428571
-
-	Epoch 32
-		Training loss: 0.22677459
-		Training accuracy: 0.9392326732673267
-		Validation loss: 0.72396296
-		Validation accuracy: 0.8606150793650794
-
-	Epoch 33
-		Training loss: 0.2860637
-		Training accuracy: 0.9303217821782178
-		Validation loss: 0.2347456
-		Validation accuracy: 0.9350198412698413
-
-	Epoch 34
-		Training loss: 0.16091125
-		Training accuracy: 0.9565594059405941
-		Validation loss: 0.43764433
-		Validation accuracy: 0.9002976190476191
-
-	Epoch 35
-		Training loss: 0.16315472
-		Training accuracy: 0.9521039603960396
-		Validation loss: 0.40961537
-		Validation accuracy: 0.9007936507936508
-
-	Epoch 36
-		Training loss: 0.14884885
-		Training accuracy: 0.9550742574257426
-		Validation loss: 0.6060451
-		Validation accuracy: 0.871031746031746
-
-	Epoch 37
-		Training loss: 0.21021184
-		Training accuracy: 0.9422029702970297
-		Validation loss: 0.5024065
-		Validation accuracy: 0.9087301587301587
-
-	Epoch 38
-		Training loss: 0.21370442
-		Training accuracy: 0.9445544554455445
-		Validation loss: 0.3785317
-		Validation accuracy: 0.9136904761904762
-
-	Epoch 39
-		Training loss: 0.09330529
-		Training accuracy: 0.9707920792079208
-		Validation loss: 0.32356924
-		Validation accuracy: 0.9226190476190477
-
-	Epoch 40
-		Training loss: 0.11814044
-		Training accuracy: 0.9663366336633663
-		Validation loss: 0.40533143
-		Validation accuracy: 0.9171626984126984
-
-	Epoch 41
-		Training loss: 0.27748328
-		Training accuracy: 0.940470297029703
-		Validation loss: 0.89514184
-		Validation accuracy: 0.871031746031746
-
-	Epoch 42
-		Training loss: 0.23685777
-		Training accuracy: 0.9438118811881188
-		Validation loss: 0.40006176
-		Validation accuracy: 0.9151785714285714
-
-	Epoch 43
-		Training loss: 0.06559255
-		Training accuracy: 0.9808168316831684
-		Validation loss: 0.28263748
-		Validation accuracy: 0.9330357142857143
-
-	Epoch 44
-		Training loss: 0.08458829
-		Training accuracy: 0.9785891089108911
-		Validation loss: 0.49330088
-		Validation accuracy: 0.9027777777777778
-
-	Epoch 45
-		Training loss: 0.20774598
-		Training accuracy: 0.9506188118811881
-		Validation loss: 0.9205786
-		Validation accuracy: 0.8665674603174603
-
-	Epoch 46
-		Training loss: 0.16773205
-		Training accuracy: 0.9579207920792079
-		Validation loss: 0.80235565
-		Validation accuracy: 0.8814484126984127
-
-	Epoch 47
-		Training loss: 0.16085114
-		Training accuracy: 0.9618811881188118
-		Validation loss: 0.5684568
-		Validation accuracy: 0.9087301587301587
-
-	Epoch 48
-		Training loss: 0.15248503
-		Training accuracy: 0.9617574257425743
-		Validation loss: 0.54571176
-		Validation accuracy: 0.9067460317460317
-
-	Epoch 49
-		Training loss: 0.16394319
-		Training accuracy: 0.9618811881188118
-		Validation loss: 0.55201787
-		Validation accuracy: 0.8978174603174603
-
-	Epoch 50
-		Training loss: 0.10738687
-		Training accuracy: 0.9728960396039604
-		Validation loss: 0.68975484
-		Validation accuracy: 0.8839285714285714
-
-	Epoch 51
-		Training loss: 0.22586048
-		Training accuracy: 0.9534653465346534
-		Validation loss: 0.6660173
-		Validation accuracy: 0.8913690476190477
-
-	Epoch 52
-		Training loss: 0.11551033
-		Training accuracy: 0.9699257425742575
-		Validation loss: 0.38432422
-		Validation accuracy: 0.9290674603174603
-
-	Epoch 53
-		Training loss: 0.112841256
-		Training accuracy: 0.9726485148514852
-		Validation loss: 0.7030331
-		Validation accuracy: 0.8893849206349206
-
-	Epoch 54
-		Training loss: 0.34850052
-		Training accuracy: 0.9444306930693069
-		Validation loss: 0.5469415
-		Validation accuracy: 0.9181547619047619
-
-	Epoch 55
-		Training loss: 0.10412424
-		Training accuracy: 0.9775990099009901
-		Validation loss: 0.51651305
-		Validation accuracy: 0.9186507936507936
-
-	Epoch 56
-		Training loss: 0.11641511
-		Training accuracy: 0.9733910891089109
-		Validation loss: 0.5144538
-		Validation accuracy: 0.9191468253968254
-
-	Epoch 57
-		Training loss: 0.117876016
-		Training accuracy: 0.9717821782178218
-		Validation loss: 0.90929836
-		Validation accuracy: 0.8804563492063492
-
-	Epoch 58
-		Training loss: 0.15249099
-		Training accuracy: 0.968069306930693
-		Validation loss: 0.77386546
-		Validation accuracy: 0.8913690476190477
-
-	Epoch 59
-		Training loss: 0.1729725
-		Training accuracy: 0.9648514851485148
-		Validation loss: 0.6654994
-		Validation accuracy: 0.9107142857142857
-
-	Epoch 60
-		Training loss: 0.08795001
-		Training accuracy: 0.9778465346534654
-		Validation loss: 0.61367613
-		Validation accuracy: 0.9176587301587301
-
-	Epoch 61
-		Training loss: 0.29257086
-		Training accuracy: 0.9492574257425742
-		Validation loss: 0.49161527
-		Validation accuracy: 0.9231150793650794
-
-	Epoch 62
-		Training loss: 0.12101086
-		Training accuracy: 0.9715346534653465
-		Validation loss: 0.41230237
-		Validation accuracy: 0.9310515873015873
-
-	Epoch 63
-		Training loss: 0.08269211
-		Training accuracy: 0.9810643564356436
-		Validation loss: 0.539369
-		Validation accuracy: 0.9166666666666666
-
-	Epoch 64
-		Training loss: 0.19188415
-		Training accuracy: 0.9627475247524753
-		Validation loss: 0.664961
-		Validation accuracy: 0.9117063492063492
-
-	Epoch 65
-		Training loss: 0.18583083
-		Training accuracy: 0.9662128712871287
-		Validation loss: 0.7876478
-		Validation accuracy: 0.8948412698412699
-
-	Epoch 66
-		Training loss: 0.1534959
-		Training accuracy: 0.9701732673267327
-		Validation loss: 0.63948417
-		Validation accuracy: 0.9146825396825397
-
-	Epoch 67
-		Training loss: 0.06758957
-		Training accuracy: 0.9842821782178218
-		Validation loss: 0.41339675
-		Validation accuracy: 0.9320436507936508
-
-	Epoch 68
-		Training loss: 0.10388059
-		Training accuracy: 0.9764851485148515
-		Validation loss: 0.7081269
-		Validation accuracy: 0.9087301587301587
-
-	Epoch 69
-		Training loss: 0.2504645
-		Training accuracy: 0.9564356435643564
-		Validation loss: 1.1608115
-		Validation accuracy: 0.8725198412698413
-
-	Epoch 70
-		Training loss: 0.1300551
-		Training accuracy: 0.9748762376237624
-		Validation loss: 0.64517266
-		Validation accuracy: 0.9265873015873016
-
-	Epoch 71
-		Training loss: 0.07789944
-		Training accuracy: 0.9821782178217822
-		Validation loss: 0.98657525
-		Validation accuracy: 0.8809523809523809
-
-	Epoch 72
-		Training loss: 0.17419231
-		Training accuracy: 0.9679455445544555
-		Validation loss: 0.59059566
-		Validation accuracy: 0.9270833333333334
-
-	Epoch 73
-		Training loss: 0.13736728
-		Training accuracy: 0.9732673267326732
-		Validation loss: 1.0648102
-		Validation accuracy: 0.8893849206349206
-
-	Epoch 74
-		Training loss: 0.13382342
-		Training accuracy: 0.9725247524752475
-		Validation loss: 0.7237612
-		Validation accuracy: 0.9131944444444444
-
-	Epoch 75
-		Training loss: 0.2715474
-		Training accuracy: 0.9535891089108911
-		Validation loss: 0.82777065
-		Validation accuracy: 0.8968253968253969
-
-	Epoch 76
-		Training loss: 0.11341143
-		Training accuracy: 0.9790841584158416
-		Validation loss: 0.6022717
-		Validation accuracy: 0.9280753968253969
-
-	Epoch 77
-		Training loss: 0.100389905
-		Training accuracy: 0.9810643564356436
-		Validation loss: 0.9319068
-		Validation accuracy: 0.9037698412698413
-
-	Epoch 78
-		Training loss: 0.12864107
-		Training accuracy: 0.9762376237623762
-		Validation loss: 1.4407104
-		Validation accuracy: 0.8705357142857143
-
-	Epoch 79
-		Training loss: 0.1655649
-		Training accuracy: 0.9715346534653465
-		Validation loss: 0.7335575
-		Validation accuracy: 0.9122023809523809
-
-	Epoch 80
-		Training loss: 0.11005369
-		Training accuracy: 0.9806930693069307
-		Validation loss: 0.88169307
-		Validation accuracy: 0.9047619047619048
-
-	Epoch 81
-		Training loss: 0.042271983
-		Training accuracy: 0.9907178217821783
-		Validation loss: 0.6171372
-		Validation accuracy: 0.9330357142857143
-
-	Epoch 82
-		Training loss: 0.37036029
-		Training accuracy: 0.9544554455445544
-		Validation loss: 1.8753291
-		Validation accuracy: 0.8516865079365079
-
-	Epoch 83
-		Training loss: 0.23200421
-		Training accuracy: 0.9695544554455445
-		Validation loss: 0.898964
-		Validation accuracy: 0.9057539682539683
-
-	Epoch 84
-		Training loss: 0.08419395
-		Training accuracy: 0.9825495049504951
-		Validation loss: 0.76691353
-		Validation accuracy: 0.9241071428571429
-
-	Epoch 85
-		Training loss: 0.11527921
-		Training accuracy: 0.9806930693069307
-		Validation loss: 0.8704349
-		Validation accuracy: 0.910218253968254
-
-	Epoch 86
-		Training loss: 0.15783583
-		Training accuracy: 0.9754950495049505
-		Validation loss: 0.7588245
-		Validation accuracy: 0.9136904761904762
-
-	Epoch 87
-		Training loss: 0.0497652
-		Training accuracy: 0.9899752475247525
-		Validation loss: 0.60973704
-		Validation accuracy: 0.9315476190476191
-
-	Epoch 88
-		Training loss: 0.1391452
-		Training accuracy: 0.9766089108910891
-		Validation loss: 1.2110021
-		Validation accuracy: 0.8958333333333334
-
-	Epoch 89
-		Training loss: 0.39714736
-		Training accuracy: 0.9564356435643564
-		Validation loss: 0.93218297
-		Validation accuracy: 0.9122023809523809
-
-	Epoch 90
-		Training loss: 0.09832268
-		Training accuracy: 0.9834158415841584
-		Validation loss: 0.9500154
-		Validation accuracy: 0.9191468253968254
-
-	Epoch 91
-		Training loss: 0.07080349
-		Training accuracy: 0.9873762376237624
-		Validation loss: 0.665814
-		Validation accuracy: 0.9295634920634921
-
-	Epoch 92
-		Training loss: 0.09944831
-		Training accuracy: 0.9840346534653466
-		Validation loss: 0.6250873
-		Validation accuracy: 0.933531746031746
-
-	Epoch 93
-		Training loss: 0.15155177
-		Training accuracy: 0.9756188118811882
-		Validation loss: 1.1589446
-		Validation accuracy: 0.8973214285714286
-
-	Epoch 94
-		Training loss: 0.19491193
-		Training accuracy: 0.9705445544554455
-		Validation loss: 0.79449195
-		Validation accuracy: 0.9310515873015873
-
-	Epoch 95
-		Training loss: 0.12336656
-		Training accuracy: 0.9799504950495049
-		Validation loss: 1.3406829
-		Validation accuracy: 0.8878968253968254
-
-	Epoch 96
-		Training loss: 0.098376274
-		Training accuracy: 0.9858910891089109
-		Validation loss: 1.0335541
-		Validation accuracy: 0.9146825396825397
-
-	Epoch 97
-		Training loss: 0.35700974
-		Training accuracy: 0.9584158415841584
-		Validation loss: 1.1672889
-		Validation accuracy: 0.9161706349206349
-
-	Epoch 98
-		Training loss: 0.15477362
-		Training accuracy: 0.9751237623762377
-		Validation loss: 1.1659424
-		Validation accuracy: 0.9151785714285714
-
-	Epoch 99
-		Training loss: 0.047176998
-		Training accuracy: 0.9915841584158416
-		Validation loss: 1.1933266
-		Validation accuracy: 0.9047619047619048
-
-	Epoch 100
-		Training loss: 0.16632709
-		Training accuracy: 0.9763613861386139
-		Validation loss: 1.5218375
-		Validation accuracy: 0.8943452380952381
 
 
 Pretraining generator.
 	Initial performance
-		Training loss: 0.0032966794
+		Training loss: 0.04294416
 		Training accuracy: nan
-		Validation loss: 0.0033041944
+		Validation loss: 0.04281544
 		Validation accuracy: nan
 
 
 Training discriminator and generator simultaneously.
+	Epoch 1
+	Discriminator results:
+		Training loss: 0.46035048
+		Training accuracy: 0.9813118811881189
+		Validation loss: 184.02605
+		Validation accuracy: 0.36755952380952384
+	Generator results:
+		Training loss: -363.8258
+		Training accuracy: 0.061014851485148514
+		Validation loss: -550.5842
+		Validation accuracy: 0.062003968253968256
+
+	Epoch 2
+	Discriminator results:
+		Training loss: 0.8271451
+		Training accuracy: 0.9939356435643565
+		Validation loss: 234.68031
+		Validation accuracy: 0.7271825396825397
+	Generator results:
+		Training loss: -2704.0574
+		Training accuracy: 0.06262376237623762
+		Validation loss: -4310.694
+		Validation accuracy: 0.061507936507936505
+
+	Epoch 3
+	Discriminator results:
+		Training loss: 1.6313628
+		Training accuracy: 0.995049504950495
+		Validation loss: 0.14183784
+		Validation accuracy: 0.9995039682539683
+	Generator results:
+		Training loss: -7379.888
+		Training accuracy: 0.06311881188118812
+		Validation loss: -9054.33
+		Validation accuracy: 0.061507936507936505
+
+	Epoch 4
+	Discriminator results:
+		Training loss: 1.012378
+		Training accuracy: 0.9977722772277228
+		Validation loss: 85.127144
+		Validation accuracy: 0.8844246031746031
+	Generator results:
+		Training loss: -13380.5205
+		Training accuracy: 0.0625
+		Validation loss: -11487.047
+		Validation accuracy: 0.062003968253968256
+
+	Epoch 5
+	Discriminator results:
+		Training loss: 0.4210435
+		Training accuracy: 0.9988861386138614
+		Validation loss: 10.27647
+		Validation accuracy: 0.9771825396825397
+	Generator results:
+		Training loss: -14508.264
+		Training accuracy: 0.06262376237623762
+		Validation loss: -14376.22
+		Validation accuracy: 0.062003968253968256
+
+	Epoch 6
+	Discriminator results:
+		Training loss: 0.82229877
+		Training accuracy: 0.9981435643564357
+		Validation loss: 280.69464
+		Validation accuracy: 0.7901785714285714
+	Generator results:
+		Training loss: -18268.482
+		Training accuracy: 0.06262376237623762
+		Validation loss: -15844.424
+		Validation accuracy: 0.062003968253968256
+
+	Epoch 7
+	Discriminator results:
+		Training loss: 3.2614737
+		Training accuracy: 0.9957920792079208
+		Validation loss: 90.7275
+		Validation accuracy: 0.9593253968253969
+	Generator results:
+		Training loss: -30751.033
+		Training accuracy: 0.06126237623762376
+		Validation loss: -36398.273
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 8
+	Discriminator results:
+		Training loss: 1.6831367
+		Training accuracy: 0.9985148514851485
+		Validation loss: 102.76325
+		Validation accuracy: 0.9315476190476191
+	Generator results:
+		Training loss: -46239.508
+		Training accuracy: 0.061014851485148514
+		Validation loss: -35747.0
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 9
+	Discriminator results:
+		Training loss: 0.2533327
+		Training accuracy: 0.9997524752475248
+		Validation loss: 27.231825
+		Validation accuracy: 0.9598214285714286
+	Generator results:
+		Training loss: -43535.32
+		Training accuracy: 0.061014851485148514
+		Validation loss: -34435.023
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 10
+	Discriminator results:
+		Training loss: 0.7964849
+		Training accuracy: 0.9992574257425743
+		Validation loss: 48.706287
+		Validation accuracy: 0.9513888888888888
+	Generator results:
+		Training loss: -51481.38
+		Training accuracy: 0.06089108910891089
+		Validation loss: -38353.586
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 11
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 151.60358
+		Validation accuracy: 0.9280753968253969
+	Generator results:
+		Training loss: -56771.223
+		Training accuracy: 0.06089108910891089
+		Validation loss: -36167.215
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 12
+	Discriminator results:
+		Training loss: 3.6691198
+		Training accuracy: 0.9971534653465347
+		Validation loss: 133.39787
+		Validation accuracy: 0.9543650793650794
+	Generator results:
+		Training loss: -56309.934
+		Training accuracy: 0.06089108910891089
+		Validation loss: -50377.45
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 13
+	Discriminator results:
+		Training loss: 2.1378953
+		Training accuracy: 0.9991336633663367
+		Validation loss: 454.92477
+		Validation accuracy: 0.8764880952380952
+	Generator results:
+		Training loss: -78161.39
+		Training accuracy: 0.061014851485148514
+		Validation loss: -59668.812
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 14
+	Discriminator results:
+		Training loss: 0.9834482
+		Training accuracy: 0.9993811881188119
+		Validation loss: 188.9399
+		Validation accuracy: 0.935515873015873
+	Generator results:
+		Training loss: -57340.703
+		Training accuracy: 0.060767326732673266
+		Validation loss: -41109.91
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 15
+	Discriminator results:
+		Training loss: 1.0280322
+		Training accuracy: 0.9992574257425743
+		Validation loss: 1876.4777
+		Validation accuracy: 0.8239087301587301
+	Generator results:
+		Training loss: -63713.76
+		Training accuracy: 0.061014851485148514
+		Validation loss: -54233.527
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 16
+	Discriminator results:
+		Training loss: 1.9533951
+		Training accuracy: 0.9987623762376238
+		Validation loss: 11150.149
+		Validation accuracy: 0.42658730158730157
+	Generator results:
+		Training loss: -106056.63
+		Training accuracy: 0.060767326732673266
+		Validation loss: -53742.188
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 17
+	Discriminator results:
+		Training loss: 0.09483437
+		Training accuracy: 0.9997524752475248
+		Validation loss: 4411.485
+		Validation accuracy: 0.6691468253968254
+	Generator results:
+		Training loss: -103084.3
+		Training accuracy: 0.06064356435643564
+		Validation loss: -41225.72
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 18
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 50.82315
+		Validation accuracy: 0.9801587301587301
+	Generator results:
+		Training loss: -82905.3
+		Training accuracy: 0.061014851485148514
+		Validation loss: -65793.766
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 19
+	Discriminator results:
+		Training loss: 3.0681398
+		Training accuracy: 0.9991336633663367
+		Validation loss: 829.5179
+		Validation accuracy: 0.8913690476190477
+	Generator results:
+		Training loss: -87897.63
+		Training accuracy: 0.061014851485148514
+		Validation loss: -71282.97
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 20
+	Discriminator results:
+		Training loss: 0.18161596
+		Training accuracy: 0.9996287128712872
+		Validation loss: 11312.786
+		Validation accuracy: 0.47867063492063494
+	Generator results:
+		Training loss: -135687.25
+		Training accuracy: 0.06089108910891089
+		Validation loss: -64059.996
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 21
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 12514.21
+		Validation accuracy: 0.41716269841269843
+	Generator results:
+		Training loss: -146993.61
+		Training accuracy: 0.06089108910891089
+		Validation loss: -55246.617
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 22
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 18159.787
+		Validation accuracy: 0.28174603174603174
+	Generator results:
+		Training loss: -148275.03
+		Training accuracy: 0.061014851485148514
+		Validation loss: -60641.855
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 23
+	Discriminator results:
+		Training loss: 4.107613
+		Training accuracy: 0.9987623762376238
+		Validation loss: 8452.818
+		Validation accuracy: 0.5639880952380952
+	Generator results:
+		Training loss: -142517.33
+		Training accuracy: 0.060767326732673266
+		Validation loss: -56856.77
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 24
+	Discriminator results:
+		Training loss: 2.7765365
+		Training accuracy: 0.9991336633663367
+		Validation loss: 8325.51
+		Validation accuracy: 0.7033730158730159
+	Generator results:
+		Training loss: -151362.4
+		Training accuracy: 0.06089108910891089
+		Validation loss: -77453.06
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 25
+	Discriminator results:
+		Training loss: 4.967433
+		Training accuracy: 0.9992574257425743
+		Validation loss: 52.80044
+		Validation accuracy: 0.9826388888888888
+	Generator results:
+		Training loss: -149666.98
+		Training accuracy: 0.06089108910891089
+		Validation loss: -123709.57
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 26
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 21.641888
+		Validation accuracy: 0.9915674603174603
+	Generator results:
+		Training loss: -153742.52
+		Training accuracy: 0.061014851485148514
+		Validation loss: -129386.43
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 27
+	Discriminator results:
+		Training loss: 0.38774753
+		Training accuracy: 0.9997524752475248
+		Validation loss: 230.2253
+		Validation accuracy: 0.9499007936507936
+	Generator results:
+		Training loss: -165858.19
+		Training accuracy: 0.06089108910891089
+		Validation loss: -134015.48
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 28
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 741.04596
+		Validation accuracy: 0.8864087301587301
+	Generator results:
+		Training loss: -177837.48
+		Training accuracy: 0.06064356435643564
+		Validation loss: -133738.23
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 29
+	Discriminator results:
+		Training loss: 5.6252294
+		Training accuracy: 0.9985148514851485
+		Validation loss: 70.29089
+		Validation accuracy: 0.9890873015873016
+	Generator results:
+		Training loss: -182645.03
+		Training accuracy: 0.06089108910891089
+		Validation loss: -115632.21
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 30
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 4.5261464
+		Validation accuracy: 0.9985119047619048
+	Generator results:
+		Training loss: -186791.53
+		Training accuracy: 0.061014851485148514
+		Validation loss: -137025.03
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 31
+	Discriminator results:
+		Training loss: 2.3701642
+		Training accuracy: 0.9993811881188119
+		Validation loss: 24432.418
+		Validation accuracy: 0.4052579365079365
+	Generator results:
+		Training loss: -201338.48
+		Training accuracy: 0.060767326732673266
+		Validation loss: -147858.7
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 32
+	Discriminator results:
+		Training loss: 0.27798334
+		Training accuracy: 0.9996287128712872
+		Validation loss: 3772.4622
+		Validation accuracy: 0.7881944444444444
+	Generator results:
+		Training loss: -204776.75
+		Training accuracy: 0.06089108910891089
+		Validation loss: -134483.81
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 33
+	Discriminator results:
+		Training loss: 5.8430185
+		Training accuracy: 0.999009900990099
+		Validation loss: 6908.9473
+		Validation accuracy: 0.8462301587301587
+	Generator results:
+		Training loss: -206850.42
+		Training accuracy: 0.06089108910891089
+		Validation loss: -122558.85
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 34
+	Discriminator results:
+		Training loss: 5.0136786
+		Training accuracy: 0.9995049504950495
+		Validation loss: 11674.592
+		Validation accuracy: 0.628968253968254
+	Generator results:
+		Training loss: -201775.78
+		Training accuracy: 0.061014851485148514
+		Validation loss: -74642.51
+		Validation accuracy: 0.06944444444444445
+
+	Epoch 35
+	Discriminator results:
+		Training loss: 0.99746287
+		Training accuracy: 0.9996287128712872
+		Validation loss: 4408.755
+		Validation accuracy: 0.7817460317460317
+	Generator results:
+		Training loss: -178110.77
+		Training accuracy: 0.060767326732673266
+		Validation loss: -106188.26
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 36
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 3516.6309
+		Validation accuracy: 0.777281746031746
+	Generator results:
+		Training loss: -184249.25
+		Training accuracy: 0.06089108910891089
+		Validation loss: -112180.77
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 37
+	Discriminator results:
+		Training loss: 4.792615
+		Training accuracy: 0.9991336633663367
+		Validation loss: 3149.7761
+		Validation accuracy: 0.8705357142857143
+	Generator results:
+		Training loss: -192040.66
+		Training accuracy: 0.060767326732673266
+		Validation loss: -111885.8
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 38
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 4909.136
+		Validation accuracy: 0.7926587301587301
+	Generator results:
+		Training loss: -183146.11
+		Training accuracy: 0.06089108910891089
+		Validation loss: -114821.96
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 39
+	Discriminator results:
+		Training loss: 0.3509408
+		Training accuracy: 0.9996287128712872
+		Validation loss: 22882.846
+		Validation accuracy: 0.46825396825396826
+	Generator results:
+		Training loss: -200477.61
+		Training accuracy: 0.061014851485148514
+		Validation loss: -118919.586
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 40
+	Discriminator results:
+		Training loss: 3.4066203
+		Training accuracy: 0.9993811881188119
+		Validation loss: 26953.535
+		Validation accuracy: 0.5193452380952381
+	Generator results:
+		Training loss: -227498.7
+		Training accuracy: 0.061014851485148514
+		Validation loss: -112503.71
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 41
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 24965.396
+		Validation accuracy: 0.558531746031746
+	Generator results:
+		Training loss: -224236.86
+		Training accuracy: 0.06089108910891089
+		Validation loss: -113390.375
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 42
+	Discriminator results:
+		Training loss: 0.4338084
+		Training accuracy: 0.9998762376237624
+		Validation loss: 5571.3823
+		Validation accuracy: 0.7529761904761905
+	Generator results:
+		Training loss: -227023.56
+		Training accuracy: 0.061014851485148514
+		Validation loss: -101652.1
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 43
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 7965.261
+		Validation accuracy: 0.7653769841269841
+	Generator results:
+		Training loss: -225856.0
+		Training accuracy: 0.06089108910891089
+		Validation loss: -115427.84
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 44
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 4176.489
+		Validation accuracy: 0.8422619047619048
+	Generator results:
+		Training loss: -231361.06
+		Training accuracy: 0.06089108910891089
+		Validation loss: -127720.98
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 45
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 7586.944
+		Validation accuracy: 0.7961309523809523
+	Generator results:
+		Training loss: -233546.67
+		Training accuracy: 0.061014851485148514
+		Validation loss: -122064.41
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 46
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 8371.692
+		Validation accuracy: 0.7817460317460317
+	Generator results:
+		Training loss: -235129.95
+		Training accuracy: 0.061014851485148514
+		Validation loss: -120422.01
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 47
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 6138.606
+		Validation accuracy: 0.8253968253968254
+	Generator results:
+		Training loss: -236192.19
+		Training accuracy: 0.061014851485148514
+		Validation loss: -130655.79
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 48
+	Discriminator results:
+		Training loss: 16.027315
+		Training accuracy: 0.9982673267326733
+		Validation loss: 4185.35
+		Validation accuracy: 0.8229166666666666
+	Generator results:
+		Training loss: -242246.11
+		Training accuracy: 0.06089108910891089
+		Validation loss: -140465.36
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 49
+	Discriminator results:
+		Training loss: 3.0585358
+		Training accuracy: 0.9996287128712872
+		Validation loss: 3326.6692
+		Validation accuracy: 0.8258928571428571
+	Generator results:
+		Training loss: -287488.06
+		Training accuracy: 0.061014851485148514
+		Validation loss: -182567.22
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 50
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 788.50836
+		Validation accuracy: 0.9528769841269841
+	Generator results:
+		Training loss: -321558.53
+		Training accuracy: 0.061014851485148514
+		Validation loss: -212805.4
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 51
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 250.50821
+		Validation accuracy: 0.9811507936507936
+	Generator results:
+		Training loss: -327077.2
+		Training accuracy: 0.060767326732673266
+		Validation loss: -229083.12
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 52
+	Discriminator results:
+		Training loss: 7.5222716
+		Training accuracy: 0.999009900990099
+		Validation loss: 44.483013
+		Validation accuracy: 0.9965277777777778
+	Generator results:
+		Training loss: -245230.64
+		Training accuracy: 0.06089108910891089
+		Validation loss: -185050.14
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 53
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 224.83937
+		Validation accuracy: 0.9796626984126984
+	Generator results:
+		Training loss: -251939.0
+		Training accuracy: 0.06089108910891089
+		Validation loss: -182634.23
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 54
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 234.03069
+		Validation accuracy: 0.9816468253968254
+	Generator results:
+		Training loss: -255107.84
+		Training accuracy: 0.061014851485148514
+		Validation loss: -185687.31
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 55
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 605.68665
+		Validation accuracy: 0.9742063492063492
+	Generator results:
+		Training loss: -259212.11
+		Training accuracy: 0.061014851485148514
+		Validation loss: -190148.52
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 56
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 702.1742
+		Validation accuracy: 0.9637896825396826
+	Generator results:
+		Training loss: -261197.4
+		Training accuracy: 0.06089108910891089
+		Validation loss: -191453.9
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 57
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 591.9255
+		Validation accuracy: 0.9613095238095238
+	Generator results:
+		Training loss: -262293.9
+		Training accuracy: 0.06089108910891089
+		Validation loss: -193857.17
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 58
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1123.353
+		Validation accuracy: 0.9365079365079365
+	Generator results:
+		Training loss: -263379.78
+		Training accuracy: 0.060767326732673266
+		Validation loss: -191486.31
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 59
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 2139.3584
+		Validation accuracy: 0.9097222222222222
+	Generator results:
+		Training loss: -263981.16
+		Training accuracy: 0.061014851485148514
+		Validation loss: -193366.17
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 60
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 2025.2576
+		Validation accuracy: 0.8908730158730159
+	Generator results:
+		Training loss: -264484.75
+		Training accuracy: 0.06089108910891089
+		Validation loss: -193417.7
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 61
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1553.4095
+		Validation accuracy: 0.910218253968254
+	Generator results:
+		Training loss: -265013.12
+		Training accuracy: 0.061014851485148514
+		Validation loss: -192464.16
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 62
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1417.5985
+		Validation accuracy: 0.9131944444444444
+	Generator results:
+		Training loss: -265418.97
+		Training accuracy: 0.06089108910891089
+		Validation loss: -193716.27
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 63
+	Discriminator results:
+		Training loss: 11.179725
+		Training accuracy: 0.9988861386138614
+		Validation loss: 10019.161
+		Validation accuracy: 0.7524801587301587
+	Generator results:
+		Training loss: -302937.78
+		Training accuracy: 0.061014851485148514
+		Validation loss: -285847.4
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 64
+	Discriminator results:
+		Training loss: 6.0330076
+		Training accuracy: 0.9986386138613862
+		Validation loss: 8942.392
+		Validation accuracy: 0.8159722222222222
+	Generator results:
+		Training loss: -403161.06
+		Training accuracy: 0.061014851485148514
+		Validation loss: -277473.44
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 65
+	Discriminator results:
+		Training loss: 2.8299515
+		Training accuracy: 0.9996287128712872
+		Validation loss: 3582.8699
+		Validation accuracy: 0.8705357142857143
+	Generator results:
+		Training loss: -416414.66
+		Training accuracy: 0.06089108910891089
+		Validation loss: -321244.16
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 66
+	Discriminator results:
+		Training loss: 0.37044013
+		Training accuracy: 0.9998762376237624
+		Validation loss: 648.5234
+		Validation accuracy: 0.96875
+	Generator results:
+		Training loss: -406134.9
+		Training accuracy: 0.061014851485148514
+		Validation loss: -299051.34
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 67
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 6544.1587
+		Validation accuracy: 0.8174603174603174
+	Generator results:
+		Training loss: -382215.66
+		Training accuracy: 0.06089108910891089
+		Validation loss: -288051.97
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 68
+	Discriminator results:
+		Training loss: 2.4809647
+		Training accuracy: 0.9993811881188119
+		Validation loss: 16053.3
+		Validation accuracy: 0.6681547619047619
+	Generator results:
+		Training loss: -373208.22
+		Training accuracy: 0.061014851485148514
+		Validation loss: -226335.0
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 69
+	Discriminator results:
+		Training loss: 5.3310103
+		Training accuracy: 0.9997524752475248
+		Validation loss: 3073.8608
+		Validation accuracy: 0.9122023809523809
+	Generator results:
+		Training loss: -331361.84
+		Training accuracy: 0.060767326732673266
+		Validation loss: -249011.25
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 70
+	Discriminator results:
+		Training loss: 0.37831354
+		Training accuracy: 0.9998762376237624
+		Validation loss: 3928.1814
+		Validation accuracy: 0.910218253968254
+	Generator results:
+		Training loss: -323449.53
+		Training accuracy: 0.06089108910891089
+		Validation loss: -259322.56
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 71
+	Discriminator results:
+		Training loss: 0.034998648
+		Training accuracy: 0.9998762376237624
+		Validation loss: 2972.3774
+		Validation accuracy: 0.9265873015873016
+	Generator results:
+		Training loss: -314700.06
+		Training accuracy: 0.061014851485148514
+		Validation loss: -244628.14
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 72
+	Discriminator results:
+		Training loss: 3.409372
+		Training accuracy: 0.9997524752475248
+		Validation loss: 1950.722
+		Validation accuracy: 0.9429563492063492
+	Generator results:
+		Training loss: -308677.5
+		Training accuracy: 0.06089108910891089
+		Validation loss: -246563.16
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 73
+	Discriminator results:
+		Training loss: 8.214832
+		Training accuracy: 0.9988861386138614
+		Validation loss: 2926.059
+		Validation accuracy: 0.9434523809523809
+	Generator results:
+		Training loss: -317543.34
+		Training accuracy: 0.061014851485148514
+		Validation loss: -283817.97
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 74
+	Discriminator results:
+		Training loss: 6.3643
+		Training accuracy: 0.9998762376237624
+		Validation loss: 5323.396
+		Validation accuracy: 0.9181547619047619
+	Generator results:
+		Training loss: -346889.44
+		Training accuracy: 0.061014851485148514
+		Validation loss: -192797.92
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 75
+	Discriminator results:
+		Training loss: 3.5723517
+		Training accuracy: 0.9993811881188119
+		Validation loss: 115.115875
+		Validation accuracy: 0.9925595238095238
+	Generator results:
+		Training loss: -358968.03
+		Training accuracy: 0.061014851485148514
+		Validation loss: -281875.6
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 76
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 300.27844
+		Validation accuracy: 0.9945436507936508
+	Generator results:
+		Training loss: -440623.78
+		Training accuracy: 0.061014851485148514
+		Validation loss: -288284.25
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 77
+	Discriminator results:
+		Training loss: 7.7922115
+		Training accuracy: 0.999009900990099
+		Validation loss: 2871.754
+		Validation accuracy: 0.8521825396825397
+	Generator results:
+		Training loss: -406118.16
+		Training accuracy: 0.060767326732673266
+		Validation loss: -300230.9
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 78
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 35294.676
+		Validation accuracy: 0.39831349206349204
+	Generator results:
+		Training loss: -434028.2
+		Training accuracy: 0.06089108910891089
+		Validation loss: -270982.72
+		Validation accuracy: 0.0679563492063492
+
+	Epoch 79
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 37097.94
+		Validation accuracy: 0.4236111111111111
+	Generator results:
+		Training loss: -444362.72
+		Training accuracy: 0.06089108910891089
+		Validation loss: -278755.56
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 80
+	Discriminator results:
+		Training loss: 15.14316
+		Training accuracy: 0.9972772277227723
+		Validation loss: 0.0
+		Validation accuracy: 1.0
+	Generator results:
+		Training loss: -280319.3
+		Training accuracy: 0.06089108910891089
+		Validation loss: -207013.53
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 81
+	Discriminator results:
+		Training loss: 2.1075852
+		Training accuracy: 0.9995049504950495
+		Validation loss: 0.0
+		Validation accuracy: 1.0
+	Generator results:
+		Training loss: -248738.62
+		Training accuracy: 0.061014851485148514
+		Validation loss: -223457.83
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 82
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 4.9369383
+		Validation accuracy: 0.9995039682539683
+	Generator results:
+		Training loss: -265457.38
+		Training accuracy: 0.060767326732673266
+		Validation loss: -225759.86
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 83
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 0.0
+		Validation accuracy: 1.0
+	Generator results:
+		Training loss: -271091.16
+		Training accuracy: 0.06089108910891089
+		Validation loss: -225903.34
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 84
+	Discriminator results:
+		Training loss: 1.6784112
+		Training accuracy: 0.9997524752475248
+		Validation loss: 0.76731074
+		Validation accuracy: 0.9995039682539683
+	Generator results:
+		Training loss: -268779.72
+		Training accuracy: 0.061014851485148514
+		Validation loss: -198195.1
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 85
+	Discriminator results:
+		Training loss: 3.0236347
+		Training accuracy: 0.9996287128712872
+		Validation loss: 9.208709
+		Validation accuracy: 0.998015873015873
+	Generator results:
+		Training loss: -176059.92
+		Training accuracy: 0.06089108910891089
+		Validation loss: -129160.96
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 86
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 0.0
+		Validation accuracy: 1.0
+	Generator results:
+		Training loss: -176910.42
+		Training accuracy: 0.06089108910891089
+		Validation loss: -120865.85
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 87
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 302.13635
+		Validation accuracy: 0.9662698412698413
+	Generator results:
+		Training loss: -180209.62
+		Training accuracy: 0.061014851485148514
+		Validation loss: -98497.28
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 88
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1059.7523
+		Validation accuracy: 0.9449404761904762
+	Generator results:
+		Training loss: -181583.14
+		Training accuracy: 0.06089108910891089
+		Validation loss: -92018.05
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 89
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1263.9323
+		Validation accuracy: 0.9499007936507936
+	Generator results:
+		Training loss: -183025.9
+		Training accuracy: 0.060767326732673266
+		Validation loss: -75503.47
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 90
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 1548.2458
+		Validation accuracy: 0.941468253968254
+	Generator results:
+		Training loss: -185148.42
+		Training accuracy: 0.061014851485148514
+		Validation loss: -80311.19
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 91
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 2420.258
+		Validation accuracy: 0.8903769841269841
+	Generator results:
+		Training loss: -185821.89
+		Training accuracy: 0.061014851485148514
+		Validation loss: -89477.016
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 92
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 2053.4065
+		Validation accuracy: 0.904265873015873
+	Generator results:
+		Training loss: -186355.36
+		Training accuracy: 0.061014851485148514
+		Validation loss: -85575.34
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 93
+	Discriminator results:
+		Training loss: 7.054283
+		Training accuracy: 0.9985148514851485
+		Validation loss: 4840.5522
+		Validation accuracy: 0.7708333333333334
+	Generator results:
+		Training loss: -213166.16
+		Training accuracy: 0.061014851485148514
+		Validation loss: -216330.47
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 94
+	Discriminator results:
+		Training loss: 3.518397
+		Training accuracy: 0.9995049504950495
+		Validation loss: 33568.555
+		Validation accuracy: 0.566468253968254
+	Generator results:
+		Training loss: -315583.25
+		Training accuracy: 0.06089108910891089
+		Validation loss: -71965.05
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 95
+	Discriminator results:
+		Training loss: 4.181186
+		Training accuracy: 0.9991336633663367
+		Validation loss: 2246.6355
+		Validation accuracy: 0.9067460317460317
+	Generator results:
+		Training loss: -286623.44
+		Training accuracy: 0.061014851485148514
+		Validation loss: -259366.88
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 96
+	Discriminator results:
+		Training loss: 2.1418297
+		Training accuracy: 0.9997524752475248
+		Validation loss: 944.16693
+		Validation accuracy: 0.9429563492063492
+	Generator results:
+		Training loss: -273184.38
+		Training accuracy: 0.06064356435643564
+		Validation loss: -167244.14
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 97
+	Discriminator results:
+		Training loss: 6.809211
+		Training accuracy: 0.999009900990099
+		Validation loss: 106.33089
+		Validation accuracy: 0.9910714285714286
+	Generator results:
+		Training loss: -229670.81
+		Training accuracy: 0.061014851485148514
+		Validation loss: -268200.1
+		Validation accuracy: 0.06845238095238096
+
+	Epoch 98
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 37.79634
+		Validation accuracy: 0.9925595238095238
+	Generator results:
+		Training loss: -313702.78
+		Training accuracy: 0.061014851485148514
+		Validation loss: -239541.39
+		Validation accuracy: 0.0689484126984127
+
+	Epoch 99
+	Discriminator results:
+		Training loss: 0.18398824
+		Training accuracy: 0.9998762376237624
+		Validation loss: 3968.6582
+		Validation accuracy: 0.8075396825396826
+	Generator results:
+		Training loss: -265733.25
+		Training accuracy: 0.06089108910891089
+		Validation loss: -107781.35
+		Validation accuracy: 0.06746031746031746
+
+	Epoch 100
+	Discriminator results:
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 10656.793
+		Validation accuracy: 0.5942460317460317
+	Generator results:
+		Training loss: -262393.9
+		Training accuracy: 0.060767326732673266
+		Validation loss: -59658.89
+		Validation accuracy: 0.06398809523809523
+
 
 Training new discriminator on static trained discriminator.
 	Initial performance
-		Training loss: 5.532158
+		Training loss: 5.54005
 		Training accuracy: 0.0
-		Validation loss: 5.5349627
+		Validation loss: 5.54056
 		Validation accuracy: 0.0
 
+	Epoch 1
+		Training loss: 0.20844756
+		Training accuracy: 0.9811881188118812
+		Validation loss: 0.33504573
+		Validation accuracy: 0.9608134920634921
 
-{'generator': {'pretrain_train_loss': [0.0032966794], 'pretrain_val_loss': [0.0033041944], 'train_loss': [-5.537492], 'val_loss': [-5.540614], 'train_acc': [0.0], 'val_acc': [0.0]}, 'discriminator': {'pretrain_train_loss': [5.5362, 1.9551861, 0.8937912, 0.6180468, 0.52876264, 0.451164, 0.47618854, 0.3916991, 0.40357697, 0.35080853, 0.42040563, 0.3041774, 0.31238115, 0.30311486, 0.30223942, 0.3171809, 0.2687996, 0.2960265, 0.26238418, 0.22401553, 0.24700171, 0.24553652, 0.24517128, 0.22517304, 0.20532085, 0.22454968, 0.18105665, 0.18671073, 0.3352135, 0.14890353, 0.13458182, 0.15687202, 0.22677459, 0.2860637, 0.16091125, 0.16315472, 0.14884885, 0.21021184, 0.21370442, 0.09330529, 0.11814044, 0.27748328, 0.23685777, 0.06559255, 0.08458829, 0.20774598, 0.16773205, 0.16085114, 0.15248503, 0.16394319, 0.10738687, 0.22586048, 0.11551033, 0.112841256, 0.34850052, 0.10412424, 0.11641511, 0.117876016, 0.15249099, 0.1729725, 0.08795001, 0.29257086, 0.12101086, 0.08269211, 0.19188415, 0.18583083, 0.1534959, 0.06758957, 0.10388059, 0.2504645, 0.1300551, 0.07789944, 0.17419231, 0.13736728, 0.13382342, 0.2715474, 0.11341143, 0.100389905, 0.12864107, 0.1655649, 0.11005369, 0.042271983, 0.37036029, 0.23200421, 0.08419395, 0.11527921, 0.15783583, 0.0497652, 0.1391452, 0.39714736, 0.09832268, 0.07080349, 0.09944831, 0.15155177, 0.19491193, 0.12336656, 0.098376274, 0.35700974, 0.15477362, 0.047176998, 0.16632709], 'pretrain_val_loss': [5.539698, 1.1100335, 0.71270865, 0.7317673, 0.6089036, 0.5109805, 0.3954366, 0.4409231, 0.8159845, 0.33663684, 0.5322492, 0.40340644, 0.40953597, 0.48003298, 0.712098, 0.63006383, 0.41711396, 0.30556533, 0.6303184, 0.331423, 0.31869608, 0.4805476, 0.32944962, 0.40294033, 0.3549554, 0.59147954, 0.53620166, 1.2374884, 0.37954283, 0.5318085, 0.38435477, 0.26139972, 0.72396296, 0.2347456, 0.43764433, 0.40961537, 0.6060451, 0.5024065, 0.3785317, 0.32356924, 0.40533143, 0.89514184, 0.40006176, 0.28263748, 0.49330088, 0.9205786, 0.80235565, 0.5684568, 0.54571176, 0.55201787, 0.68975484, 0.6660173, 0.38432422, 0.7030331, 0.5469415, 0.51651305, 0.5144538, 0.90929836, 0.77386546, 0.6654994, 0.61367613, 0.49161527, 0.41230237, 0.539369, 0.664961, 0.7876478, 0.63948417, 0.41339675, 0.7081269, 1.1608115, 0.64517266, 0.98657525, 0.59059566, 1.0648102, 0.7237612, 0.82777065, 0.6022717, 0.9319068, 1.4407104, 0.7335575, 0.88169307, 0.6171372, 1.8753291, 0.898964, 0.76691353, 0.8704349, 0.7588245, 0.60973704, 1.2110021, 0.93218297, 0.9500154, 0.665814, 0.6250873, 1.1589446, 0.79449195, 1.3406829, 1.0335541, 1.1672889, 1.1659424, 1.1933266, 1.5218375], 'pretrain_train_acc': [0.0, 0.40470297029702973, 0.6523514851485148, 0.7629950495049505, 0.8023514851485148, 0.8383663366336633, 0.8325495049504951, 0.8591584158415841, 0.8595297029702971, 0.8767326732673267, 0.8612623762376238, 0.8949257425742574, 0.8918316831683168, 0.8974009900990099, 0.9016089108910891, 0.8959158415841584, 0.908539603960396, 0.906559405940594, 0.9201732673267327, 0.9230198019801981, 0.924009900990099, 0.9287128712871288, 0.9254950495049505, 0.9316831683168317, 0.938490099009901, 0.9332920792079208, 0.9445544554455445, 0.9454207920792079, 0.9136138613861386, 0.9542079207920792, 0.959529702970297, 0.9519801980198019, 0.9392326732673267, 0.9303217821782178, 0.9565594059405941, 0.9521039603960396, 0.9550742574257426, 0.9422029702970297, 0.9445544554455445, 0.9707920792079208, 0.9663366336633663, 0.940470297029703, 0.9438118811881188, 0.9808168316831684, 0.9785891089108911, 0.9506188118811881, 0.9579207920792079, 0.9618811881188118, 0.9617574257425743, 0.9618811881188118, 0.9728960396039604, 0.9534653465346534, 0.9699257425742575, 0.9726485148514852, 0.9444306930693069, 0.9775990099009901, 0.9733910891089109, 0.9717821782178218, 0.968069306930693, 0.9648514851485148, 0.9778465346534654, 0.9492574257425742, 0.9715346534653465, 0.9810643564356436, 0.9627475247524753, 0.9662128712871287, 0.9701732673267327, 0.9842821782178218, 0.9764851485148515, 0.9564356435643564, 0.9748762376237624, 0.9821782178217822, 0.9679455445544555, 0.9732673267326732, 0.9725247524752475, 0.9535891089108911, 0.9790841584158416, 0.9810643564356436, 0.9762376237623762, 0.9715346534653465, 0.9806930693069307, 0.9907178217821783, 0.9544554455445544, 0.9695544554455445, 0.9825495049504951, 0.9806930693069307, 0.9754950495049505, 0.9899752475247525, 0.9766089108910891, 0.9564356435643564, 0.9834158415841584, 0.9873762376237624, 0.9840346534653466, 0.9756188118811882, 0.9705445544554455, 0.9799504950495049, 0.9858910891089109, 0.9584158415841584, 0.9751237623762377, 0.9915841584158416, 0.9763613861386139], 'pretrain_val_acc': [0.0, 0.566468253968254, 0.7366071428571429, 0.7276785714285714, 0.7624007936507936, 0.8253968253968254, 0.8432539682539683, 0.8392857142857143, 0.7579365079365079, 0.871031746031746, 0.8115079365079365, 0.8655753968253969, 0.8625992063492064, 0.8591269841269841, 0.7986111111111112, 0.847718253968254, 0.8779761904761905, 0.9007936507936508, 0.8536706349206349, 0.908234126984127, 0.8993055555555556, 0.8650793650793651, 0.90625, 0.8864087301587301, 0.8928571428571429, 0.8606150793650794, 0.8606150793650794, 0.7653769841269841, 0.8978174603174603, 0.875, 0.908234126984127, 0.9196428571428571, 0.8606150793650794, 0.9350198412698413, 0.9002976190476191, 0.9007936507936508, 0.871031746031746, 0.9087301587301587, 0.9136904761904762, 0.9226190476190477, 0.9171626984126984, 0.871031746031746, 0.9151785714285714, 0.9330357142857143, 0.9027777777777778, 0.8665674603174603, 0.8814484126984127, 0.9087301587301587, 0.9067460317460317, 0.8978174603174603, 0.8839285714285714, 0.8913690476190477, 0.9290674603174603, 0.8893849206349206, 0.9181547619047619, 0.9186507936507936, 0.9191468253968254, 0.8804563492063492, 0.8913690476190477, 0.9107142857142857, 0.9176587301587301, 0.9231150793650794, 0.9310515873015873, 0.9166666666666666, 0.9117063492063492, 0.8948412698412699, 0.9146825396825397, 0.9320436507936508, 0.9087301587301587, 0.8725198412698413, 0.9265873015873016, 0.8809523809523809, 0.9270833333333334, 0.8893849206349206, 0.9131944444444444, 0.8968253968253969, 0.9280753968253969, 0.9037698412698413, 0.8705357142857143, 0.9122023809523809, 0.9047619047619048, 0.9330357142857143, 0.8516865079365079, 0.9057539682539683, 0.9241071428571429, 0.910218253968254, 0.9136904761904762, 0.9315476190476191, 0.8958333333333334, 0.9122023809523809, 0.9191468253968254, 0.9295634920634921, 0.933531746031746, 0.8973214285714286, 0.9310515873015873, 0.8878968253968254, 0.9146825396825397, 0.9161706349206349, 0.9151785714285714, 0.9047619047619048, 0.8943452380952381], 'train_loss': [5.5376015], 'val_loss': [5.54065], 'train_acc': [0.0], 'val_acc': [0.0], 'posttrain_train_loss': [5.532158], 'posttrain_val_loss': [5.5349627], 'posttrain_train_acc': [0.0], 'posttrain_val_acc': [0.0]}}
+	Epoch 2
+		Training loss: 0.40337428
+		Training accuracy: 0.9909653465346535
+		Validation loss: 14.731888
+		Validation accuracy: 0.9206349206349206
+
+	Epoch 3
+		Training loss: 0.06323482
+		Training accuracy: 0.9991336633663367
+		Validation loss: 3.1898494
+		Validation accuracy: 0.9776785714285714
+
+	Epoch 4
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 4.590637
+		Validation accuracy: 0.9692460317460317
+
+	Epoch 5
+		Training loss: 1.4753624e-11
+		Training accuracy: 1.0
+		Validation loss: 5.464198
+		Validation accuracy: 0.9692460317460317
+
+	Epoch 6
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 10.615475
+		Validation accuracy: 0.9469246031746031
+
+	Epoch 7
+		Training loss: 1.7098724
+		Training accuracy: 0.9957920792079208
+		Validation loss: 69.0399
+		Validation accuracy: 0.9598214285714286
+
+	Epoch 8
+		Training loss: 5.1970466e-05
+		Training accuracy: 1.0
+		Validation loss: 25.566936
+		Validation accuracy: 0.9791666666666666
+
+	Epoch 9
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 170.00613
+		Validation accuracy: 0.9469246031746031
+
+	Epoch 10
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 51.366867
+		Validation accuracy: 0.9761904761904762
+
+	Epoch 11
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 39.071995
+		Validation accuracy: 0.9756944444444444
+
+	Epoch 12
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 50.90594
+		Validation accuracy: 0.9697420634920635
+
+	Epoch 13
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 33.7089
+		Validation accuracy: 0.9751984126984127
+
+	Epoch 14
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 47.955135
+		Validation accuracy: 0.9712301587301587
+
+	Epoch 15
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 28.26866
+		Validation accuracy: 0.9771825396825397
+
+	Epoch 16
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 39.4452
+		Validation accuracy: 0.972718253968254
+
+	Epoch 17
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 22.181707
+		Validation accuracy: 0.9826388888888888
+
+	Epoch 18
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 31.788553
+		Validation accuracy: 0.9836309523809523
+
+	Epoch 19
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 81.04683
+		Validation accuracy: 0.9578373015873016
+
+	Epoch 20
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 71.040085
+		Validation accuracy: 0.9623015873015873
+
+	Epoch 21
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 39.419
+		Validation accuracy: 0.9742063492063492
+
+	Epoch 22
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 48.333794
+		Validation accuracy: 0.9761904761904762
+
+	Epoch 23
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 29.800562
+		Validation accuracy: 0.9836309523809523
+
+	Epoch 24
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 51.29198
+		Validation accuracy: 0.9682539682539683
+
+	Epoch 25
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 109.88162
+		Validation accuracy: 0.9598214285714286
+
+	Epoch 26
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 55.23287
+		Validation accuracy: 0.9677579365079365
+
+	Epoch 27
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 98.17838
+		Validation accuracy: 0.9499007936507936
+
+	Epoch 28
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 56.250324
+		Validation accuracy: 0.9697420634920635
+
+	Epoch 29
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 79.25712
+		Validation accuracy: 0.9677579365079365
+
+	Epoch 30
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 71.09502
+		Validation accuracy: 0.9613095238095238
+
+	Epoch 31
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 87.069595
+		Validation accuracy: 0.9623015873015873
+
+	Epoch 32
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 20.719408
+		Validation accuracy: 0.9841269841269841
+
+	Epoch 33
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 54.728313
+		Validation accuracy: 0.9712301587301587
+
+	Epoch 34
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 99.8825
+		Validation accuracy: 0.9548611111111112
+
+	Epoch 35
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 27.797506
+		Validation accuracy: 0.9821428571428571
+
+	Epoch 36
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 32.84568
+		Validation accuracy: 0.9771825396825397
+
+	Epoch 37
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 45.62588
+		Validation accuracy: 0.9702380952380952
+
+	Epoch 38
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 29.256433
+		Validation accuracy: 0.9786706349206349
+
+	Epoch 39
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 22.269453
+		Validation accuracy: 0.9806547619047619
+
+	Epoch 40
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 40.36687
+		Validation accuracy: 0.9756944444444444
+
+	Epoch 41
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 108.98839
+		Validation accuracy: 0.9429563492063492
+
+	Epoch 42
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 23.97541
+		Validation accuracy: 0.9831349206349206
+
+	Epoch 43
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 26.019627
+		Validation accuracy: 0.9841269841269841
+
+	Epoch 44
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 38.400303
+		Validation accuracy: 0.9737103174603174
+
+	Epoch 45
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 27.947872
+		Validation accuracy: 0.9781746031746031
+
+	Epoch 46
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 20.661901
+		Validation accuracy: 0.9826388888888888
+
+	Epoch 47
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 55.01742
+		Validation accuracy: 0.96875
+
+	Epoch 48
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 46.155415
+		Validation accuracy: 0.9742063492063492
+
+	Epoch 49
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 59.174538
+		Validation accuracy: 0.9637896825396826
+
+	Epoch 50
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 59.072777
+		Validation accuracy: 0.9642857142857143
+
+	Epoch 51
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 65.19097
+		Validation accuracy: 0.964781746031746
+
+	Epoch 52
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 67.495056
+		Validation accuracy: 0.9642857142857143
+
+	Epoch 53
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 74.38423
+		Validation accuracy: 0.9652777777777778
+
+	Epoch 54
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 20.795887
+		Validation accuracy: 0.9871031746031746
+
+	Epoch 55
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 12.876593
+		Validation accuracy: 0.9875992063492064
+
+	Epoch 56
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 64.76758
+		Validation accuracy: 0.9672619047619048
+
+	Epoch 57
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 30.094309
+		Validation accuracy: 0.9791666666666666
+
+	Epoch 58
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 29.1983
+		Validation accuracy: 0.9771825396825397
+
+	Epoch 59
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 95.80662
+		Validation accuracy: 0.9642857142857143
+
+	Epoch 60
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 26.863203
+		Validation accuracy: 0.9791666666666666
+
+	Epoch 61
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 39.550533
+		Validation accuracy: 0.9742063492063492
+
+	Epoch 62
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 52.32799
+		Validation accuracy: 0.9662698412698413
+
+	Epoch 63
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 29.018623
+		Validation accuracy: 0.9801587301587301
+
+	Epoch 64
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 58.769554
+		Validation accuracy: 0.9717261904761905
+
+	Epoch 65
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 26.400629
+		Validation accuracy: 0.9796626984126984
+
+	Epoch 66
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 52.465153
+		Validation accuracy: 0.9677579365079365
+
+	Epoch 67
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 56.288807
+		Validation accuracy: 0.972718253968254
+
+	Epoch 68
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 23.415499
+		Validation accuracy: 0.9841269841269841
+
+	Epoch 69
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 25.339935
+		Validation accuracy: 0.9811507936507936
+
+	Epoch 70
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 32.705544
+		Validation accuracy: 0.9786706349206349
+
+	Epoch 71
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 53.146297
+		Validation accuracy: 0.9717261904761905
+
+	Epoch 72
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 72.58132
+		Validation accuracy: 0.9702380952380952
+
+	Epoch 73
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 19.756796
+		Validation accuracy: 0.9841269841269841
+
+	Epoch 74
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 31.371706
+		Validation accuracy: 0.9776785714285714
+
+	Epoch 75
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 18.394583
+		Validation accuracy: 0.9841269841269841
+
+	Epoch 76
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 21.250336
+		Validation accuracy: 0.9806547619047619
+
+	Epoch 77
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 27.709679
+		Validation accuracy: 0.9801587301587301
+
+	Epoch 78
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 29.249828
+		Validation accuracy: 0.9766865079365079
+
+	Epoch 79
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 54.53242
+		Validation accuracy: 0.9672619047619048
+
+	Epoch 80
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 11.825971
+		Validation accuracy: 0.9895833333333334
+
+	Epoch 81
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 74.462494
+		Validation accuracy: 0.9568452380952381
+
+	Epoch 82
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 61.563175
+		Validation accuracy: 0.96875
+
+	Epoch 83
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 37.59145
+		Validation accuracy: 0.9781746031746031
+
+	Epoch 84
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 55.238388
+		Validation accuracy: 0.9751984126984127
+
+	Epoch 85
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 56.4491
+		Validation accuracy: 0.9677579365079365
+
+	Epoch 86
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 74.85794
+		Validation accuracy: 0.9618055555555556
+
+	Epoch 87
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 16.110933
+		Validation accuracy: 0.9861111111111112
+
+	Epoch 88
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 62.97468
+		Validation accuracy: 0.9722222222222222
+
+	Epoch 89
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 74.59046
+		Validation accuracy: 0.9642857142857143
+
+	Epoch 90
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 39.709812
+		Validation accuracy: 0.9751984126984127
+
+	Epoch 91
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 32.5304
+		Validation accuracy: 0.9771825396825397
+
+	Epoch 92
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 52.38588
+		Validation accuracy: 0.9697420634920635
+
+	Epoch 93
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 45.092728
+		Validation accuracy: 0.9766865079365079
+
+	Epoch 94
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 42.051968
+		Validation accuracy: 0.9737103174603174
+
+	Epoch 95
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 54.13065
+		Validation accuracy: 0.9742063492063492
+
+	Epoch 96
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 104.598404
+		Validation accuracy: 0.9464285714285714
+
+	Epoch 97
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 58.47987
+		Validation accuracy: 0.9702380952380952
+
+	Epoch 98
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 57.928547
+		Validation accuracy: 0.9672619047619048
+
+	Epoch 99
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 15.144271
+		Validation accuracy: 0.9875992063492064
+
+	Epoch 100
+		Training loss: 0.0
+		Training accuracy: 1.0
+		Validation loss: 100.19941
+		Validation accuracy: 0.9474206349206349
+
+
+{'generator': {'pretrain_train_loss': [0.04294416], 'pretrain_val_loss': [0.04281544], 'train_loss': [-5.593465, -363.8258, -2704.0574, -7379.888, -13380.5205, -14508.264, -18268.482, -30751.033, -46239.508, -43535.32, -51481.38, -56771.223, -56309.934, -78161.39, -57340.703, -63713.76, -106056.63, -103084.3, -82905.3, -87897.63, -135687.25, -146993.61, -148275.03, -142517.33, -151362.4, -149666.98, -153742.52, -165858.19, -177837.48, -182645.03, -186791.53, -201338.48, -204776.75, -206850.42, -201775.78, -178110.77, -184249.25, -192040.66, -183146.11, -200477.61, -227498.7, -224236.86, -227023.56, -225856.0, -231361.06, -233546.67, -235129.95, -236192.19, -242246.11, -287488.06, -321558.53, -327077.2, -245230.64, -251939.0, -255107.84, -259212.11, -261197.4, -262293.9, -263379.78, -263981.16, -264484.75, -265013.12, -265418.97, -302937.78, -403161.06, -416414.66, -406134.9, -382215.66, -373208.22, -331361.84, -323449.53, -314700.06, -308677.5, -317543.34, -346889.44, -358968.03, -440623.78, -406118.16, -434028.2, -444362.72, -280319.3, -248738.62, -265457.38, -271091.16, -268779.72, -176059.92, -176910.42, -180209.62, -181583.14, -183025.9, -185148.42, -185821.89, -186355.36, -213166.16, -315583.25, -286623.44, -273184.38, -229670.81, -313702.78, -265733.25, -262393.9], 'val_loss': [-5.598887, -550.5842, -4310.694, -9054.33, -11487.047, -14376.22, -15844.424, -36398.273, -35747.0, -34435.023, -38353.586, -36167.215, -50377.45, -59668.812, -41109.91, -54233.527, -53742.188, -41225.72, -65793.766, -71282.97, -64059.996, -55246.617, -60641.855, -56856.77, -77453.06, -123709.57, -129386.43, -134015.48, -133738.23, -115632.21, -137025.03, -147858.7, -134483.81, -122558.85, -74642.51, -106188.26, -112180.77, -111885.8, -114821.96, -118919.586, -112503.71, -113390.375, -101652.1, -115427.84, -127720.98, -122064.41, -120422.01, -130655.79, -140465.36, -182567.22, -212805.4, -229083.12, -185050.14, -182634.23, -185687.31, -190148.52, -191453.9, -193857.17, -191486.31, -193366.17, -193417.7, -192464.16, -193716.27, -285847.4, -277473.44, -321244.16, -299051.34, -288051.97, -226335.0, -249011.25, -259322.56, -244628.14, -246563.16, -283817.97, -192797.92, -281875.6, -288284.25, -300230.9, -270982.72, -278755.56, -207013.53, -223457.83, -225759.86, -225903.34, -198195.1, -129160.96, -120865.85, -98497.28, -92018.05, -75503.47, -80311.19, -89477.016, -85575.34, -216330.47, -71965.05, -259366.88, -167244.14, -268200.1, -239541.39, -107781.35, -59658.89], 'train_acc': [0.0, 0.061014851485148514, 0.06262376237623762, 0.06311881188118812, 0.0625, 0.06262376237623762, 0.06262376237623762, 0.06126237623762376, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.061014851485148514, 0.060767326732673266, 0.06064356435643564, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.06064356435643564, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.060767326732673266, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.06089108910891089, 0.060767326732673266, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.061014851485148514, 0.061014851485148514, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.060767326732673266, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.06089108910891089, 0.061014851485148514, 0.06089108910891089, 0.060767326732673266, 0.061014851485148514, 0.061014851485148514, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.061014851485148514, 0.06064356435643564, 0.061014851485148514, 0.061014851485148514, 0.06089108910891089, 0.060767326732673266], 'val_acc': [0.0, 0.062003968253968256, 0.061507936507936505, 0.061507936507936505, 0.062003968253968256, 0.062003968253968256, 0.062003968253968256, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0679563492063492, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06944444444444445, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.0679563492063492, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0679563492063492, 0.0679563492063492, 0.0689484126984127, 0.0679563492063492, 0.06845238095238096, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.0679563492063492, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.06845238095238096, 0.06845238095238096, 0.06845238095238096, 0.06845238095238096, 0.0689484126984127, 0.06845238095238096, 0.0689484126984127, 0.06746031746031746, 0.06398809523809523]}, 'discriminator': {'pretrain_train_loss': [5.5883784], 'pretrain_val_loss': [5.5945034], 'pretrain_train_acc': [0.0], 'pretrain_val_acc': [0.0], 'train_loss': [5.5940127, 0.46035048, 0.8271451, 1.6313628, 1.012378, 0.4210435, 0.82229877, 3.2614737, 1.6831367, 0.2533327, 0.7964849, 0.0, 3.6691198, 2.1378953, 0.9834482, 1.0280322, 1.9533951, 0.09483437, 0.0, 3.0681398, 0.18161596, 0.0, 0.0, 4.107613, 2.7765365, 4.967433, 0.0, 0.38774753, 0.0, 5.6252294, 0.0, 2.3701642, 0.27798334, 5.8430185, 5.0136786, 0.99746287, 0.0, 4.792615, 0.0, 0.3509408, 3.4066203, 0.0, 0.4338084, 0.0, 0.0, 0.0, 0.0, 0.0, 16.027315, 3.0585358, 0.0, 0.0, 7.5222716, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 11.179725, 6.0330076, 2.8299515, 0.37044013, 0.0, 2.4809647, 5.3310103, 0.37831354, 0.034998648, 3.409372, 8.214832, 6.3643, 3.5723517, 0.0, 7.7922115, 0.0, 0.0, 15.14316, 2.1075852, 0.0, 0.0, 1.6784112, 3.0236347, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 7.054283, 3.518397, 4.181186, 2.1418297, 6.809211, 0.0, 0.18398824, 0.0], 'val_loss': [5.5985065, 184.02605, 234.68031, 0.14183784, 85.127144, 10.27647, 280.69464, 90.7275, 102.76325, 27.231825, 48.706287, 151.60358, 133.39787, 454.92477, 188.9399, 1876.4777, 11150.149, 4411.485, 50.82315, 829.5179, 11312.786, 12514.21, 18159.787, 8452.818, 8325.51, 52.80044, 21.641888, 230.2253, 741.04596, 70.29089, 4.5261464, 24432.418, 3772.4622, 6908.9473, 11674.592, 4408.755, 3516.6309, 3149.7761, 4909.136, 22882.846, 26953.535, 24965.396, 5571.3823, 7965.261, 4176.489, 7586.944, 8371.692, 6138.606, 4185.35, 3326.6692, 788.50836, 250.50821, 44.483013, 224.83937, 234.03069, 605.68665, 702.1742, 591.9255, 1123.353, 2139.3584, 2025.2576, 1553.4095, 1417.5985, 10019.161, 8942.392, 3582.8699, 648.5234, 6544.1587, 16053.3, 3073.8608, 3928.1814, 2972.3774, 1950.722, 2926.059, 5323.396, 115.115875, 300.27844, 2871.754, 35294.676, 37097.94, 0.0, 0.0, 4.9369383, 0.0, 0.76731074, 9.208709, 0.0, 302.13635, 1059.7523, 1263.9323, 1548.2458, 2420.258, 2053.4065, 4840.5522, 33568.555, 2246.6355, 944.16693, 106.33089, 37.79634, 3968.6582, 10656.793], 'train_acc': [0.0, 0.9813118811881189, 0.9939356435643565, 0.995049504950495, 0.9977722772277228, 0.9988861386138614, 0.9981435643564357, 0.9957920792079208, 0.9985148514851485, 0.9997524752475248, 0.9992574257425743, 1.0, 0.9971534653465347, 0.9991336633663367, 0.9993811881188119, 0.9992574257425743, 0.9987623762376238, 0.9997524752475248, 1.0, 0.9991336633663367, 0.9996287128712872, 1.0, 1.0, 0.9987623762376238, 0.9991336633663367, 0.9992574257425743, 1.0, 0.9997524752475248, 1.0, 0.9985148514851485, 1.0, 0.9993811881188119, 0.9996287128712872, 0.999009900990099, 0.9995049504950495, 0.9996287128712872, 1.0, 0.9991336633663367, 1.0, 0.9996287128712872, 0.9993811881188119, 1.0, 0.9998762376237624, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9982673267326733, 0.9996287128712872, 1.0, 1.0, 0.999009900990099, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9988861386138614, 0.9986386138613862, 0.9996287128712872, 0.9998762376237624, 1.0, 0.9993811881188119, 0.9997524752475248, 0.9998762376237624, 0.9998762376237624, 0.9997524752475248, 0.9988861386138614, 0.9998762376237624, 0.9993811881188119, 1.0, 0.999009900990099, 1.0, 1.0, 0.9972772277227723, 0.9995049504950495, 1.0, 1.0, 0.9997524752475248, 0.9996287128712872, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9985148514851485, 0.9995049504950495, 0.9991336633663367, 0.9997524752475248, 0.999009900990099, 1.0, 0.9998762376237624, 1.0], 'val_acc': [0.0, 0.36755952380952384, 0.7271825396825397, 0.9995039682539683, 0.8844246031746031, 0.9771825396825397, 0.7901785714285714, 0.9593253968253969, 0.9315476190476191, 0.9598214285714286, 0.9513888888888888, 0.9280753968253969, 0.9543650793650794, 0.8764880952380952, 0.935515873015873, 0.8239087301587301, 0.42658730158730157, 0.6691468253968254, 0.9801587301587301, 0.8913690476190477, 0.47867063492063494, 0.41716269841269843, 0.28174603174603174, 0.5639880952380952, 0.7033730158730159, 0.9826388888888888, 0.9915674603174603, 0.9499007936507936, 0.8864087301587301, 0.9890873015873016, 0.9985119047619048, 0.4052579365079365, 0.7881944444444444, 0.8462301587301587, 0.628968253968254, 0.7817460317460317, 0.777281746031746, 0.8705357142857143, 0.7926587301587301, 0.46825396825396826, 0.5193452380952381, 0.558531746031746, 0.7529761904761905, 0.7653769841269841, 0.8422619047619048, 0.7961309523809523, 0.7817460317460317, 0.8253968253968254, 0.8229166666666666, 0.8258928571428571, 0.9528769841269841, 0.9811507936507936, 0.9965277777777778, 0.9796626984126984, 0.9816468253968254, 0.9742063492063492, 0.9637896825396826, 0.9613095238095238, 0.9365079365079365, 0.9097222222222222, 0.8908730158730159, 0.910218253968254, 0.9131944444444444, 0.7524801587301587, 0.8159722222222222, 0.8705357142857143, 0.96875, 0.8174603174603174, 0.6681547619047619, 0.9122023809523809, 0.910218253968254, 0.9265873015873016, 0.9429563492063492, 0.9434523809523809, 0.9181547619047619, 0.9925595238095238, 0.9945436507936508, 0.8521825396825397, 0.39831349206349204, 0.4236111111111111, 1.0, 1.0, 0.9995039682539683, 1.0, 0.9995039682539683, 0.998015873015873, 1.0, 0.9662698412698413, 0.9449404761904762, 0.9499007936507936, 0.941468253968254, 0.8903769841269841, 0.904265873015873, 0.7708333333333334, 0.566468253968254, 0.9067460317460317, 0.9429563492063492, 0.9910714285714286, 0.9925595238095238, 0.8075396825396826, 0.5942460317460317], 'posttrain_train_loss': [5.54005, 0.20844756, 0.40337428, 0.06323482, 0.0, 1.4753624e-11, 0.0, 1.7098724, 5.1970466e-05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 'posttrain_val_loss': [5.54056, 0.33504573, 14.731888, 3.1898494, 4.590637, 5.464198, 10.615475, 69.0399, 25.566936, 170.00613, 51.366867, 39.071995, 50.90594, 33.7089, 47.955135, 28.26866, 39.4452, 22.181707, 31.788553, 81.04683, 71.040085, 39.419, 48.333794, 29.800562, 51.29198, 109.88162, 55.23287, 98.17838, 56.250324, 79.25712, 71.09502, 87.069595, 20.719408, 54.728313, 99.8825, 27.797506, 32.84568, 45.62588, 29.256433, 22.269453, 40.36687, 108.98839, 23.97541, 26.019627, 38.400303, 27.947872, 20.661901, 55.01742, 46.155415, 59.174538, 59.072777, 65.19097, 67.495056, 74.38423, 20.795887, 12.876593, 64.76758, 30.094309, 29.1983, 95.80662, 26.863203, 39.550533, 52.32799, 29.018623, 58.769554, 26.400629, 52.465153, 56.288807, 23.415499, 25.339935, 32.705544, 53.146297, 72.58132, 19.756796, 31.371706, 18.394583, 21.250336, 27.709679, 29.249828, 54.53242, 11.825971, 74.462494, 61.563175, 37.59145, 55.238388, 56.4491, 74.85794, 16.110933, 62.97468, 74.59046, 39.709812, 32.5304, 52.38588, 45.092728, 42.051968, 54.13065, 104.598404, 58.47987, 57.928547, 15.144271, 100.19941], 'posttrain_train_acc': [0.0, 0.9811881188118812, 0.9909653465346535, 0.9991336633663367, 1.0, 1.0, 1.0, 0.9957920792079208, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], 'posttrain_val_acc': [0.0, 0.9608134920634921, 0.9206349206349206, 0.9776785714285714, 0.9692460317460317, 0.9692460317460317, 0.9469246031746031, 0.9598214285714286, 0.9791666666666666, 0.9469246031746031, 0.9761904761904762, 0.9756944444444444, 0.9697420634920635, 0.9751984126984127, 0.9712301587301587, 0.9771825396825397, 0.972718253968254, 0.9826388888888888, 0.9836309523809523, 0.9578373015873016, 0.9623015873015873, 0.9742063492063492, 0.9761904761904762, 0.9836309523809523, 0.9682539682539683, 0.9598214285714286, 0.9677579365079365, 0.9499007936507936, 0.9697420634920635, 0.9677579365079365, 0.9613095238095238, 0.9623015873015873, 0.9841269841269841, 0.9712301587301587, 0.9548611111111112, 0.9821428571428571, 0.9771825396825397, 0.9702380952380952, 0.9786706349206349, 0.9806547619047619, 0.9756944444444444, 0.9429563492063492, 0.9831349206349206, 0.9841269841269841, 0.9737103174603174, 0.9781746031746031, 0.9826388888888888, 0.96875, 0.9742063492063492, 0.9637896825396826, 0.9642857142857143, 0.964781746031746, 0.9642857142857143, 0.9652777777777778, 0.9871031746031746, 0.9875992063492064, 0.9672619047619048, 0.9791666666666666, 0.9771825396825397, 0.9642857142857143, 0.9791666666666666, 0.9742063492063492, 0.9662698412698413, 0.9801587301587301, 0.9717261904761905, 0.9796626984126984, 0.9677579365079365, 0.972718253968254, 0.9841269841269841, 0.9811507936507936, 0.9786706349206349, 0.9717261904761905, 0.9702380952380952, 0.9841269841269841, 0.9776785714285714, 0.9841269841269841, 0.9806547619047619, 0.9801587301587301, 0.9766865079365079, 0.9672619047619048, 0.9895833333333334, 0.9568452380952381, 0.96875, 0.9781746031746031, 0.9751984126984127, 0.9677579365079365, 0.9618055555555556, 0.9861111111111112, 0.9722222222222222, 0.9642857142857143, 0.9751984126984127, 0.9771825396825397, 0.9697420634920635, 0.9766865079365079, 0.9737103174603174, 0.9742063492063492, 0.9464285714285714, 0.9702380952380952, 0.9672619047619048, 0.9875992063492064, 0.9474206349206349]}}

@@ -17,6 +17,8 @@ def parse_json(json_filepath):
     assert 0 <= byte < 16
     
     keys = config_params['keys']
+    if keys == []:
+        keys = [x for x in range(256)]
     assert type(keys) == list
     assert all(type(k) == int for k in keys)
     assert all(0 <= k < 256 for k in keys)

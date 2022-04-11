@@ -110,7 +110,7 @@ def multigen_experiment(byte,
         map_constructor = [pc for pc in potential_map_constructors if pc[0] != None]
         assert len(map_constructor) == 1
         map_constructor, map_kwargs = map_constructor[0]
-        map = map_constructor(**map_kwargs)
+        map = map_constructor(dataset.key_size, dataset.trace_size, **map_kwargs)
         generator = generator_models.KeyOnlyGenerator(map)
     else:
         generator = _construct_generator(dataset, keys, trace_map_constructor, trace_map_kwargs, plaintext_map_constructor, plaintext_map_kwargs, key_map_constructor, key_map_kwargs, cumulative_map_constructor, cumulative_map_kwargs)
