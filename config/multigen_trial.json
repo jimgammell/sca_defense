@@ -1,4 +1,5 @@
 {
+    "exp_type": "multigen",
     "byte": 0,
     "keys": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     "key_dataset_kwargs":
@@ -11,35 +12,46 @@
         "delete_download_after_extraction": false,
         "delete_extracted_after_preprocess": false
     },
+    "dataloader_kwargs":
+    {
+        "batch_size": 16,
+        "shuffle": true
+    },
     "dataset_prop_for_validation": 0.2,
-    "trace_map_architecture": "mlp",
+    "trace_map_constructor": "get_mlp_map",
     "trace_map_kwargs":
     {
-        "layers": [256, 64],
-        "hidden_activation": "Relu"
+        "layers": [256],
+        "hidden_activation": "ReLU"
     },
-    "plaintext_map_architecture": "mlp",
+    "plaintext_map_constructor": "get_mlp_map",
     "plaintext_map_kwargs":
     {
         "layers": [64],
-        "hidden_activation": "Relu"
+        "hidden_activation": "ReLU"
     },
-    "key_map_architecture": "zero",
+    "key_map_constructor": "get_zero_map",
     "key_map_kwargs": {},
-    "cumulative_map_architecture": "mlp",
+    "cumulative_map_constructor": "get_mlp_map",
     "cumulative_map_kwargs":
     {
-        "layers": 256,
-        "hidden_activation": "Relu"
+        "layers": [256],
+        "hidden_activation": "ReLU"
     },
-    "discriminator_architecture": "google_style_resnet",
+    "discriminator_constructor": "get_google_style_resnet_discriminator",
     "discriminator_kwargs": {},
-    "discriminator_loss": "CrossEntropyLoss",
+    "discriminator_loss_constructor": "CrossEntropyLoss",
     "discriminator_loss_kwargs": {},
-    "discriminator_optimizer": "Adam",
+    "discriminator_optimizer_constructor": "Adam",
     "discriminator_optimizer_kwargs": {},
-    "generator_loss": "CrossEntropyLoss",
+    "generator_loss_constructor": "CrossEntropyLoss",
     "generator_loss_kwargs": {},
-    "generator_optimizer": "Adam",
-    "generator_optimizer_kwargs": {}
+    "generator_optimizer_constructor": "Adam",
+    "generator_optimizer_kwargs": {},
+    "device": "cuda",
+    "discriminator_pretraining_epochs": 2,
+    "generator_pretraining_epochs": 2,
+    "gan_training_epochs": 1000,
+    "discriminator_posttraining_epochs": 100,
+    "seed": 0
 }

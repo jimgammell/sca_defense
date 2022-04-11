@@ -2,7 +2,57 @@ import os
 import pickle
 from tqdm import tqdm
 import numpy as np
+import torch
 from torch.utils.data import Dataset
+from torchvision import transforms
+from utils import log_print as print
+
+class NormTensorMagnitude:
+    def __init__(self, mx, mn):
+        self.min = mn
+        self.max = mx
+    def __call__(self, x):
+        x = x - .5*(torch.max(x)+torch.min(x))
+        x = x / torch.max(x)
+        x = x * (self.max-self.min)
+        x = x + .5*(self.max+self.min)
+        return x
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+class IntToOnehot:
+    def __init__(self, classes):
+        self.classes = classes
+    def __call__(self, x):
+        x_oh = np.zeros((self.classes), dtype=int)
+        x_oh[x] = 1
+        return x_oh
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+class IntToBinary:
+    def __init__(self, bits):
+        self.bits = bits
+    def __call__(self, x):
+        x_bin = np.zeros((self.bits), dtype=int)
+        pwr = self.bits
+        while x > 0:
+            pwr -= 1
+            assert pwr >= 0
+            if x >= 2**pwr:
+                x -= 2**pwr
+                x_bin[self.bits-pwr-1] = 1
+        return x_bin
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
+class ToTensor1D:
+    def __init__(self):
+        pass
+    def __call__(self, x):
+        return torch.tensor(x).type(torch.float)
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
 
 def download_dataset(dest):
     import requests
@@ -78,8 +128,7 @@ def preprocess_dataset(dest, delete_extracted_after_preprocess=False):
         assert len(key) == num_bytes
     
     for byte in range(num_bytes):
-        print('Processing data for byte %d...'%(byte))
-        for key in tqdm(range(256)):
+        for key in range(256):
             processed_filename = 'byte_%x__key_%02x.pickle'%(byte, key)
             if os.path.exists(os.path.join(processed_dir, processed_filename)):
                 continue
@@ -108,21 +157,18 @@ class AesKeyGroupDataset(Dataset):
     
     def __init__(self,
                  key_datasets,
-                 generators,
-                 discriminator,
                  byte=0,
-                 key_map=None):
+                 key_transform=None):
         super().__init__()
         
         self.key_datasets = key_datasets
+        self.key_transform = key_transform
         self.byte = byte
         self.num_samples = np.sum([len(kd) for kd in key_datasets])
-        (eg_plaintext, eg_trace), eg_key = self.__getitem__(0)
+        (eg_trace, eg_plaintext), eg_key = self.__getitem__(0)
         self.plaintext_size = eg_plaintext.size()
         self.trace_size = eg_trace.size()
         self.key_size = eg_key.size()
-        self.generators = generators
-        self.discriminator = discriminator
         
     def __len__(self):
         return self.num_samples
@@ -131,9 +177,23 @@ class AesKeyGroupDataset(Dataset):
         (kd_idx, smp_idx) = self.idx_to_key_idx_pair(idx)
         key_dataset = self.key_datasets[kd_idx]
         key = key_dataset.key
+        if self.key_transform != None:
+            key = self.key_transform(key)
         plaintext, trace = key_dataset.__getitem__(smp_idx)
         
-        return (trace, plaintext, key)
+        return (trace, plaintext), key
+    
+    def __repr__(self):
+        s = ''
+        s += self.__class__.__name__ + ':' + '\n'
+        s += '\tAvailable keys: {}'.format([k.key for k in self.key_datasets]) + '\n'
+        s += '\tKey transform: {}'.format(self.key_transform) + '\n'
+        s += '\tByte: {}'.format(self.byte) + '\n'
+        s += '\tNumber of samples available: {}'.format(self.num_samples) + '\n'
+        s += '\tTrace size: {}'.format(self.trace_size) + '\n'
+        s += '\tKey size: {}'.format(self.key_size) + '\n'
+        s += '\tPlaintext size: {}'.format(self.plaintext_size) + '\n'
+        return s
             
 class AesSingleKeyDataset(Dataset):
     def getitem_from_memory(self, idx):
