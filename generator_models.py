@@ -5,25 +5,32 @@ from utils import log_print as print
 from copy import copy
 from dataset import NormTensorMagnitude
 
-class CompositeGenerator(nn.Module):
-    def key_to_index(self, key):
-        keys_dec = (key*self.binary_bases).sum(dim=-1).to(torch.int)
-        return keys_dec
+class KeyOnlyGenerator(nn.Module):
+    def __init__(self, key_trace_map):
+        super().__init__()
+        self.key_trace_map = key_trace_map
+        self.output_transform = NormTensorMagnitude(1, -1)
     
+    def forward(self, *args):
+        _, trace, _, key = args
+        protective_trace = self.key_trace_map(key)
+        visible_trace = trace + protective_trace
+        visible_trace = self.output_transform(visible_trace)
+        return visible_trace
+
+class CompositeGenerator(nn.Module):
     def __init__(self, generators):
         super().__init__()
         
         self.generators = nn.ModuleList()
         for (idx, key) in enumerate(generators.keys()):
             self.generators.append(generators[key])
-        self.register_buffer('binary_bases', torch.tensor([2**n for n in range(7, -1, -1)], dtype=torch.int))
         self.output_transform = NormTensorMagnitude(1, -1)
     
-    def forward(self, x):
-        (trace, plaintext, key) = x
-        indices = self.key_to_index(key)
+    def forward(self, *args):
+        key_idx, trace, plaintext, key = args
         visible_traces = []
-        for (idx, tr, pt, ky) in zip(torch.unbind(indices), torch.unbind(trace), torch.unbind(plaintext), torch.unbind(key)):
+        for (idx, tr, pt, ky) in zip(torch.unbind(key_idx), torch.unbind(trace), torch.unbind(plaintext), torch.unbind(key)):
             tr = tr.unsqueeze(0)
             pt = pt.unsqueeze(0)
             ky = ky.unsqueeze(0)

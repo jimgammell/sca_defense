@@ -72,8 +72,12 @@ def multigen_experiment(byte,
                                           NormTensorMagnitude(1, -1)])
     plaintext_transform = transforms.Compose([IntToBinary(8),
                                               ToTensor1D()])
+                                              #ToTensor1D(),
+                                              #NormTensorMagnitude(1, -1)])
     key_transform = transforms.Compose([IntToBinary(8),
                                         ToTensor1D()])
+                                        #ToTensor1D(),
+                                        #NormTensorMagnitude(1, -1)])
     key_datasets = [AesSingleKeyDataset(byte,
                                         key,
                                         trace_transform=trace_transform,
@@ -87,9 +91,29 @@ def multigen_experiment(byte,
     training_dataloader = DataLoader(training_dataset, drop_last=True, **dataloader_kwargs)
     validation_dataloader = DataLoader(validation_dataset, drop_last=True, **dataloader_kwargs)
     
+    #for _ in range(10):
+    #    batch = next(iter(training_dataloader))
+    #    key_idx, trace, plaintext, key = batch
+    #    print('Key idx shape:', key_idx.size())
+    #    print('Trace shape:', trace.size())
+    #    print('Plaintext shape:', plaintext.size())
+    #    print('Key shape:', key.size())
+    #    print('Key idx:', key_idx)
+    #    print('Trace max/min:', torch.max(trace), torch.min(trace))
+    #    print('Plaintext:', plaintext)
+    #    print('Key:', key)
+    
     # Create generator and related objects
     print('Constructing generator.')
-    generator = _construct_generator(dataset, keys, trace_map_constructor, trace_map_kwargs, plaintext_map_constructor, plaintext_map_kwargs, key_map_constructor, key_map_kwargs, cumulative_map_constructor, cumulative_map_kwargs)
+    if cumulative_map_constructor == None:
+        potential_map_constructors = [(trace_map_constructor, trace_map_kwargs), (plaintext_map_constructor, plaintext_map_kwargs), (key_map_constructor, key_map_kwargs)]
+        map_constructor = [pc for pc in potential_map_constructors if pc[0] != None]
+        assert len(map_constructor) == 1
+        map_constructor, map_kwargs = map_constructor[0]
+        map = map_constructor(**map_kwargs)
+        generator = generator_models.KeyOnlyGenerator(map)
+    else:
+        generator = _construct_generator(dataset, keys, trace_map_constructor, trace_map_kwargs, plaintext_map_constructor, plaintext_map_kwargs, key_map_constructor, key_map_kwargs, cumulative_map_constructor, cumulative_map_kwargs)
     print(generator)
     generator = generator.to(device)
     generator_optimizer = generator_optimizer_constructor(generator.parameters(), **generator_optimizer_kwargs)

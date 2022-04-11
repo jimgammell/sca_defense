@@ -32,7 +32,10 @@ def parse_json(json_filepath):
     assert type(dataloader_kwargs) == dict
     
     trace_map_constructor = config_params['trace_map_constructor']
-    trace_map_constructor = getattr(generator_models, trace_map_constructor)
+    if trace_map_constructor != 'None':
+        trace_map_constructor = getattr(generator_models, trace_map_constructor)
+    else:
+        trace_map_constructor = None
     
     trace_map_kwargs = config_params['trace_map_kwargs']
     assert type(trace_map_kwargs) == dict
@@ -40,7 +43,10 @@ def parse_json(json_filepath):
         trace_map_kwargs['hidden_activation'] = getattr(nn, trace_map_kwargs['hidden_activation'])
         
     plaintext_map_constructor = config_params['plaintext_map_constructor']
-    plaintext_map_constructor = getattr(generator_models, plaintext_map_constructor)
+    if plaintext_map_constructor != 'None':
+        plaintext_map_constructor = getattr(generator_models, plaintext_map_constructor)
+    else:
+        plaintext_map_constructor = None
     
     plaintext_map_kwargs = config_params['plaintext_map_kwargs']
     assert type(plaintext_map_kwargs) == dict
@@ -48,7 +54,10 @@ def parse_json(json_filepath):
         plaintext_map_kwargs['hidden_activation'] = getattr(nn, plaintext_map_kwargs['hidden_activation'])
         
     key_map_constructor = config_params['key_map_constructor']
-    key_map_constructor = getattr(generator_models, key_map_constructor)
+    if key_map_constructor != 'None':
+        key_map_constructor = getattr(generator_models, key_map_constructor)
+    else:
+        key_map_constructor = None
     
     key_map_kwargs = config_params['key_map_kwargs']
     assert type(key_map_kwargs) == dict
@@ -56,7 +65,10 @@ def parse_json(json_filepath):
         key_map_kwargs['hidden_activation'] = getattr(nn, key_map_kwargs['hidden_activation'])
         
     cumulative_map_constructor = config_params['cumulative_map_constructor']
-    cumulative_map_constructor = getattr(generator_models, cumulative_map_constructor)
+    if cumulative_map_constructor != 'None':
+        cumulative_map_constructor = getattr(generator_models, cumulative_map_constructor)
+    else:
+        cumulative_map_constructor = None
     
     cumulative_map_kwargs = config_params['cumulative_map_kwargs']
     assert type(cumulative_map_kwargs) == dict

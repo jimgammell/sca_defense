@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from utils import log_print as print
+from copy import copy
 
 class NormTensorMagnitude:
     def __init__(self, mx, mn):
@@ -14,7 +15,7 @@ class NormTensorMagnitude:
     def __call__(self, x):
         x = x - .5*(torch.max(x)+torch.min(x))
         x = x / torch.max(x)
-        x = x * (self.max-self.min)
+        x = x * .5*(self.max-self.min)
         x = x + .5*(self.max+self.min)
         return x
     def __repr__(self):
@@ -34,6 +35,7 @@ class IntToBinary:
     def __init__(self, bits):
         self.bits = bits
     def __call__(self, x):
+        x = copy(x)
         x_bin = np.zeros((self.bits), dtype=int)
         pwr = self.bits
         while x > 0:
@@ -165,7 +167,8 @@ class AesKeyGroupDataset(Dataset):
         self.key_transform = key_transform
         self.byte = byte
         self.num_samples = np.sum([len(kd) for kd in key_datasets])
-        (eg_trace, eg_plaintext), eg_key = self.__getitem__(0)
+        eg_key_idx, eg_trace, eg_plaintext, eg_key = self.__getitem__(0)
+        self.key_idx_size = eg_key_idx.shape
         self.plaintext_size = eg_plaintext.size()
         self.trace_size = eg_trace.size()
         self.key_size = eg_key.size()
@@ -176,12 +179,12 @@ class AesKeyGroupDataset(Dataset):
     def __getitem__(self, idx):
         (kd_idx, smp_idx) = self.idx_to_key_idx_pair(idx)
         key_dataset = self.key_datasets[kd_idx]
-        key = key_dataset.key
+        key_idx = np.array(key_dataset.key, dtype=int)
         if self.key_transform != None:
-            key = self.key_transform(key)
+            key = self.key_transform(key_idx)
         plaintext, trace = key_dataset.__getitem__(smp_idx)
         
-        return (trace, plaintext), key
+        return key_idx, trace, plaintext, key
     
     def __repr__(self):
         s = ''
@@ -193,6 +196,7 @@ class AesKeyGroupDataset(Dataset):
         s += '\tTrace size: {}'.format(self.trace_size) + '\n'
         s += '\tKey size: {}'.format(self.key_size) + '\n'
         s += '\tPlaintext size: {}'.format(self.plaintext_size) + '\n'
+        s += '\tKey index size: {}'.format(self.key_idx_size)
         return s
             
 class AesSingleKeyDataset(Dataset):

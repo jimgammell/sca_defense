@@ -18,21 +18,25 @@
         "shuffle": true
     },
     "dataset_prop_for_validation": 0.2,
-    "trace_map_constructor": "get_mlp_map",
+    "trace_map_constructor": "None",
     "trace_map_kwargs":
     {
         "layers": [256],
         "hidden_activation": "ReLU"
     },
-    "plaintext_map_constructor": "get_mlp_map",
+    "plaintext_map_constructor": "None",
     "plaintext_map_kwargs":
     {
         "layers": [64],
         "hidden_activation": "ReLU"
     },
-    "key_map_constructor": "get_zero_map",
-    "key_map_kwargs": {},
-    "cumulative_map_constructor": "get_mlp_map",
+    "key_map_constructor": "get_mlp_map",
+    "key_map_kwargs":
+    {
+        "layers": [],
+        "hidden_activation": "ReLU"
+    },
+    "cumulative_map_constructor": "None",
     "cumulative_map_kwargs":
     {
         "layers": [256],
@@ -49,9 +53,9 @@
     "generator_optimizer_constructor": "Adam",
     "generator_optimizer_kwargs": {},
     "device": "cuda",
-    "discriminator_pretraining_epochs": 2,
-    "generator_pretraining_epochs": 2,
-    "gan_training_epochs": 1000,
-    "discriminator_posttraining_epochs": 100,
+    "discriminator_pretraining_epochs": 100,
+    "generator_pretraining_epochs": 0,
+    "gan_training_epochs": 0,
+    "discriminator_posttraining_epochs": 0,
     "seed": 0
 }

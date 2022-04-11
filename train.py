@@ -60,9 +60,9 @@ def discriminator_pretrain_eval_epoch(dataloader, discriminator, loss_fn, device
     return (mean_loss, mean_acc)
 
 def _eval_pretrain_discriminator_step(batch, discriminator, loss_fn, device):
-    (trace, plaintext), key = batch
+    key_idx, trace, plaintext, key = batch
     key = key.to(device)
-    target = bin_to_int(key, device=device)
+    target = key_idx.to(device)
     trace = trace.unsqueeze(1).to(device)
     plaintext = plaintext.to(device)
     discriminator.eval()
@@ -85,9 +85,9 @@ def discriminator_pretrain_epoch(dataloader, discriminator, loss_fn, optimizer, 
     return (mean_loss, mean_acc)
 
 def _pretrain_discriminator_step(batch, discriminator, loss_fn, optimizer, device):
-    (trace, plaintext), key = batch
+    key_idx, trace, plaintext, key = batch
     key = key.to(device)
-    target = bin_to_int(key, device=device)
+    target = key_idx.to(device)
     trace = trace.unsqueeze(1).to(device)
     plaintext = plaintext.to(device)
     discriminator.train()
@@ -130,24 +130,24 @@ def execute_generator_pretrain_epoch(dataloader, generator, loss_fn, optimizer, 
     return mean_loss
 
 def _eval_generator_autoencoder(batch, generator, loss_fn, device):
-    (trace, plaintext), key = batch
+    key_idx, trace, plaintext, key = batch
     trace = trace.to(device)
     plaintext = plaintext.to(device)
     key = key.to(device)
     generator.eval()
     with torch.no_grad():
-        protected_trace = generator((trace, key, plaintext)).squeeze()
+        protected_trace = generator(key_idx, trace, key, plaintext).squeeze()
         elementwise_loss = loss_fn(trace, protected_trace)
     return elementwise_loss.cpu().numpy()
 
 def _step_generator_autoencoder(batch, generator, loss_fn, optimizer, device):
-    (trace, plaintext), key = batch
+    key_idx, trace, plaintext, key = batch
     trace = trace.to(device)
     plaintext = plaintext.to(device)
     key = key.to(device)
     generator.train()
     optimizer.zero_grad()
-    protected_trace = generator((trace, key, plaintext)).squeeze()
+    protected_trace = generator(key_idx, trace, key, plaintext).squeeze()
     elementwise_loss = loss_fn(trace, protected_trace)
     loss = torch.mean(elementwise_loss)
     loss.backward()
@@ -201,11 +201,11 @@ def train_generator_step(batch, generator, discriminator, loss_fn, optimizer, de
     res = _execute_step(batch, generator, discriminator, loss_fn, optimizer, device, _train_generator_step)
     return res
 
-def _eval_discriminator_step(trace, plaintext, key, target, generator, discriminator, loss_fn):
+def _eval_discriminator_step(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn):
     discriminator.eval()
     generator.eval()
     with torch.no_grad():
-        protected_trace = generator((trace, plaintext, key))
+        protected_trace = generator(key_idx, trace, plaintext, key)
         prediction = discriminator(protected_trace)
         elementwise_loss = loss_fn(prediction, target)
     
@@ -213,11 +213,11 @@ def _eval_discriminator_step(trace, plaintext, key, target, generator, discrimin
     pred_res = prediction.cpu().numpy()
     return (loss_res, pred_res)
 
-def _eval_generator_step(trace, plaintext, key, target, generator, discriminator, loss_fn):
+def _eval_generator_step(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn):
     discriminator.eval()
     generator.eval()
     with torch.no_grad():
-        protected_trace = generator((trace, key, plaintext))
+        protected_trace = generator(key_idx, trace, key, plaintext)
         prediction = discriminator(protected_trace)
         elementwise_loss = -loss_fn(prediction, target)
         
@@ -225,11 +225,11 @@ def _eval_generator_step(trace, plaintext, key, target, generator, discriminator
     pred_res = prediction.cpu().numpy()
     return (loss_res, pred_res)
 
-def _train_discriminator_step(trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer):
+def _train_discriminator_step(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer):
     discriminator.train()
     generator.train()
     with torch.no_grad():
-        protected_trace = generator((trace, plaintext, key))
+        protected_trace = generator(key_idx, trace, plaintext, key)
     optimizer.zero_grad()
     prediction = discriminator(protected_trace)
     elementwise_loss = loss_fn(prediction, target)
@@ -241,11 +241,11 @@ def _train_discriminator_step(trace, plaintext, key, target, generator, discrimi
     pred_res = prediction.detach().cpu().numpy()
     return (loss_res, pred_res)
 
-def _train_generator_step(trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer):
+def _train_generator_step(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer):
     discriminator.train()
     generator.train()
     optimizer.zero_grad()
-    protected_trace = generator((trace, key, plaintext))
+    protected_trace = generator(key_idx, trace, key, plaintext)
     prediction = discriminator(protected_trace)
     elementwise_loss = -loss_fn(prediction, target)
     loss = torch.mean(elementwise_loss)
@@ -262,16 +262,16 @@ def bin_to_int(x, device, bits=8, classes=256):
     return x_int
                                
 def _execute_step(batch, generator, discriminator, loss_fn, optimizer, device, execute_fn):
-    (trace, plaintext), key = batch
+    key_idx, trace, plaintext, key = batch
     trace = trace.to(device)
     plaintext = plaintext.to(device)
     key = key.to(device)
-    target = bin_to_int(key, device=device)
+    target = key_idx.to(device)
     
     if optimizer != None:
-        (loss_res, pred_res) = execute_fn(trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer)
+        (loss_res, pred_res) = execute_fn(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn, optimizer)
     else:
-        (loss_res, pred_res) = execute_fn(trace, plaintext, key, target, generator, discriminator, loss_fn)
+        (loss_res, pred_res) = execute_fn(key_idx, trace, plaintext, key, target, generator, discriminator, loss_fn)
     
     correctness_res = np.equal(np.argmax(pred_res, axis=1), target.cpu().numpy())
     return (loss_res, correctness_res)
