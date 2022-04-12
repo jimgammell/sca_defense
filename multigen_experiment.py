@@ -10,6 +10,7 @@ from utils import log_print as print
 from tqdm import tqdm
 import numpy as np
 from train import *
+from results import Results
 
 def _construct_generator(dataset, keys,
                          trace_map_constructor, trace_map_kwargs,
@@ -117,8 +118,8 @@ def multigen_experiment(byte,
     print(generator)
     generator = generator.to(device)
     generator_optimizer = generator_optimizer_constructor(generator.parameters(), **generator_optimizer_kwargs)
-    generator_loss = generator_loss_constructor(**generator_loss_kwargs)
-    generator_loss.reduction = 'none'
+    _generator_loss = generator_loss_constructor(**generator_loss_kwargs)
+    generator_loss = lambda x, y: -_generator_loss(x, y)
     print()
     
     # Create discriminator and related objects
@@ -128,80 +129,40 @@ def multigen_experiment(byte,
     discriminator = discriminator.to(device)
     discriminator_optimizer = discriminator_optimizer_constructor(discriminator.parameters(), **discriminator_optimizer_kwargs)
     discriminator_loss = discriminator_loss_constructor(**discriminator_loss_kwargs)
-    discriminator_loss.reduction = 'none'
     print()
     
-    def print_intermediate_results(tl, ta, vl, va):
-        print('\t\tTraining loss:', tl)
-        print('\t\tTraining accuracy:', ta)
-        print('\t\tValidation loss:', vl)
-        print('\t\tValidation accuracy:', va)
+    
+    results = Results()
+    def update_results(results, training_results=None, validation_results=None):
+        if training_results != None:
+            print('Training results:')
+            print(training_results)
+            training_results.rename('gen_loss', 'gen_train_loss')
+            training_results.rename('disc_loss', 'disc_train_loss')
+            training_results.rename('disc_acc', 'disc_train_acc')
+            results.extend(training_results)
+        if validation_results != None:
+            print('Validation results:')
+            print(validation_results)
+            validation_results.rename('gen_loss', 'gen_val_loss')
+            validation_results.rename('disc_loss', 'disc_val_loss')
+            validation_results.rename('disc_acc', 'disc_val_acc')
+            results.extend(validation_results)
     
     # Initial results
     print('Calculating initial results.')
-    results = Results()
-    tl, ta = eval_discriminator_epoch(training_dataloader, generator, discriminator, discriminator_loss, device)
-    vl, va = eval_discriminator_epoch(validation_dataloader, generator, discriminator, discriminator_loss, device)
-    results.update({'discriminator': {'train_loss': tl, 'train_acc': ta, 'val_loss': vl, 'val_acc': va}})
-    tl, ta = eval_generator_epoch(training_dataloader, generator, discriminator, generator_loss, device)
-    vl, va = eval_generator_epoch(validation_dataloader, generator, discriminator, generator_loss, device)
-    results.update({'generator': {'train_loss': tl, 'train_acc': ta, 'val_loss': vl, 'val_acc': va}})
-    print('\tDone.')
-    print('\tDiscriminator:')
-    print_intermediate_results(tl, ta, vl, va)
-    print('\tGenerator:')
-    print_intermediate_results(tl, ta, vl, va)
-    print()
-    
-    # Discriminator pretraining
-    print('Pretraining discriminator.')
-    print('\tInitial performamce')
-    tl, ta = discriminator_pretrain_eval_epoch(training_dataloader, discriminator, discriminator_loss, device)
-    vl, va = discriminator_pretrain_eval_epoch(validation_dataloader, discriminator, discriminator_loss, device)
-    results.update({'discriminator': {'pretrain_train_loss': tl, 'pretrain_train_acc': ta, 'pretrain_val_loss': vl, 'pretrain_val_acc': va}})
-    print_intermediate_results(tl, ta, vl, va)
-    print()
-    
-    for epoch in range(discriminator_pretraining_epochs):
-        print('\tEpoch', epoch+1)
-        tl, ta = discriminator_pretrain_epoch(training_dataloader, discriminator, discriminator_loss, discriminator_optimizer, device)
-        vl, va = discriminator_pretrain_eval_epoch(validation_dataloader, discriminator, discriminator_loss, device)
-        results.update({'discriminator': {'pretrain_train_loss': tl, 'pretrain_train_acc': ta, 'pretrain_val_loss': vl, 'pretrain_val_acc': va}})
-        print_intermediate_results(tl, ta, vl, va)
-        print()
-    print()
-    
-    # Generator pretraining
-    print('Pretraining generator.')
-    print('\tInitial performance')
-    tl = generator_eval_autoencoder_epoch(training_dataloader, generator, device)
-    vl = generator_eval_autoencoder_epoch(validation_dataloader, generator, device)
-    results.update({'generator': {'pretrain_train_loss': tl, 'pretrain_val_loss': vl}})
-    print_intermediate_results(tl, np.nan, vl, np.nan)
-    print()
-    
-    for epoch in range(generator_pretraining_epochs):
-        print('\tEpoch', epoch+1)
-        tl = generator_pretrain_autoencoder_epoch(training_dataloader, generator, generator_optimizer, device)
-        vl = generator_eval_autoencoder_epoch(validation_dataloader, generator, device)
-        results.update({'generator': {'pretrain_train_loss': tl, 'pretrain_val_loss': vl}})
-        print_intermediate_results(tl, np.nan, vl, np.nan)
-        print()
+    training_results = eval_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    update_results(results, training_results, validation_results)
     print()
     
     # GAN training
     print('Training discriminator and generator simultaneously.')
     for epoch in range(gan_training_epochs):
         print('\tEpoch', epoch+1)
-        tgl, tga, tdl, tda = train_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, generator_optimizer, discriminator_optimizer, device)
-        vgl, vga = eval_generator_epoch(validation_dataloader, generator, discriminator, generator_loss, device)
-        vdl, vda = eval_discriminator_epoch(validation_dataloader, generator, discriminator, discriminator_loss, device)
-        results.update({'generator': {'train_loss': tgl, 'train_acc': tga, 'val_loss': vgl, 'val_acc': vga},
-                        'discriminator': {'train_loss': tdl, 'train_acc': tda, 'val_loss': vdl, 'val_acc': vda}})
-        print('\tDiscriminator results:')
-        print_intermediate_results(tdl, tda, vdl, vda)
-        print('\tGenerator results:')
-        print_intermediate_results(tgl, tga, vgl, vga)
+        training_results = train_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, generator_optimizer, discriminator_optimizer, device)
+        validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+        update_results(results, training_results, validation_results)
         print()
     print()
     
@@ -212,18 +173,16 @@ def multigen_experiment(byte,
     discriminator_optimizer = discriminator_optimizer_constructor(discriminator.parameters(), **discriminator_optimizer_kwargs)
     
     print('\tInitial performance')
-    tl, ta = eval_discriminator_epoch(training_dataloader, generator, discriminator, discriminator_loss, device)
-    vl, va = eval_discriminator_epoch(validation_dataloader, generator, discriminator, discriminator_loss, device)
-    results.update({'discriminator': {'posttrain_train_loss': tl, 'posttrain_train_acc': ta, 'posttrain_val_loss': vl, 'posttrain_val_acc': va}})
-    print_intermediate_results(tl, ta, vl, va)
+    training_results = eval_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    update_results(results, training_results, validation_results)
     print()
     
     for epoch in range(discriminator_posttraining_epochs):
         print('\tEpoch', epoch+1)
-        tl, ta = train_discriminator_epoch(training_dataloader, generator, discriminator, discriminator_loss, discriminator_optimizer, device)
-        vl, va = eval_discriminator_epoch(validation_dataloader, generator, discriminator, discriminator_loss, device)
-        results.update({'discriminator': {'posttrain_train_loss': tl, 'posttrain_train_acc': ta, 'posttrain_val_loss': vl, 'posttrain_val_acc': va}})
-        print_intermediate_results(tl, ta, vl, va)
+        training_results = train_discriminator_alone_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, discriminator_optimizer, device)
+        validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+        update_results(results, training_results, validation_results)
         print()
     print()
     print(results)

@@ -1,7 +1,7 @@
 {
     "exp_type": "multigen",
     "byte": 0,
-    "keys": [],
+    "keys": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     "key_dataset_kwargs":
     {
         "keep_data_in_memory": true,
@@ -33,7 +33,7 @@
     "key_map_constructor": "get_mlp_map",
     "key_map_kwargs":
     {
-        "layers": [],
+        "layers": [64, 256],
         "hidden_activation": "ReLU"
     },
     "cumulative_map_constructor": "None",
@@ -55,7 +55,7 @@
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 100,
-    "discriminator_posttraining_epochs": 100,
+    "gan_training_epochs": 500,
+    "discriminator_posttraining_epochs": 500,
     "seed": 0
 }
