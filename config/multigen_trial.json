@@ -48,17 +48,14 @@
     "discriminator_loss_kwargs": {},
     "discriminator_optimizer_constructor": "Adam",
     "discriminator_optimizer_kwargs": {},
-    "generator_loss_constructor": "NormLoss",
-    "generator_loss_kwargs":
-    {
-        "p": "inf"
-    },
+    "generator_loss_constructor": "BatchStdLoss",
+    "generator_loss_kwargs": {},
     "generator_optimizer_constructor": "Adam",
     "generator_optimizer_kwargs": {},
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 500,
-    "discriminator_posttraining_epochs": 500,
+    "gan_training_epochs": 100,
+    "discriminator_posttraining_epochs": 100,
     "seed": 0
 }

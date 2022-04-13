@@ -11,3 +11,12 @@ class NormLoss:
         elementwise_loss = self.norm_function(prediction)
         loss = torch.mean(elementwise_loss)
         return loss
+
+class BatchStdLoss:
+    def __init__(self):
+        pass
+    def __call__(self, logits, target):
+        mean = torch.mean(logits, dim=0)
+        elementwise_loss = torch.linalg.norm(logits-mean, ord=2, dim=0)
+        loss = torch.mean(elementwise_loss)
+        return loss
