@@ -6,6 +6,8 @@ from results import *
 
 def train_gan_epoch(*args):
     dataloader, generator, discriminator, generator_loss_fn, discriminator_loss_fn, generator_optimizer, discriminator_optimizer, device = args
+    generator.train()
+    discriminator.train()
     
     results = Results()
     for batch in tqdm(dataloader):
@@ -28,6 +30,8 @@ def train_gan_epoch(*args):
 
 def eval_gan_epoch(*args):
     dataloader, generator, discriminator, generator_loss_fn, discriminator_loss_fn, device = args
+    generator.eval()
+    discriminator.eval()
     
     results = Results()
     for batch in tqdm(dataloader):
@@ -81,6 +85,8 @@ def eval_gan_step(*args):
 
 def train_discriminator_alone_epoch(*args):
     dataloader, generator, discriminator, generator_loss_fn, discriminator_loss_fn, discriminator_optimizer, device = args
+    generator.train()
+    discriminator.train()
     
     results = Results()
     for batch in tqdm(dataloader):

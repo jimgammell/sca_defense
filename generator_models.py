@@ -11,9 +11,13 @@ class KeyOnlyGenerator(nn.Module):
         self.key_trace_map = key_trace_map
         self.output_transform = NormTensorMagnitude(1, -1)
     
-    def forward(self, *args):
+    def get_protective_trace(self, *args):
         _, trace, _, key = args
         protective_trace = self.key_trace_map(key)
+        return protective_trace
+    
+    def forward(self, *args):
+        protective_trace = self.get_protective_trace(*args)
         visible_trace = trace + protective_trace
         visible_trace = self.output_transform(visible_trace)
         return visible_trace

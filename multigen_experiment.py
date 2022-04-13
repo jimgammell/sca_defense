@@ -130,7 +130,7 @@ def multigen_experiment(byte,
     discriminator_loss = discriminator_loss_constructor(**discriminator_loss_kwargs)
     print()
     
-    
+    test_results()
     results = Results()
     def update_results(results, training_results=None, validation_results=None):
         if training_results != None:
