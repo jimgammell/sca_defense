@@ -118,8 +118,7 @@ def multigen_experiment(byte,
     print(generator)
     generator = generator.to(device)
     generator_optimizer = generator_optimizer_constructor(generator.parameters(), **generator_optimizer_kwargs)
-    _generator_loss = generator_loss_constructor(**generator_loss_kwargs)
-    generator_loss = lambda x, y: -_generator_loss(x, y)
+    generator_loss = generator_loss_constructor(**generator_loss_kwargs)
     print()
     
     # Create discriminator and related objects

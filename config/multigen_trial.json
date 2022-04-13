@@ -48,8 +48,11 @@
     "discriminator_loss_kwargs": {},
     "discriminator_optimizer_constructor": "Adam",
     "discriminator_optimizer_kwargs": {},
-    "generator_loss_constructor": "CrossEntropyLoss",
-    "generator_loss_kwargs": {},
+    "generator_loss_constructor": "NormLoss",
+    "generator_loss_kwargs":
+    {
+        "p": "inf"
+    },
     "generator_optimizer_constructor": "Adam",
     "generator_optimizer_kwargs": {},
     "device": "cuda",

@@ -5,6 +5,7 @@ from utils import log_print as print, set_log_file, print_dict
 from torch import nn, optim
 import generator_models
 import discriminator_models
+import loss_functions
 
 from multigen_experiment import multigen_experiment
 
@@ -83,7 +84,10 @@ def parse_json(json_filepath):
     discriminator_kwargs = config_params['discriminator_kwargs']
     assert type(discriminator_kwargs) == dict
     
-    discriminator_loss_constructor = getattr(nn, config_params['discriminator_loss_constructor'])
+    try:
+        discriminator_loss_constructor = getattr(loss_functions, config_params['discriminator_loss_constructor'])
+    except:
+        discriminator_loss_constructor = getattr(nn, config_params['discriminator_loss_constructor'])
     
     discriminator_loss_kwargs = config_params['discriminator_loss_kwargs']
     assert type(discriminator_loss_kwargs) == dict
@@ -93,7 +97,10 @@ def parse_json(json_filepath):
     discriminator_optimizer_kwargs = config_params['discriminator_optimizer_kwargs']
     assert type(discriminator_optimizer_kwargs) == dict
     
-    generator_loss_constructor = getattr(nn, config_params['generator_loss_constructor'])
+    try:
+        generator_loss_constructor = getattr(loss_functions, config_params['generator_loss_constructor'])
+    except:
+        generator_loss_constructor = getattr(nn, config_params['generator_loss_constructor'])
     
     generator_loss_kwargs = config_params['generator_loss_kwargs']
     assert type(generator_loss_kwargs) == dict
