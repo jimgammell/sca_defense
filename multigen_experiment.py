@@ -117,7 +117,7 @@ def multigen_experiment(byte,
         generator = _construct_generator(dataset, keys, trace_map_constructor, trace_map_kwargs, plaintext_map_constructor, plaintext_map_kwargs, key_map_constructor, key_map_kwargs, cumulative_map_constructor, cumulative_map_kwargs)
     print(generator)
     generator = generator.to(device)
-    generator_optimizer = generator_optimizer_constructor(generator.parameters(), **generator_optimizer_kwargs)
+    generator_optimizer = generator_optimizer_constructor(filter(lambda p: p.requires_grad==True, generator.parameters()), **generator_optimizer_kwargs)
     generator_loss = generator_loss_constructor(**generator_loss_kwargs)
     print()
     
@@ -126,7 +126,7 @@ def multigen_experiment(byte,
     discriminator = _construct_discriminator(dataset, discriminator_constructor, discriminator_kwargs)
     print(discriminator)
     discriminator = discriminator.to(device)
-    discriminator_optimizer = discriminator_optimizer_constructor(discriminator.parameters(), **discriminator_optimizer_kwargs)
+    discriminator_optimizer = discriminator_optimizer_constructor(filter(lambda p: p.requires_grad==True, discriminator.parameters()), **discriminator_optimizer_kwargs)
     discriminator_loss = discriminator_loss_constructor(**discriminator_loss_kwargs)
     print()
     
@@ -169,7 +169,7 @@ def multigen_experiment(byte,
     print('Training new discriminator on static trained discriminator.')
     discriminator = _construct_discriminator(dataset, discriminator_constructor, discriminator_kwargs)
     discriminator = discriminator.to(device)
-    discriminator_optimizer = discriminator_optimizer_constructor(discriminator.parameters(), **discriminator_optimizer_kwargs)
+    discriminator_optimizer = discriminator_optimizer_constructor(filter(lambda p: p.requires_grad==True, discriminator.parameters()), **discriminator_optimizer_kwargs)
     
     print('\tInitial performance')
     training_results = eval_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)

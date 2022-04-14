@@ -22,7 +22,7 @@ def test_results():
     new_results.extend(results)
     assert 'test_name' in new_results.keys()
     assert len(new_results['test_name']) == 1
-    assert new_results['test_name'] == 0
+    assert new_results['test_name'][0] == 0
     new_results.extend(results)
     assert len(new_results['test_name']) == 2
     assert all([entry == 0 for entry in new_results['test_name']])

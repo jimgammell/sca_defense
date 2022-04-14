@@ -13,8 +13,8 @@ class NormTensorMagnitude:
         self.min = mn
         self.max = mx
     def __call__(self, x):
-        x = x - .5*(torch.max(x, dim=-1)+torch.min(x, dim=-1))
-        x = x / torch.max(x, dim=-1)
+        x = x - .5*(torch.max(x)+torch.min(x))
+        x = x / torch.max(x)
         x = x * .5*(self.max-self.min)
         x = x + .5*(self.max+self.min)
         return x

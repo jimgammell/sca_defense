@@ -51,7 +51,7 @@
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 100,
-    "discriminator_posttraining_epochs": 100,
+    "gan_training_epochs": 500,
+    "discriminator_posttraining_epochs": 500,
     "seed": 0
 }

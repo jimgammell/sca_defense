@@ -6,10 +6,10 @@ from copy import copy
 from dataset import NormTensorMagnitude
 
 class KeyOnlyGenerator(nn.Module):
-    def __init__(self, key_trace_map):
+    def __init__(self, key_trace_map, output_transform=None):
         super().__init__()
         self.key_trace_map = key_trace_map
-        self.output_transform = NormTensorMagnitude(1, -1)
+        self.output_transform = output_transform
     
     def get_protective_trace(self, *args):
         _, trace, _, key = args
@@ -17,9 +17,14 @@ class KeyOnlyGenerator(nn.Module):
         return protective_trace
     
     def forward(self, *args):
+        _, trace, _, _ = args
         protective_trace = self.get_protective_trace(*args)
         visible_trace = trace + protective_trace
-        visible_trace = self.output_transform(visible_trace)
+        if self.output_transform != None:
+            visible_trace = torch.unbind(visible_trace)
+            for (idx, vt) in enumerate(visible_trace):
+                visible_trace[idx] = self.output_transform(vt)
+            visible_trace = torch.stack(visible_trace)
         return visible_trace
 
 class CompositeGenerator(nn.Module):
@@ -66,12 +71,15 @@ class Generator(nn.Module):
 
 def get_zero_map(input_shape, output_shape):
     modules = [nn.Flatten(start_dim=1, end_dim=-1)]
+    placeholder_layer = nn.Linear(in_features=np.prod(input_shape), out_features=np.prod(input_shape), bias=False)
+    modules.append(placeholder_layer) # To prevent optimizer from complaining it gets an empty parameter list
     zero_layer = nn.Linear(in_features=np.prod(input_shape), out_features=np.prod(output_shape), bias=False)
     nn.init.zeros_(zero_layer.weight)
-    zero_layer.requires_grad = False
     modules.append(zero_layer)
     modules.append(nn.Unflatten(dim=-1, unflattened_size=output_shape))
     model = nn.Sequential(*modules)
+    for param in zero_layer.parameters():
+        param.requires_grad = False
     return model
     
 def get_identity_map(input_shape, output_shape):
