@@ -45,8 +45,8 @@
     "discriminator_kwargs": {},
     "discriminator_loss_constructor": "CrossEntropyLoss",
     "discriminator_loss_kwargs": {},
-    "discriminator_optimizer_constructor": "Adam",
-    "discriminator_optimizer_kwargs": {},
+    "discriminator_optimizer_constructor": "SGD",
+    "discriminator_optimizer_kwargs": {"lr": 0.01},
     "generator_loss_constructor": "BatchStdLoss",
     "generator_loss_kwargs": {},
     "generator_optimizer_constructor": "Adam",
@@ -54,7 +54,7 @@
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 100,
-    "discriminator_posttraining_epochs": 100,
+    "gan_training_epochs": 500,
+    "discriminator_posttraining_epochs": 500,
     "seed": 0
 }
