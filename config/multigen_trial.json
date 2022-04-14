@@ -31,11 +31,9 @@
         "layers": [64],
         "hidden_activation": "ReLU"
     },
-    "key_map_constructor": "get_mlp_map",
+    "key_map_constructor": "get_zero_map",
     "key_map_kwargs":
     {
-        "layers": [64, 256],
-        "hidden_activation": "ReLU"
     },
     "cumulative_map_constructor": "None",
     "cumulative_map_kwargs":

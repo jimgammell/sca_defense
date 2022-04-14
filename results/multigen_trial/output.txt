@@ -24,15 +24,13 @@ Experiment settings:
 	plaintext_map_kwargs:
 		layers: [64]
 		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
-	key_map_constructor: <function get_mlp_map at 0x7f67f6443700>
+	key_map_constructor: <function get_zero_map at 0x7fc7107113a0>
 	key_map_kwargs:
-		layers: [64, 256]
-		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
 	cumulative_map_constructor: None
 	cumulative_map_kwargs:
 		layers: [256]
 		hidden_activation: <class 'torch.nn.modules.activation.ReLU'>
-	discriminator_constructor: <function get_xdeepsca_discriminator at 0x7f67f64438b0>
+	discriminator_constructor: <function get_xdeepsca_discriminator at 0x7fc70d2648b0>
 	discriminator_kwargs:
 	discriminator_loss_constructor: <class 'torch.nn.modules.loss.CrossEntropyLoss'>
 	discriminator_loss_kwargs:
@@ -65,12 +63,9 @@ Constructing generator.
 KeyOnlyGenerator(
   (key_trace_map): Sequential(
     (0): Flatten(start_dim=1, end_dim=-1)
-    (1): Linear(in_features=8, out_features=64, bias=True)
-    (2): ReLU()
-    (3): Linear(in_features=64, out_features=256, bias=True)
-    (4): ReLU()
-    (5): Linear(in_features=256, out_features=500, bias=True)
-    (6): Unflatten(dim=-1, unflattened_size=torch.Size([1, 500]))
+    (1): Linear(in_features=8, out_features=8, bias=False)
+    (2): Linear(in_features=8, out_features=500, bias=False)
+    (3): Unflatten(dim=-1, unflattened_size=torch.Size([1, 500]))
   )
 )
 
@@ -91,2436 +86,2436 @@ Discriminator(
 
 Calculating initial results.
 Training results:
-gen_loss: 0.020652138
-disc_loss: 5.5611715
+gen_loss: 0.017465893
+disc_loss: 5.549591
 disc_acc: 0.0
 
 Validation results:
-gen_loss: 0.019758703
-disc_loss: 5.5615115
+gen_loss: 0.016667297
+disc_loss: 5.5523176
 disc_acc: 0.0
 
 
 Training discriminator and generator simultaneously.
 	Epoch 1
 Training results:
-gen_loss: 3.0688076
-disc_loss: 0.5122117
-disc_acc: 0.9107673267326732
+gen_loss: 3.915103
+disc_loss: 1.3360267
+disc_acc: 0.5897277227722773
 
 Validation results:
-gen_loss: 2.6411147
-disc_loss: 0.077750735
-disc_acc: 0.9945436507936508
+gen_loss: 4.925635
+disc_loss: 2.5600905
+disc_acc: 0.2698412698412698
 
 
 	Epoch 2
 Training results:
-gen_loss: 4.900911
-disc_loss: 0.20857859
-disc_acc: 0.9392326732673267
+gen_loss: 5.359791
+disc_loss: 0.47511926
+disc_acc: 0.8474009900990099
 
 Validation results:
-gen_loss: 3.1119452
-disc_loss: 0.07745773
-disc_acc: 0.9945436507936508
+gen_loss: 4.2505674
+disc_loss: 0.8639209
+disc_acc: 0.7063492063492064
 
 
 	Epoch 3
 Training results:
-gen_loss: 5.9410787
-disc_loss: 0.25897297
-disc_acc: 0.9195544554455446
+gen_loss: 6.1232867
+disc_loss: 0.3436792
+disc_acc: 0.8851485148514852
 
 Validation results:
-gen_loss: 3.0379894
-disc_loss: 0.059568536
-disc_acc: 1.0
+gen_loss: 8.210184
+disc_loss: 1.3382838
+disc_acc: 0.6036706349206349
 
 
 	Epoch 4
 Training results:
-gen_loss: 6.730286
-disc_loss: 0.18551418
-disc_acc: 0.9428217821782178
+gen_loss: 6.422283
+disc_loss: 0.27859452
+disc_acc: 0.9110148514851485
 
 Validation results:
-gen_loss: 4.446616
-disc_loss: 0.032126322
-disc_acc: 1.0
+gen_loss: 5.1402287
+disc_loss: 0.74151844
+disc_acc: 0.7395833333333334
 
 
 	Epoch 5
 Training results:
-gen_loss: 7.2411695
-disc_loss: 0.14322616
-disc_acc: 0.9539603960396039
+gen_loss: 6.778576
+disc_loss: 0.26534748
+disc_acc: 0.9090346534653465
 
 Validation results:
-gen_loss: 5.8129144
-disc_loss: 0.008640942
-disc_acc: 1.0
+gen_loss: 5.8560047
+disc_loss: 1.4709806
+disc_acc: 0.5629960317460317
 
 
 	Epoch 6
 Training results:
-gen_loss: 7.720818
-disc_loss: 0.10184222
-disc_acc: 0.9648514851485148
+gen_loss: 7.0762687
+disc_loss: 0.23966871
+disc_acc: 0.9201732673267327
 
 Validation results:
-gen_loss: 3.7220652
-disc_loss: 0.03824953
-disc_acc: 0.9930555555555556
+gen_loss: 8.014394
+disc_loss: 1.1345569
+disc_acc: 0.6423611111111112
 
 
 	Epoch 7
 Training results:
-gen_loss: 8.032492
-disc_loss: 0.07461764
-disc_acc: 0.9764851485148515
+gen_loss: 7.385945
+disc_loss: 0.21985598
+disc_acc: 0.9262376237623763
 
 Validation results:
-gen_loss: 4.304258
-disc_loss: 0.009407168
-disc_acc: 1.0
+gen_loss: 6.1189947
+disc_loss: 1.5772299
+disc_acc: 0.5024801587301587
 
 
 	Epoch 8
 Training results:
-gen_loss: 8.5523815
-disc_loss: 0.0762715
-disc_acc: 0.9763613861386139
+gen_loss: 7.511315
+disc_loss: 0.22690952
+disc_acc: 0.9246287128712871
 
 Validation results:
-gen_loss: 4.680233
-disc_loss: 0.007300833
-disc_acc: 1.0
+gen_loss: 5.7750382
+disc_loss: 0.40081233
+disc_acc: 0.8467261904761905
 
 
 	Epoch 9
 Training results:
-gen_loss: 8.921854
-disc_loss: 0.05843197
-disc_acc: 0.9819306930693069
+gen_loss: 7.5624566
+disc_loss: 0.18341644
+disc_acc: 0.9352722772277228
 
 Validation results:
-gen_loss: 4.2561417
-disc_loss: 0.0018765159
-disc_acc: 1.0
+gen_loss: 9.759907
+disc_loss: 3.4698524
+disc_acc: 0.3343253968253968
 
 
 	Epoch 10
 Training results:
-gen_loss: 9.0501
-disc_loss: 0.043697204
-disc_acc: 0.9873762376237624
+gen_loss: 7.7609596
+disc_loss: 0.19174926
+disc_acc: 0.9327970297029703
 
 Validation results:
-gen_loss: 5.286981
-disc_loss: 0.006072243
-disc_acc: 1.0
+gen_loss: 8.911359
+disc_loss: 0.7623847
+disc_acc: 0.7366071428571429
 
 
 	Epoch 11
 Training results:
-gen_loss: 9.398312
-disc_loss: 0.05679878
-disc_acc: 0.9814356435643564
+gen_loss: 7.970894
+disc_loss: 0.19230376
+disc_acc: 0.93490099009901
 
 Validation results:
-gen_loss: 6.5177603
-disc_loss: 0.005910879
-disc_acc: 1.0
+gen_loss: 10.480018
+disc_loss: 4.508161
+disc_acc: 0.27728174603174605
 
 
 	Epoch 12
 Training results:
-gen_loss: 9.307827
-disc_loss: 0.050208855
-disc_acc: 0.9827970297029703
+gen_loss: 8.125742
+disc_loss: 0.17956884
+disc_acc: 0.94009900990099
 
 Validation results:
-gen_loss: 11.465573
-disc_loss: 0.018906549
-disc_acc: 1.0
+gen_loss: 7.5078
+disc_loss: 0.57705307
+disc_acc: 0.7931547619047619
 
 
 	Epoch 13
 Training results:
-gen_loss: 9.808648
-disc_loss: 0.068154134
-disc_acc: 0.9784653465346534
+gen_loss: 8.725919
+disc_loss: 0.16799966
+disc_acc: 0.9446782178217822
 
 Validation results:
-gen_loss: 7.2426443
-disc_loss: 0.18007264
-disc_acc: 0.8953373015873016
+gen_loss: 6.7395844
+disc_loss: 0.13639009
+disc_acc: 0.9588293650793651
 
 
 	Epoch 14
 Training results:
-gen_loss: 10.259366
-disc_loss: 0.04341007
-disc_acc: 0.9853960396039604
+gen_loss: 9.2088585
+disc_loss: 0.14860587
+disc_acc: 0.9523514851485149
 
 Validation results:
-gen_loss: 7.6639624
-disc_loss: 0.0018160786
-disc_acc: 1.0
+gen_loss: 7.723098
+disc_loss: 0.9461669
+disc_acc: 0.7058531746031746
 
 
 	Epoch 15
 Training results:
-gen_loss: 10.618273
-disc_loss: 0.042633288
-disc_acc: 0.9860148514851486
+gen_loss: 9.3916855
+disc_loss: 0.13126352
+disc_acc: 0.9548267326732673
 
 Validation results:
-gen_loss: 5.9599094
-disc_loss: 0.0013028682
-disc_acc: 1.0
+gen_loss: 6.3017983
+disc_loss: 2.3974693
+disc_acc: 0.5114087301587301
 
 
 	Epoch 16
 Training results:
-gen_loss: 10.278083
-disc_loss: 0.053714316
-disc_acc: 0.9818069306930693
+gen_loss: 9.883738
+disc_loss: 0.15552475
+disc_acc: 0.9443069306930693
 
 Validation results:
-gen_loss: 6.2430515
-disc_loss: 0.0037740539
-disc_acc: 1.0
+gen_loss: 7.0546823
+disc_loss: 0.41815588
+disc_acc: 0.8308531746031746
 
 
 	Epoch 17
 Training results:
-gen_loss: 10.952094
-disc_loss: 0.035776448
-disc_acc: 0.9873762376237624
+gen_loss: 10.020084
+disc_loss: 0.15761939
+disc_acc: 0.9475247524752475
 
 Validation results:
-gen_loss: 5.682639
-disc_loss: 0.0021901114
-disc_acc: 1.0
+gen_loss: 8.821914
+disc_loss: 0.56746906
+disc_acc: 0.7941468253968254
 
 
 	Epoch 18
 Training results:
-gen_loss: 11.39966
-disc_loss: 0.04612996
-disc_acc: 0.9818069306930693
+gen_loss: 10.356579
+disc_loss: 0.13105054
+disc_acc: 0.9560643564356436
 
 Validation results:
-gen_loss: 8.061711
-disc_loss: 0.00060490996
-disc_acc: 1.0
+gen_loss: 7.139569
+disc_loss: 0.42741773
+disc_acc: 0.8377976190476191
 
 
 	Epoch 19
 Training results:
-gen_loss: 11.653527
-disc_loss: 0.022880033
-disc_acc: 0.9918316831683168
+gen_loss: 10.497956
+disc_loss: 0.13568904
+disc_acc: 0.9560643564356436
 
 Validation results:
-gen_loss: 5.115519
-disc_loss: 0.00012024039
-disc_acc: 1.0
+gen_loss: 11.046736
+disc_loss: 0.49227577
+disc_acc: 0.8283730158730159
 
 
 	Epoch 20
 Training results:
-gen_loss: 12.32338
-disc_loss: 0.022485487
-disc_acc: 0.9917079207920793
+gen_loss: 11.149219
+disc_loss: 0.13098845
+disc_acc: 0.9573019801980198
 
 Validation results:
-gen_loss: 7.602053
-disc_loss: 0.0016348085
-disc_acc: 1.0
+gen_loss: 10.75118
+disc_loss: 0.3081923
+disc_acc: 0.8705357142857143
 
 
 	Epoch 21
 Training results:
-gen_loss: 12.804258
-disc_loss: 0.022125036
-disc_acc: 0.9925742574257426
+gen_loss: 11.9213295
+disc_loss: 0.1315735
+disc_acc: 0.9537128712871287
 
 Validation results:
-gen_loss: 11.865521
-disc_loss: 0.51128525
-disc_acc: 0.8864087301587301
+gen_loss: 12.579869
+disc_loss: 1.3629926
+disc_acc: 0.621031746031746
 
 
 	Epoch 22
 Training results:
-gen_loss: 13.040118
-disc_loss: 0.023154344
-disc_acc: 0.9915841584158416
+gen_loss: 12.468105
+disc_loss: 0.1290503
+disc_acc: 0.9577970297029703
 
 Validation results:
-gen_loss: 6.216358
-disc_loss: 0.027276522
-disc_acc: 1.0
+gen_loss: 12.234857
+disc_loss: 0.20846026
+disc_acc: 0.9131944444444444
 
 
 	Epoch 23
 Training results:
-gen_loss: 13.303512
-disc_loss: 0.025273398
-disc_acc: 0.9917079207920793
+gen_loss: 12.399582
+disc_loss: 0.116363235
+disc_acc: 0.9601485148514851
 
 Validation results:
-gen_loss: 7.4382505
-disc_loss: 0.0002274733
-disc_acc: 1.0
+gen_loss: 13.592762
+disc_loss: 0.5603758
+disc_acc: 0.7976190476190477
 
 
 	Epoch 24
 Training results:
-gen_loss: 14.01391
-disc_loss: 0.011717273
-disc_acc: 0.9955445544554455
+gen_loss: 12.615928
+disc_loss: 0.12276954
+disc_acc: 0.9594059405940594
 
 Validation results:
-gen_loss: 7.729998
-disc_loss: 0.00018384792
-disc_acc: 1.0
+gen_loss: 12.686326
+disc_loss: 0.6530965
+disc_acc: 0.7658730158730159
 
 
 	Epoch 25
 Training results:
-gen_loss: 14.745846
-disc_loss: 0.027514422
-disc_acc: 0.9910891089108911
+gen_loss: 13.380621
+disc_loss: 0.123682804
+disc_acc: 0.9591584158415841
 
 Validation results:
-gen_loss: 11.954341
-disc_loss: 0.14107521
-disc_acc: 0.9424603174603174
+gen_loss: 21.630947
+disc_loss: 2.1543024
+disc_acc: 0.6413690476190477
 
 
 	Epoch 26
 Training results:
-gen_loss: 15.604823
-disc_loss: 0.019634213
-disc_acc: 0.9931930693069307
+gen_loss: 13.648167
+disc_loss: 0.1115701
+disc_acc: 0.9606435643564356
 
 Validation results:
-gen_loss: 8.779384
-disc_loss: 0.00029409517
-disc_acc: 1.0
+gen_loss: 13.631503
+disc_loss: 0.40881288
+disc_acc: 0.847718253968254
 
 
 	Epoch 27
 Training results:
-gen_loss: 15.621905
-disc_loss: 0.015802871
-disc_acc: 0.996039603960396
+gen_loss: 13.526952
+disc_loss: 0.11749535
+disc_acc: 0.9587871287128713
 
 Validation results:
-gen_loss: 13.0213995
-disc_loss: 0.00044802262
-disc_acc: 1.0
+gen_loss: 13.36135
+disc_loss: 0.6401487
+disc_acc: 0.8010912698412699
 
 
 	Epoch 28
 Training results:
-gen_loss: 16.605251
-disc_loss: 0.016036035
-disc_acc: 0.9955445544554455
+gen_loss: 14.93153
+disc_loss: 0.10924785
+disc_acc: 0.9641089108910891
 
 Validation results:
-gen_loss: 8.492714
-disc_loss: 6.8594534e-05
-disc_acc: 1.0
+gen_loss: 9.400121
+disc_loss: 0.14914691
+disc_acc: 0.9389880952380952
 
 
 	Epoch 29
 Training results:
-gen_loss: 16.968435
-disc_loss: 0.018104056
-disc_acc: 0.9943069306930693
+gen_loss: 15.466533
+disc_loss: 0.11100927
+disc_acc: 0.9613861386138614
 
 Validation results:
-gen_loss: 7.433298
-disc_loss: 0.0009948219
-disc_acc: 1.0
+gen_loss: 13.927616
+disc_loss: 0.08537866
+disc_acc: 0.96875
 
 
 	Epoch 30
 Training results:
-gen_loss: 17.977219
-disc_loss: 0.018031191
-disc_acc: 0.9948019801980198
+gen_loss: 16.517145
+disc_loss: 0.1018547
+disc_acc: 0.9647277227722773
 
 Validation results:
-gen_loss: 7.770406
-disc_loss: 5.9970327e-05
-disc_acc: 1.0
+gen_loss: 15.655143
+disc_loss: 0.16256449
+disc_acc: 0.9444444444444444
 
 
 	Epoch 31
 Training results:
-gen_loss: 17.75999
-disc_loss: 0.01130297
-disc_acc: 0.996039603960396
+gen_loss: 16.794031
+disc_loss: 0.111782566
+disc_acc: 0.9638613861386138
 
 Validation results:
-gen_loss: 9.917009
-disc_loss: 0.0007715634
-disc_acc: 1.0
+gen_loss: 14.579443
+disc_loss: 0.15835121
+disc_acc: 0.9424603174603174
 
 
 	Epoch 32
 Training results:
-gen_loss: 18.605621
-disc_loss: 0.013146137
-disc_acc: 0.995420792079208
+gen_loss: 16.444252
+disc_loss: 0.11344695
+disc_acc: 0.9594059405940594
 
 Validation results:
-gen_loss: 9.691946
-disc_loss: 0.0005937475
-disc_acc: 1.0
+gen_loss: 15.031311
+disc_loss: 0.7205155
+disc_acc: 0.7316468253968254
 
 
 	Epoch 33
 Training results:
-gen_loss: 19.791819
-disc_loss: 0.008856899
-disc_acc: 0.9969059405940595
+gen_loss: 16.057573
+disc_loss: 0.095632516
+disc_acc: 0.9655940594059406
 
 Validation results:
-gen_loss: 8.682157
-disc_loss: 0.00018734089
-disc_acc: 1.0
+gen_loss: 12.956967
+disc_loss: 0.04790979
+disc_acc: 0.9816468253968254
 
 
 	Epoch 34
 Training results:
-gen_loss: 20.041506
-disc_loss: 0.010108042
-disc_acc: 0.9967821782178218
+gen_loss: 16.227089
+disc_loss: 0.09177675
+disc_acc: 0.968069306930693
 
 Validation results:
-gen_loss: 9.619574
-disc_loss: 0.00016059607
-disc_acc: 1.0
+gen_loss: 15.0595045
+disc_loss: 0.22643448
+disc_acc: 0.9161706349206349
 
 
 	Epoch 35
 Training results:
-gen_loss: 19.861341
-disc_loss: 0.008617019
-disc_acc: 0.9976485148514852
+gen_loss: 16.450352
+disc_loss: 0.09777222
+disc_acc: 0.9665841584158416
 
 Validation results:
-gen_loss: 9.926307
-disc_loss: 0.00012606454
-disc_acc: 1.0
+gen_loss: 15.201976
+disc_loss: 0.15851073
+disc_acc: 0.939484126984127
 
 
 	Epoch 36
 Training results:
-gen_loss: 20.533895
-disc_loss: 0.004607048
-disc_acc: 0.9987623762376238
+gen_loss: 17.43786
+disc_loss: 0.092829846
+disc_acc: 0.9641089108910891
 
 Validation results:
-gen_loss: 14.08135
-disc_loss: 0.0001778013
-disc_acc: 1.0
+gen_loss: 16.752146
+disc_loss: 0.21819052
+disc_acc: 0.9171626984126984
 
 
 	Epoch 37
 Training results:
-gen_loss: 19.817343
-disc_loss: 0.0076604798
-disc_acc: 0.9976485148514852
+gen_loss: 17.86974
+disc_loss: 0.088303745
+disc_acc: 0.9685643564356435
 
 Validation results:
-gen_loss: 10.322397
-disc_loss: 0.00010512716
-disc_acc: 1.0
+gen_loss: 20.767643
+disc_loss: 0.66081953
+disc_acc: 0.8194444444444444
 
 
 	Epoch 38
 Training results:
-gen_loss: 21.173744
-disc_loss: 0.009684525
-disc_acc: 0.9971534653465347
+gen_loss: 17.687178
+disc_loss: 0.0904583
+disc_acc: 0.968069306930693
 
 Validation results:
-gen_loss: 10.394581
-disc_loss: 3.7328056e-05
-disc_acc: 1.0
+gen_loss: 21.772957
+disc_loss: 2.2278516
+disc_acc: 0.6101190476190477
 
 
 	Epoch 39
 Training results:
-gen_loss: 21.924215
-disc_loss: 0.012640387
-disc_acc: 0.9969059405940595
+gen_loss: 18.021996
+disc_loss: 0.09177679
+disc_acc: 0.9676980198019802
 
 Validation results:
-gen_loss: 9.286358
-disc_loss: 3.9313392e-05
-disc_acc: 1.0
+gen_loss: 12.74014
+disc_loss: 0.0629691
+disc_acc: 0.9751984126984127
 
 
 	Epoch 40
 Training results:
-gen_loss: 21.820736
-disc_loss: 0.0068310387
-disc_acc: 0.9977722772277228
+gen_loss: 17.66883
+disc_loss: 0.08424382
+disc_acc: 0.9701732673267327
 
 Validation results:
-gen_loss: 11.353717
-disc_loss: 0.0001137213
-disc_acc: 1.0
+gen_loss: 19.233583
+disc_loss: 0.8247781
+disc_acc: 0.7862103174603174
 
 
 	Epoch 41
 Training results:
-gen_loss: 21.437132
-disc_loss: 0.0023873616
-disc_acc: 0.9993811881188119
+gen_loss: 17.855276
+disc_loss: 0.07714309
+disc_acc: 0.9702970297029703
 
 Validation results:
-gen_loss: 10.777244
-disc_loss: 4.5450717e-05
-disc_acc: 1.0
+gen_loss: 12.198323
+disc_loss: 0.11515096
+disc_acc: 0.9538690476190477
 
 
 	Epoch 42
 Training results:
-gen_loss: 21.5346
-disc_loss: 0.004852511
-disc_acc: 0.9986386138613862
+gen_loss: 17.653025
+disc_loss: 0.0878833
+disc_acc: 0.968069306930693
 
 Validation results:
-gen_loss: 17.1766
-disc_loss: 0.00029637734
-disc_acc: 1.0
+gen_loss: 15.33354
+disc_loss: 0.12843736
+disc_acc: 0.9538690476190477
 
 
 	Epoch 43
 Training results:
-gen_loss: 22.66438
-disc_loss: 0.0038386995
-disc_acc: 0.999009900990099
+gen_loss: 17.574366
+disc_loss: 0.08168051
+disc_acc: 0.9714108910891089
 
 Validation results:
-gen_loss: 6.917303
-disc_loss: 6.759674e-06
-disc_acc: 1.0
+gen_loss: 20.955286
+disc_loss: 1.4283112
+disc_acc: 0.6815476190476191
 
 
 	Epoch 44
 Training results:
-gen_loss: 23.53719
-disc_loss: 0.0048238407
-disc_acc: 0.9982673267326733
+gen_loss: 17.520292
+disc_loss: 0.08340695
+disc_acc: 0.9709158415841584
 
 Validation results:
-gen_loss: 19.221758
-disc_loss: 0.0019702096
-disc_acc: 1.0
+gen_loss: 17.959387
+disc_loss: 1.5619378
+disc_acc: 0.6096230158730159
 
 
 	Epoch 45
 Training results:
-gen_loss: 23.153042
-disc_loss: 0.0064422335
-disc_acc: 0.998019801980198
+gen_loss: 17.981894
+disc_loss: 0.075717665
+disc_acc: 0.9721534653465347
 
 Validation results:
-gen_loss: 18.335686
-disc_loss: 0.00020784678
-disc_acc: 1.0
+gen_loss: 13.658522
+disc_loss: 0.23354764
+disc_acc: 0.9087301587301587
 
 
 	Epoch 46
 Training results:
-gen_loss: 24.267366
-disc_loss: 0.009660865
-disc_acc: 0.9969059405940595
+gen_loss: 18.033323
+disc_loss: 0.08185212
+disc_acc: 0.9731435643564357
 
 Validation results:
-gen_loss: 12.339654
-disc_loss: 0.00029355503
-disc_acc: 1.0
+gen_loss: 21.317303
+disc_loss: 3.9428723
+disc_acc: 0.4826388888888889
 
 
 	Epoch 47
 Training results:
-gen_loss: 23.74468
-disc_loss: 0.008469212
-disc_acc: 0.9969059405940595
+gen_loss: 18.254786
+disc_loss: 0.086831495
+disc_acc: 0.9711633663366337
 
 Validation results:
-gen_loss: 12.805579
-disc_loss: 0.00012363443
-disc_acc: 1.0
+gen_loss: 12.064492
+disc_loss: 0.030870495
+disc_acc: 0.9895833333333334
 
 
 	Epoch 48
 Training results:
-gen_loss: 24.317543
-disc_loss: 0.009117013
-disc_acc: 0.9972772277227723
+gen_loss: 18.506
+disc_loss: 0.07580806
+disc_acc: 0.974009900990099
 
 Validation results:
-gen_loss: 9.272402
-disc_loss: 7.806568e-06
-disc_acc: 1.0
+gen_loss: 15.982727
+disc_loss: 0.14934266
+disc_acc: 0.9439484126984127
 
 
 	Epoch 49
 Training results:
-gen_loss: 24.419598
-disc_loss: 0.0014238225
-disc_acc: 0.9996287128712872
+gen_loss: 18.84505
+disc_loss: 0.07287904
+disc_acc: 0.9726485148514852
 
 Validation results:
-gen_loss: 12.707017
-disc_loss: 3.19429e-05
-disc_acc: 1.0
+gen_loss: 21.675825
+disc_loss: 3.3645415
+disc_acc: 0.6130952380952381
 
 
 	Epoch 50
 Training results:
-gen_loss: 25.155235
-disc_loss: 0.0018158281
-disc_acc: 0.9993811881188119
+gen_loss: 18.591366
+disc_loss: 0.07870535
+disc_acc: 0.9717821782178218
 
 Validation results:
-gen_loss: 11.942009
-disc_loss: 2.1663049e-05
-disc_acc: 1.0
+gen_loss: 13.708792
+disc_loss: 0.047056098
+disc_acc: 0.9811507936507936
 
 
 	Epoch 51
 Training results:
-gen_loss: 24.280775
-disc_loss: 0.0010788625
-disc_acc: 0.9995049504950495
+gen_loss: 18.864815
+disc_loss: 0.06637685
+disc_acc: 0.9761138613861386
 
 Validation results:
-gen_loss: 16.091774
-disc_loss: 2.138249e-05
-disc_acc: 1.0
+gen_loss: 23.016771
+disc_loss: 0.38575518
+disc_acc: 0.8581349206349206
 
 
 	Epoch 52
 Training results:
-gen_loss: 25.33212
-disc_loss: 0.0021286148
-disc_acc: 0.999009900990099
+gen_loss: 19.249887
+disc_loss: 0.08220758
+disc_acc: 0.9715346534653465
 
 Validation results:
-gen_loss: 15.429879
-disc_loss: 4.3754437e-05
-disc_acc: 1.0
+gen_loss: 15.166815
+disc_loss: 0.16763252
+disc_acc: 0.935515873015873
 
 
 	Epoch 53
 Training results:
-gen_loss: 24.921352
-disc_loss: 0.00072560005
-disc_acc: 0.9998762376237624
+gen_loss: 19.485132
+disc_loss: 0.07103909
+disc_acc: 0.9761138613861386
 
 Validation results:
-gen_loss: 19.69678
-disc_loss: 0.00026191483
-disc_acc: 1.0
+gen_loss: 19.146696
+disc_loss: 0.22243059
+disc_acc: 0.9161706349206349
 
 
 	Epoch 54
 Training results:
-gen_loss: 25.087221
-disc_loss: 0.0046705557
-disc_acc: 0.9986386138613862
+gen_loss: 19.74276
+disc_loss: 0.07222977
+disc_acc: 0.9741336633663367
 
 Validation results:
-gen_loss: 18.202187
-disc_loss: 0.0011108518
-disc_acc: 1.0
+gen_loss: 15.063337
+disc_loss: 0.11697554
+disc_acc: 0.9523809523809523
 
 
 	Epoch 55
 Training results:
-gen_loss: 25.590637
-disc_loss: 0.0043259645
-disc_acc: 0.9988861386138614
+gen_loss: 19.103647
+disc_loss: 0.07354433
+disc_acc: 0.9752475247524752
 
 Validation results:
-gen_loss: 15.410263
-disc_loss: 7.467334e-05
-disc_acc: 1.0
+gen_loss: 15.439414
+disc_loss: 0.026392309
+disc_acc: 0.9915674603174603
 
 
 	Epoch 56
 Training results:
-gen_loss: 25.086914
-disc_loss: 0.006063701
-disc_acc: 0.9981435643564357
+gen_loss: 19.36562
+disc_loss: 0.0694536
+disc_acc: 0.9764851485148515
 
 Validation results:
-gen_loss: 10.490431
-disc_loss: 2.3710107e-05
-disc_acc: 1.0
+gen_loss: 17.898617
+disc_loss: 0.1330982
+disc_acc: 0.9499007936507936
 
 
 	Epoch 57
 Training results:
-gen_loss: 24.731386
-disc_loss: 0.005403701
-disc_acc: 0.9985148514851485
+gen_loss: 19.534061
+disc_loss: 0.07657911
+disc_acc: 0.9726485148514852
 
 Validation results:
-gen_loss: 13.024472
-disc_loss: 1.908584e-05
-disc_acc: 1.0
+gen_loss: 17.723343
+disc_loss: 0.26791123
+disc_acc: 0.9087301587301587
 
 
 	Epoch 58
 Training results:
-gen_loss: 25.111282
-disc_loss: 0.0047282963
-disc_acc: 0.999009900990099
+gen_loss: 19.725288
+disc_loss: 0.06857457
+disc_acc: 0.9764851485148515
 
 Validation results:
-gen_loss: 12.561502
-disc_loss: 3.2262316e-05
-disc_acc: 1.0
+gen_loss: 15.837041
+disc_loss: 0.04905136
+disc_acc: 0.9831349206349206
 
 
 	Epoch 59
 Training results:
-gen_loss: 24.495424
-disc_loss: 0.0025898141
-disc_acc: 0.9992574257425743
+gen_loss: 20.054394
+disc_loss: 0.07217313
+disc_acc: 0.9751237623762377
 
 Validation results:
-gen_loss: 9.108266
-disc_loss: 1.1469629e-05
-disc_acc: 1.0
+gen_loss: 17.214922
+disc_loss: 0.101452805
+disc_acc: 0.9652777777777778
 
 
 	Epoch 60
 Training results:
-gen_loss: 25.254173
-disc_loss: 0.0044526868
-disc_acc: 0.998391089108911
+gen_loss: 21.176226
+disc_loss: 0.07333897
+disc_acc: 0.9745049504950495
 
 Validation results:
-gen_loss: 9.983175
-disc_loss: 2.664509e-06
-disc_acc: 1.0
+gen_loss: 16.194221
+disc_loss: 0.14022027
+disc_acc: 0.9459325396825397
 
 
 	Epoch 61
 Training results:
-gen_loss: 25.682829
-disc_loss: 0.0013174126
-disc_acc: 0.9995049504950495
+gen_loss: 20.390657
+disc_loss: 0.06694848
+disc_acc: 0.9767326732673267
 
 Validation results:
-gen_loss: 12.08148
-disc_loss: 6.3382877e-06
-disc_acc: 1.0
+gen_loss: 18.668812
+disc_loss: 0.14336905
+disc_acc: 0.9469246031746031
 
 
 	Epoch 62
 Training results:
-gen_loss: 25.445951
-disc_loss: 0.0023315982
-disc_acc: 0.9995049504950495
+gen_loss: 20.88933
+disc_loss: 0.07235697
+disc_acc: 0.9746287128712872
 
 Validation results:
-gen_loss: 16.361462
-disc_loss: 7.466181e-06
-disc_acc: 1.0
+gen_loss: 23.07856
+disc_loss: 0.325764
+disc_acc: 0.8784722222222222
 
 
 	Epoch 63
 Training results:
-gen_loss: 26.299788
-disc_loss: 0.0031612387
-disc_acc: 0.9987623762376238
+gen_loss: 21.049458
+disc_loss: 0.055669274
+disc_acc: 0.9794554455445544
 
 Validation results:
-gen_loss: 9.25034
-disc_loss: 4.430058e-05
-disc_acc: 1.0
+gen_loss: 19.576004
+disc_loss: 0.53220934
+disc_acc: 0.8288690476190477
 
 
 	Epoch 64
 Training results:
-gen_loss: 26.567442
-disc_loss: 0.009877171
-disc_acc: 0.9977722772277228
+gen_loss: 21.361412
+disc_loss: 0.07463365
+disc_acc: 0.9737623762376237
 
 Validation results:
-gen_loss: 11.811234
-disc_loss: 1.7150426e-06
-disc_acc: 1.0
+gen_loss: 16.060272
+disc_loss: 0.2036549
+disc_acc: 0.9250992063492064
 
 
 	Epoch 65
 Training results:
-gen_loss: 27.038855
-disc_loss: 0.006072585
-disc_acc: 0.9991336633663367
+gen_loss: 21.219856
+disc_loss: 0.05937065
+disc_acc: 0.9782178217821782
 
 Validation results:
-gen_loss: 14.345364
-disc_loss: 4.680352e-06
-disc_acc: 1.0
+gen_loss: 12.234263
+disc_loss: 0.17797801
+disc_acc: 0.9350198412698413
 
 
 	Epoch 66
 Training results:
-gen_loss: 26.871569
-disc_loss: 0.00038556522
-disc_acc: 1.0
+gen_loss: 21.031046
+disc_loss: 0.06810823
+disc_acc: 0.9773514851485149
 
 Validation results:
-gen_loss: 10.219139
-disc_loss: 1.5253131e-05
-disc_acc: 1.0
+gen_loss: 24.239513
+disc_loss: 1.2972687
+disc_acc: 0.6845238095238095
 
 
 	Epoch 67
 Training results:
-gen_loss: 27.069838
-disc_loss: 0.0018128917
-disc_acc: 0.9995049504950495
+gen_loss: 20.823439
+disc_loss: 0.0752082
+disc_acc: 0.9737623762376237
 
 Validation results:
-gen_loss: 15.645705
-disc_loss: 1.165834e-06
-disc_acc: 1.0
+gen_loss: 20.610504
+disc_loss: 1.2463837
+disc_acc: 0.7271825396825397
 
 
 	Epoch 68
 Training results:
-gen_loss: 26.790955
-disc_loss: 0.001182403
-disc_acc: 0.9996287128712872
+gen_loss: 20.571106
+disc_loss: 0.05757061
+disc_acc: 0.9795792079207921
 
 Validation results:
-gen_loss: 15.191483
-disc_loss: 3.0112358e-06
-disc_acc: 1.0
+gen_loss: 28.314623
+disc_loss: 2.5032573
+disc_acc: 0.5927579365079365
 
 
 	Epoch 69
 Training results:
-gen_loss: 26.998573
-disc_loss: 0.00059999456
-disc_acc: 0.9998762376237624
+gen_loss: 20.62096
+disc_loss: 0.061033342
+disc_acc: 0.9780940594059406
 
 Validation results:
-gen_loss: 15.686722
-disc_loss: 6.30613e-06
-disc_acc: 1.0
+gen_loss: 15.69535
+disc_loss: 0.029343836
+disc_acc: 0.9880952380952381
 
 
 	Epoch 70
 Training results:
-gen_loss: 26.801128
-disc_loss: 0.0013322243
-disc_acc: 0.9995049504950495
+gen_loss: 21.473932
+disc_loss: 0.06529443
+disc_acc: 0.9782178217821782
 
 Validation results:
-gen_loss: 16.16812
-disc_loss: 1.6201376e-06
-disc_acc: 1.0
+gen_loss: 14.804232
+disc_loss: 0.09428618
+disc_acc: 0.9627976190476191
 
 
 	Epoch 71
 Training results:
-gen_loss: 27.347445
-disc_loss: 0.0021303224
-disc_acc: 0.9993811881188119
+gen_loss: 20.86941
+disc_loss: 0.061487306
+disc_acc: 0.9793316831683169
 
 Validation results:
-gen_loss: 36.191387
-disc_loss: 4.5364823e-06
-disc_acc: 1.0
+gen_loss: 12.705679
+disc_loss: 0.23913613
+disc_acc: 0.9057539682539683
 
 
 	Epoch 72
 Training results:
-gen_loss: 27.772127
-disc_loss: 0.0015727452
-disc_acc: 0.9995049504950495
+gen_loss: 20.60384
+disc_loss: 0.06143135
+disc_acc: 0.9775990099009901
 
 Validation results:
-gen_loss: 19.119564
-disc_loss: 1.2159782e-06
-disc_acc: 1.0
+gen_loss: 15.992057
+disc_loss: 0.09051301
+disc_acc: 0.9637896825396826
 
 
 	Epoch 73
 Training results:
-gen_loss: 27.159971
-disc_loss: 0.0053303167
-disc_acc: 0.9985148514851485
+gen_loss: 20.650803
+disc_loss: 0.047937457
+disc_acc: 0.9832920792079208
 
 Validation results:
-gen_loss: 20.005606
-disc_loss: 1.0631826e-06
-disc_acc: 1.0
+gen_loss: 17.136566
+disc_loss: 0.03850209
+disc_acc: 0.9846230158730159
 
 
 	Epoch 74
 Training results:
-gen_loss: 27.70548
-disc_loss: 0.006028541
-disc_acc: 0.9988861386138614
+gen_loss: 20.291166
+disc_loss: 0.07449291
+disc_acc: 0.9746287128712872
 
 Validation results:
-gen_loss: 12.942223
-disc_loss: 2.1594105e-06
-disc_acc: 1.0
+gen_loss: 22.67824
+disc_loss: 0.339486
+disc_acc: 0.8923611111111112
 
 
 	Epoch 75
 Training results:
-gen_loss: 27.62852
-disc_loss: 0.0042226566
-disc_acc: 0.9985148514851485
+gen_loss: 20.748623
+disc_loss: 0.059174106
+disc_acc: 0.9792079207920792
 
 Validation results:
-gen_loss: 10.226024
-disc_loss: 8.5799925e-08
-disc_acc: 1.0
+gen_loss: 19.446482
+disc_loss: 0.069458425
+disc_acc: 0.9722222222222222
 
 
 	Epoch 76
 Training results:
-gen_loss: 27.54835
-disc_loss: 0.0026942862
-disc_acc: 0.9991336633663367
+gen_loss: 20.656572
+disc_loss: 0.06326708
+disc_acc: 0.9778465346534654
 
 Validation results:
-gen_loss: 14.446469
-disc_loss: 3.7483488e-07
-disc_acc: 1.0
+gen_loss: 15.522743
+disc_loss: 0.06313546
+disc_acc: 0.9791666666666666
 
 
 	Epoch 77
 Training results:
-gen_loss: 27.202433
-disc_loss: 0.0054216716
-disc_acc: 0.9986386138613862
+gen_loss: 20.607208
+disc_loss: 0.05487957
+disc_acc: 0.9805693069306931
 
 Validation results:
-gen_loss: 11.964831
-disc_loss: 1.8573226e-07
-disc_acc: 1.0
+gen_loss: 17.416601
+disc_loss: 0.066069424
+disc_acc: 0.9747023809523809
 
 
 	Epoch 78
 Training results:
-gen_loss: 26.772038
-disc_loss: 0.0016561527
-disc_acc: 0.9996287128712872
+gen_loss: 21.058195
+disc_loss: 0.06473869
+disc_acc: 0.9771039603960396
 
 Validation results:
-gen_loss: 11.460821
-disc_loss: 2.4811595e-07
-disc_acc: 1.0
+gen_loss: 20.567953
+disc_loss: 0.7743636
+disc_acc: 0.8660714285714286
 
 
 	Epoch 79
 Training results:
-gen_loss: 27.18862
-disc_loss: 0.00017565326
-disc_acc: 1.0
+gen_loss: 21.022537
+disc_loss: 0.0532951
+disc_acc: 0.9801980198019802
 
 Validation results:
-gen_loss: 12.286625
-disc_loss: 9.52018e-08
-disc_acc: 1.0
+gen_loss: 20.338623
+disc_loss: 0.15323383
+disc_acc: 0.935515873015873
 
 
 	Epoch 80
 Training results:
-gen_loss: 26.903597
-disc_loss: 0.0019172193
-disc_acc: 0.9991336633663367
+gen_loss: 21.382975
+disc_loss: 0.070082605
+disc_acc: 0.9768564356435644
 
 Validation results:
-gen_loss: 11.336455
-disc_loss: 1.1246132e-06
-disc_acc: 1.0
+gen_loss: 18.065365
+disc_loss: 0.06127911
+disc_acc: 0.9776785714285714
 
 
 	Epoch 81
 Training results:
-gen_loss: 26.994724
-disc_loss: 0.00016553528
-disc_acc: 1.0
+gen_loss: 21.38699
+disc_loss: 0.05883564
+disc_acc: 0.9793316831683169
 
 Validation results:
-gen_loss: 11.700575
-disc_loss: 1.3109465e-07
-disc_acc: 1.0
+gen_loss: 15.811594
+disc_loss: 0.23533577
+disc_acc: 0.9151785714285714
 
 
 	Epoch 82
 Training results:
-gen_loss: 27.311834
-disc_loss: 0.0026813678
-disc_acc: 0.9991336633663367
+gen_loss: 21.40211
+disc_loss: 0.063105196
+disc_acc: 0.9788366336633664
 
 Validation results:
-gen_loss: 11.69056
-disc_loss: 8.260682e-08
-disc_acc: 1.0
+gen_loss: 24.228315
+disc_loss: 0.7749133
+disc_acc: 0.8452380952380952
 
 
 	Epoch 83
 Training results:
-gen_loss: 27.003538
-disc_loss: 0.00015765775
-disc_acc: 1.0
+gen_loss: 21.182783
+disc_loss: 0.05076837
+disc_acc: 0.9824257425742574
 
 Validation results:
-gen_loss: 12.419482
-disc_loss: 4.8428767e-08
-disc_acc: 1.0
+gen_loss: 22.461933
+disc_loss: 1.3148426
+disc_acc: 0.7390873015873016
 
 
 	Epoch 84
 Training results:
-gen_loss: 27.4602
-disc_loss: 0.0064733233
-disc_acc: 0.9977722772277228
+gen_loss: 20.824425
+disc_loss: 0.055332772
+disc_acc: 0.9793316831683169
 
 Validation results:
-gen_loss: 12.508894
-disc_loss: 1.2535892e-07
-disc_acc: 1.0
+gen_loss: 22.997303
+disc_loss: 0.9198271
+disc_acc: 0.7415674603174603
 
 
 	Epoch 85
 Training results:
-gen_loss: 27.54314
-disc_loss: 0.00040399618
-disc_acc: 0.9998762376237624
+gen_loss: 21.041313
+disc_loss: 0.052032016
+disc_acc: 0.9818069306930693
 
 Validation results:
-gen_loss: 11.041588
-disc_loss: 9.2659164e-08
-disc_acc: 1.0
+gen_loss: 15.098549
+disc_loss: 0.062348757
+disc_acc: 0.9836309523809523
 
 
 	Epoch 86
 Training results:
-gen_loss: 27.776068
-disc_loss: 0.0020124472
-disc_acc: 0.9993811881188119
+gen_loss: 20.831566
+disc_loss: 0.056849528
+disc_acc: 0.9778465346534654
 
 Validation results:
-gen_loss: 23.631622
-disc_loss: 2.369993e-07
-disc_acc: 1.0
+gen_loss: 24.904915
+disc_loss: 0.91776097
+disc_acc: 0.8020833333333334
 
 
 	Epoch 87
 Training results:
-gen_loss: 27.88597
-disc_loss: 0.002059913
-disc_acc: 0.999009900990099
+gen_loss: 20.677591
+disc_loss: 0.053410932
+disc_acc: 0.9804455445544554
 
 Validation results:
-gen_loss: 14.341649
-disc_loss: 5.6038937e-07
-disc_acc: 1.0
+gen_loss: 20.91807
+disc_loss: 0.06267202
+disc_acc: 0.9781746031746031
 
 
 	Epoch 88
 Training results:
-gen_loss: 27.795568
-disc_loss: 0.0003394199
-disc_acc: 1.0
+gen_loss: 21.086899
+disc_loss: 0.058384992
+disc_acc: 0.9805693069306931
 
 Validation results:
-gen_loss: 14.531545
-disc_loss: 6.8888276e-08
-disc_acc: 1.0
+gen_loss: 14.493197
+disc_loss: 0.121269576
+disc_acc: 0.9593253968253969
 
 
 	Epoch 89
 Training results:
-gen_loss: 27.656845
-disc_loss: 0.002896267
-disc_acc: 0.9995049504950495
+gen_loss: 21.289839
+disc_loss: 0.051421855
+disc_acc: 0.9821782178217822
 
 Validation results:
-gen_loss: 11.294324
-disc_loss: 1.7331456e-07
-disc_acc: 1.0
+gen_loss: 16.364115
+disc_loss: 0.040895786
+disc_acc: 0.9861111111111112
 
 
 	Epoch 90
 Training results:
-gen_loss: 27.748795
-disc_loss: 0.00655305
-disc_acc: 0.9991336633663367
+gen_loss: 21.238892
+disc_loss: 0.059696026
+disc_acc: 0.9774752475247525
 
 Validation results:
-gen_loss: 13.807808
-disc_loss: 3.9677293e-08
-disc_acc: 1.0
+gen_loss: 23.633938
+disc_loss: 0.523134
+disc_acc: 0.8363095238095238
 
 
 	Epoch 91
 Training results:
-gen_loss: 27.321459
-disc_loss: 6.978542e-05
-disc_acc: 1.0
+gen_loss: 20.484928
+disc_loss: 0.050160673
+disc_acc: 0.9816831683168317
 
 Validation results:
-gen_loss: 16.539917
-disc_loss: 1.1175863e-07
-disc_acc: 1.0
+gen_loss: 16.074224
+disc_loss: 0.7766852
+disc_acc: 0.873015873015873
 
 
 	Epoch 92
 Training results:
-gen_loss: 27.373344
-disc_loss: 0.00043558885
-disc_acc: 0.9998762376237624
+gen_loss: 21.053051
+disc_loss: 0.049992785
+disc_acc: 0.9820544554455446
 
 Validation results:
-gen_loss: 23.14185
-disc_loss: 1.1589787e-07
-disc_acc: 1.0
+gen_loss: 16.08741
+disc_loss: 0.07745434
+disc_acc: 0.9717261904761905
 
 
 	Epoch 93
 Training results:
-gen_loss: 27.50904
-disc_loss: 0.0013230367
-disc_acc: 0.9996287128712872
+gen_loss: 20.85598
+disc_loss: 0.055234745
+disc_acc: 0.9821782178217822
 
 Validation results:
-gen_loss: 9.1135435
-disc_loss: 1.2535896e-08
-disc_acc: 1.0
+gen_loss: 16.837143
+disc_loss: 0.1671921
+disc_acc: 0.9360119047619048
 
 
 	Epoch 94
 Training results:
-gen_loss: 27.642246
-disc_loss: 0.00057056826
-disc_acc: 0.9997524752475248
+gen_loss: 20.268553
+disc_loss: 0.05950347
+disc_acc: 0.9793316831683169
 
 Validation results:
-gen_loss: 15.723137
-disc_loss: 1.3085815e-07
-disc_acc: 1.0
+gen_loss: 15.64648
+disc_loss: 0.030203601
+disc_acc: 0.9875992063492064
 
 
 	Epoch 95
 Training results:
-gen_loss: 27.635967
-disc_loss: 0.0023050832
-disc_acc: 0.9995049504950495
+gen_loss: 20.33169
+disc_loss: 0.051932737
+disc_acc: 0.9816831683168317
 
 Validation results:
-gen_loss: 10.781958
-disc_loss: 2.0045608e-08
-disc_acc: 1.0
+gen_loss: 18.557882
+disc_loss: 0.6331275
+disc_acc: 0.8343253968253969
 
 
 	Epoch 96
 Training results:
-gen_loss: 27.531977
-disc_loss: 0.0002615065
-disc_acc: 1.0
+gen_loss: 20.447805
+disc_loss: 0.05023499
+disc_acc: 0.9820544554455446
 
 Validation results:
-gen_loss: 12.977536
-disc_loss: 7.2554435e-08
-disc_acc: 1.0
+gen_loss: 16.7631
+disc_loss: 0.03768678
+disc_acc: 0.9866071428571429
 
 
 	Epoch 97
 Training results:
-gen_loss: 27.37888
-disc_loss: 5.547328e-05
-disc_acc: 1.0
+gen_loss: 20.80666
+disc_loss: 0.05354743
+disc_acc: 0.9815594059405941
 
 Validation results:
-gen_loss: 12.513364
-disc_loss: 6.681869e-09
-disc_acc: 1.0
+gen_loss: 17.686737
+disc_loss: 0.018571863
+disc_acc: 0.9930555555555556
 
 
 	Epoch 98
 Training results:
-gen_loss: 28.043926
-disc_loss: 0.0025336666
-disc_acc: 0.9995049504950495
+gen_loss: 21.002544
+disc_loss: 0.03839709
+disc_acc: 0.9853960396039604
 
 Validation results:
-gen_loss: 10.807241
-disc_loss: 3.2936292e-08
-disc_acc: 1.0
+gen_loss: 14.795434
+disc_loss: 0.020616729
+disc_acc: 0.9940476190476191
 
 
 	Epoch 99
 Training results:
-gen_loss: 28.531073
-disc_loss: 0.0010804735
-disc_acc: 0.9996287128712872
+gen_loss: 20.440088
+disc_loss: 0.0503911
+disc_acc: 0.9842821782178218
 
 Validation results:
-gen_loss: 12.594146
-disc_loss: 3.8258136e-08
-disc_acc: 1.0
+gen_loss: 14.404691
+disc_loss: 0.030198231
+disc_acc: 0.9885912698412699
 
 
 	Epoch 100
 Training results:
-gen_loss: 29.20333
-disc_loss: 0.0023031947
-disc_acc: 0.9993811881188119
+gen_loss: 20.262842
+disc_loss: 0.056449525
+disc_acc: 0.9810643564356436
 
 Validation results:
-gen_loss: 9.771464
-disc_loss: 6.5636057e-09
-disc_acc: 1.0
+gen_loss: 29.89829
+disc_loss: 0.59615976
+disc_acc: 0.8571428571428571
 
 
 
 Training new discriminator on static trained discriminator.
 	Initial performance
 Training results:
-gen_loss: 0.73057747
-disc_loss: 5.575994
-disc_acc: 0.05965346534653465
+gen_loss: 0.018100196
+disc_loss: 5.542061
+disc_acc: 0.0
 
 Validation results:
-gen_loss: 0.75544715
-disc_loss: 5.5695558
-disc_acc: 0.07390873015873016
+gen_loss: 0.017171964
+disc_loss: 5.5420732
+disc_acc: 0.0
 
 
 	Epoch 1
 Training results:
-gen_loss: 2.7779226
-disc_loss: 0.22397512
-disc_acc: 0.9845297029702971
+gen_loss: 3.6775413
+disc_loss: 1.3224822
+disc_acc: 0.5935643564356435
 
 Validation results:
-gen_loss: 2.2356637
-disc_loss: 0.0037381214
-disc_acc: 1.0
+gen_loss: 5.079787
+disc_loss: 2.492341
+disc_acc: 0.28422619047619047
 
 
 	Epoch 2
 Training results:
-gen_loss: 3.2708182
-disc_loss: 0.009703333
-disc_acc: 0.9988861386138614
+gen_loss: 4.908653
+disc_loss: 0.47654638
+disc_acc: 0.8422029702970297
 
 Validation results:
-gen_loss: 2.6335359
-disc_loss: 0.00038571126
-disc_acc: 1.0
+gen_loss: 6.986336
+disc_loss: 1.9154705
+disc_acc: 0.4801587301587302
 
 
 	Epoch 3
 Training results:
-gen_loss: 3.4474576
-disc_loss: 0.0017146614
-disc_acc: 1.0
+gen_loss: 5.5429354
+disc_loss: 0.3379635
+disc_acc: 0.8902227722772277
 
 Validation results:
-gen_loss: 2.7027392
-disc_loss: 0.0002536321
-disc_acc: 1.0
+gen_loss: 6.808677
+disc_loss: 1.9603481
+disc_acc: 0.44246031746031744
 
 
 	Epoch 4
 Training results:
-gen_loss: 3.5424592
-disc_loss: 0.00094447914
-disc_acc: 1.0
+gen_loss: 5.7819376
+disc_loss: 0.29153284
+disc_acc: 0.9042079207920792
 
 Validation results:
-gen_loss: 2.5412188
-disc_loss: 6.543422e-05
-disc_acc: 1.0
+gen_loss: 5.6960187
+disc_loss: 0.9328407
+disc_acc: 0.6641865079365079
 
 
 	Epoch 5
 Training results:
-gen_loss: 4.163602
-disc_loss: 0.0119920205
-disc_acc: 0.9969059405940595
+gen_loss: 6.070267
+disc_loss: 0.2529349
+disc_acc: 0.9157178217821782
 
 Validation results:
-gen_loss: 3.7383657
-disc_loss: 8.293682e-05
-disc_acc: 1.0
+gen_loss: 7.8110633
+disc_loss: 3.2532477
+disc_acc: 0.310515873015873
 
 
 	Epoch 6
 Training results:
-gen_loss: 4.676849
-disc_loss: 0.00083688775
-disc_acc: 1.0
+gen_loss: 6.728553
+disc_loss: 0.25708795
+disc_acc: 0.9173267326732674
 
 Validation results:
-gen_loss: 4.0533514
-disc_loss: 2.1573855e-05
-disc_acc: 1.0
+gen_loss: 4.8258457
+disc_loss: 2.0045009
+disc_acc: 0.42212301587301587
 
 
 	Epoch 7
 Training results:
-gen_loss: 5.024178
-disc_loss: 0.0049728383
-disc_acc: 0.9987623762376238
+gen_loss: 7.0716615
+disc_loss: 0.2201324
+disc_acc: 0.925990099009901
 
 Validation results:
-gen_loss: 4.6623487
-disc_loss: 5.5672634e-05
-disc_acc: 1.0
+gen_loss: 6.9699264
+disc_loss: 0.9249822
+disc_acc: 0.6463293650793651
 
 
 	Epoch 8
 Training results:
-gen_loss: 5.716104
-disc_loss: 0.0067785135
-disc_acc: 0.9981435643564357
+gen_loss: 7.1919746
+disc_loss: 0.19715099
+disc_acc: 0.9371287128712872
 
 Validation results:
-gen_loss: 4.275085
-disc_loss: 2.7766764e-05
-disc_acc: 1.0
+gen_loss: 7.6939235
+disc_loss: 3.4847202
+disc_acc: 0.33779761904761907
 
 
 	Epoch 9
 Training results:
-gen_loss: 5.943478
-disc_loss: 0.00142119
-disc_acc: 0.9997524752475248
+gen_loss: 7.496708
+disc_loss: 0.1942019
+disc_acc: 0.9330445544554455
 
 Validation results:
-gen_loss: 4.4272723
-disc_loss: 1.2321903e-05
-disc_acc: 1.0
+gen_loss: 8.085631
+disc_loss: 1.3541857
+disc_acc: 0.5739087301587301
 
 
 	Epoch 10
 Training results:
-gen_loss: 5.9409227
-disc_loss: 0.00030440858
-disc_acc: 1.0
+gen_loss: 7.477155
+disc_loss: 0.19003154
+disc_acc: 0.9393564356435643
 
 Validation results:
-gen_loss: 4.3122697
-disc_loss: 7.092884e-06
-disc_acc: 1.0
+gen_loss: 5.877345
+disc_loss: 0.4233324
+disc_acc: 0.8263888888888888
 
 
 	Epoch 11
 Training results:
-gen_loss: 6.1862326
-disc_loss: 0.0049908934
-disc_acc: 0.9985148514851485
+gen_loss: 7.16317
+disc_loss: 0.16112779
+disc_acc: 0.943069306930693
 
 Validation results:
-gen_loss: 4.6678867
-disc_loss: 1.4083235e-05
-disc_acc: 1.0
+gen_loss: 8.51126
+disc_loss: 0.729473
+disc_acc: 0.716765873015873
 
 
 	Epoch 12
 Training results:
-gen_loss: 6.5754333
-disc_loss: 0.004892172
-disc_acc: 0.998391089108911
+gen_loss: 7.5851293
+disc_loss: 0.1756617
+disc_acc: 0.9405940594059405
 
 Validation results:
-gen_loss: 4.9763126
-disc_loss: 3.1179276e-05
-disc_acc: 1.0
+gen_loss: 6.2680345
+disc_loss: 0.63950545
+disc_acc: 0.7490079365079365
 
 
 	Epoch 13
 Training results:
-gen_loss: 6.9122458
-disc_loss: 0.00096849725
-disc_acc: 0.9997524752475248
+gen_loss: 7.6821494
+disc_loss: 0.1547248
+disc_acc: 0.9516089108910891
 
 Validation results:
-gen_loss: 5.3341002
-disc_loss: 7.372807e-06
-disc_acc: 1.0
+gen_loss: 6.3179665
+disc_loss: 2.2228146
+disc_acc: 0.47619047619047616
 
 
 	Epoch 14
 Training results:
-gen_loss: 7.402808
-disc_loss: 0.000491242
-disc_acc: 1.0
+gen_loss: 8.099609
+disc_loss: 0.16331747
+disc_acc: 0.9466584158415842
 
 Validation results:
-gen_loss: 6.0402403
-disc_loss: 2.7824744e-06
-disc_acc: 1.0
+gen_loss: 6.2138553
+disc_loss: 0.59125
+disc_acc: 0.7663690476190477
 
 
 	Epoch 15
 Training results:
-gen_loss: 7.254368
-disc_loss: 0.0010880185
-disc_acc: 0.9996287128712872
+gen_loss: 8.43827
+disc_loss: 0.15213937
+disc_acc: 0.948019801980198
 
 Validation results:
-gen_loss: 5.4108915
-disc_loss: 1.9995885e-05
-disc_acc: 1.0
+gen_loss: 10.97687
+disc_loss: 3.3948758
+disc_acc: 0.46130952380952384
 
 
 	Epoch 16
 Training results:
-gen_loss: 7.208675
-disc_loss: 0.0021558567
-disc_acc: 0.9996287128712872
+gen_loss: 8.41461
+disc_loss: 0.14647096
+disc_acc: 0.9488861386138614
 
 Validation results:
-gen_loss: 5.846806
-disc_loss: 2.467588e-06
-disc_acc: 1.0
+gen_loss: 11.619981
+disc_loss: 1.468594
+disc_acc: 0.6641865079365079
 
 
 	Epoch 17
 Training results:
-gen_loss: 7.1429467
-disc_loss: 0.0003122543
-disc_acc: 1.0
+gen_loss: 8.960338
+disc_loss: 0.14539066
+disc_acc: 0.9507425742574257
 
 Validation results:
-gen_loss: 4.3890743
-disc_loss: 1.1701532e-06
-disc_acc: 1.0
+gen_loss: 8.781651
+disc_loss: 1.220788
+disc_acc: 0.6865079365079365
 
 
 	Epoch 18
 Training results:
-gen_loss: 7.4805737
-disc_loss: 0.0018047356
-disc_acc: 0.9993811881188119
+gen_loss: 9.1525955
+disc_loss: 0.14366414
+disc_acc: 0.9521039603960396
 
 Validation results:
-gen_loss: 5.5068765
-disc_loss: 0.00014484244
-disc_acc: 1.0
+gen_loss: 9.902598
+disc_loss: 1.4914796
+disc_acc: 0.5763888888888888
 
 
 	Epoch 19
 Training results:
-gen_loss: 8.572699
-disc_loss: 0.00496174
-disc_acc: 0.998019801980198
+gen_loss: 9.435323
+disc_loss: 0.13019374
+disc_acc: 0.9563118811881188
 
 Validation results:
-gen_loss: 6.547218
-disc_loss: 3.0336107e-06
-disc_acc: 1.0
+gen_loss: 11.296499
+disc_loss: 4.28534
+disc_acc: 0.35813492063492064
 
 
 	Epoch 20
 Training results:
-gen_loss: 8.687278
-disc_loss: 0.00034872067
-disc_acc: 0.9998762376237624
+gen_loss: 9.897832
+disc_loss: 0.13004716
+disc_acc: 0.9577970297029703
 
 Validation results:
-gen_loss: 6.7086415
-disc_loss: 7.4978766e-07
-disc_acc: 1.0
+gen_loss: 11.630225
+disc_loss: 3.6923
+disc_acc: 0.3551587301587302
 
 
 	Epoch 21
 Training results:
-gen_loss: 8.679935
-disc_loss: 0.00026683422
-disc_acc: 1.0
+gen_loss: 10.108103
+disc_loss: 0.13275065
+disc_acc: 0.9551980198019802
 
 Validation results:
-gen_loss: 7.4257145
-disc_loss: 6.1479034e-07
-disc_acc: 1.0
+gen_loss: 7.791545
+disc_loss: 0.317091
+disc_acc: 0.8953373015873016
 
 
 	Epoch 22
 Training results:
-gen_loss: 9.188217
-disc_loss: 0.00037667638
-disc_acc: 1.0
+gen_loss: 9.910032
+disc_loss: 0.11928067
+disc_acc: 0.9586633663366336
 
 Validation results:
-gen_loss: 6.8988605
-disc_loss: 4.1575333e-07
-disc_acc: 1.0
+gen_loss: 13.007236
+disc_loss: 1.2913477
+disc_acc: 0.6795634920634921
 
 
 	Epoch 23
 Training results:
-gen_loss: 9.02457
-disc_loss: 3.9308663e-05
-disc_acc: 1.0
+gen_loss: 9.973559
+disc_loss: 0.11813701
+disc_acc: 0.9616336633663366
 
 Validation results:
-gen_loss: 7.0444098
-disc_loss: 2.3611224e-07
-disc_acc: 1.0
+gen_loss: 11.910486
+disc_loss: 1.3895314
+disc_acc: 0.6185515873015873
 
 
 	Epoch 24
 Training results:
-gen_loss: 9.239476
-disc_loss: 0.0020009826
-disc_acc: 0.9992574257425743
+gen_loss: 10.027574
+disc_loss: 0.12735133
+disc_acc: 0.9597772277227723
 
 Validation results:
-gen_loss: 8.274451
-disc_loss: 3.550354e-06
-disc_acc: 1.0
+gen_loss: 9.595809
+disc_loss: 1.0472003
+disc_acc: 0.6691468253968254
 
 
 	Epoch 25
 Training results:
-gen_loss: 9.7481365
-disc_loss: 0.004903212
-disc_acc: 0.9986386138613862
+gen_loss: 10.473286
+disc_loss: 0.11588082
+disc_acc: 0.9603960396039604
 
 Validation results:
-gen_loss: 7.1759257
-disc_loss: 4.776044e-07
-disc_acc: 1.0
+gen_loss: 9.870242
+disc_loss: 1.8711388
+disc_acc: 0.5694444444444444
 
 
 	Epoch 26
 Training results:
-gen_loss: 9.874684
-disc_loss: 0.00012503639
-disc_acc: 1.0
+gen_loss: 11.020243
+disc_loss: 0.12076815
+disc_acc: 0.9585396039603961
 
 Validation results:
-gen_loss: 7.218032
-disc_loss: 1.5527954e-07
-disc_acc: 1.0
+gen_loss: 10.053329
+disc_loss: 0.73439246
+disc_acc: 0.7217261904761905
 
 
 	Epoch 27
 Training results:
-gen_loss: 9.989573
-disc_loss: 0.0017890431
-disc_acc: 0.9991336633663367
+gen_loss: 11.226613
+disc_loss: 0.10822381
+disc_acc: 0.9625
 
 Validation results:
-gen_loss: 7.510013
-disc_loss: 8.4055387e-07
-disc_acc: 1.0
+gen_loss: 13.828928
+disc_loss: 1.9993641
+disc_acc: 0.5952380952380952
 
 
 	Epoch 28
 Training results:
-gen_loss: 10.282968
-disc_loss: 0.0021915485
-disc_acc: 0.9996287128712872
+gen_loss: 11.61745
+disc_loss: 0.1068441
+disc_acc: 0.9638613861386138
 
 Validation results:
-gen_loss: 7.9893565
-disc_loss: 3.4704297e-07
-disc_acc: 1.0
+gen_loss: 14.298131
+disc_loss: 1.459912
+disc_acc: 0.6438492063492064
 
 
 	Epoch 29
 Training results:
-gen_loss: 10.404163
-disc_loss: 0.004334061
-disc_acc: 0.9985148514851485
+gen_loss: 11.487653
+disc_loss: 0.1027333
+disc_acc: 0.9662128712871287
 
 Validation results:
-gen_loss: 8.184084
-disc_loss: 1.0981869e-06
-disc_acc: 1.0
+gen_loss: 8.988095
+disc_loss: 0.6173007
+disc_acc: 0.8115079365079365
 
 
 	Epoch 30
 Training results:
-gen_loss: 9.89672
-disc_loss: 0.00040799295
-disc_acc: 0.9998762376237624
+gen_loss: 11.6286335
+disc_loss: 0.10100211
+disc_acc: 0.968069306930693
 
 Validation results:
-gen_loss: 6.4276905
-disc_loss: 4.528292e-07
-disc_acc: 1.0
+gen_loss: 11.624245
+disc_loss: 0.23342036
+disc_acc: 0.9171626984126984
 
 
 	Epoch 31
 Training results:
-gen_loss: 9.863184
-disc_loss: 4.622104e-05
-disc_acc: 1.0
+gen_loss: 11.678376
+disc_loss: 0.1026367
+disc_acc: 0.9629950495049505
 
 Validation results:
-gen_loss: 7.3265676
-disc_loss: 1.5320987e-07
-disc_acc: 1.0
+gen_loss: 12.891351
+disc_loss: 3.115723
+disc_acc: 0.4513888888888889
 
 
 	Epoch 32
 Training results:
-gen_loss: 9.999861
-disc_loss: 3.2992597e-05
-disc_acc: 1.0
+gen_loss: 11.709267
+disc_loss: 0.101743795
+disc_acc: 0.9637376237623763
 
 Validation results:
-gen_loss: 6.9594975
-disc_loss: 4.414158e-07
-disc_acc: 1.0
+gen_loss: 11.186227
+disc_loss: 1.1140757
+disc_acc: 0.6666666666666666
 
 
 	Epoch 33
 Training results:
-gen_loss: 11.050143
-disc_loss: 0.0013112021
-disc_acc: 0.9996287128712872
+gen_loss: 11.823549
+disc_loss: 0.10020211
+disc_acc: 0.9659653465346535
 
 Validation results:
-gen_loss: 9.460898
-disc_loss: 2.866104e-07
-disc_acc: 1.0
+gen_loss: 10.847013
+disc_loss: 0.26643237
+disc_acc: 0.9002976190476191
 
 
 	Epoch 34
 Training results:
-gen_loss: 11.947732
-disc_loss: 0.0005952073
-disc_acc: 0.9997524752475248
+gen_loss: 12.1685295
+disc_loss: 0.10051834
+disc_acc: 0.9650990099009901
 
 Validation results:
-gen_loss: 7.7968836
-disc_loss: 6.427602e-08
-disc_acc: 1.0
+gen_loss: 16.806074
+disc_loss: 1.6423099
+disc_acc: 0.6443452380952381
 
 
 	Epoch 35
 Training results:
-gen_loss: 12.149928
-disc_loss: 0.0016315957
-disc_acc: 0.9993811881188119
+gen_loss: 12.635714
+disc_loss: 0.09183855
+disc_acc: 0.9683168316831683
 
 Validation results:
-gen_loss: 11.063459
-disc_loss: 6.5434796e-07
-disc_acc: 1.0
+gen_loss: 9.7276945
+disc_loss: 1.5568159
+disc_acc: 0.6364087301587301
 
 
 	Epoch 36
 Training results:
-gen_loss: 13.060889
-disc_loss: 0.0024591784
-disc_acc: 0.999009900990099
+gen_loss: 12.72229
+disc_loss: 0.09860909
+disc_acc: 0.9676980198019802
 
 Validation results:
-gen_loss: 11.564793
-disc_loss: 2.805201e-07
-disc_acc: 1.0
+gen_loss: 9.394194
+disc_loss: 0.29970846
+disc_acc: 0.8834325396825397
 
 
 	Epoch 37
 Training results:
-gen_loss: 12.37021
-disc_loss: 7.80752e-05
-disc_acc: 1.0
+gen_loss: 13.011059
+disc_loss: 0.095389955
+disc_acc: 0.9673267326732673
 
 Validation results:
-gen_loss: 10.703239
-disc_loss: 2.760851e-07
-disc_acc: 1.0
+gen_loss: 11.835873
+disc_loss: 0.77591723
+disc_acc: 0.7574404761904762
 
 
 	Epoch 38
 Training results:
-gen_loss: 12.426103
-disc_loss: 0.0013754639
-disc_acc: 0.9996287128712872
+gen_loss: 13.172666
+disc_loss: 0.087962344
+disc_acc: 0.970049504950495
 
 Validation results:
-gen_loss: 10.181035
-disc_loss: 3.0435007e-07
-disc_acc: 1.0
+gen_loss: 14.718118
+disc_loss: 1.526123
+disc_acc: 0.6964285714285714
 
 
 	Epoch 39
 Training results:
-gen_loss: 12.05088
-disc_loss: 0.00021617408
-disc_acc: 0.9998762376237624
+gen_loss: 13.456501
+disc_loss: 0.09293946
+disc_acc: 0.9662128712871287
 
 Validation results:
-gen_loss: 9.2958975
-disc_loss: 5.0853163e-08
-disc_acc: 1.0
+gen_loss: 13.502487
+disc_loss: 2.4837754
+disc_acc: 0.5357142857142857
 
 
 	Epoch 40
 Training results:
-gen_loss: 12.322423
-disc_loss: 0.00016245176
-disc_acc: 0.9998762376237624
+gen_loss: 13.608423
+disc_loss: 0.09531117
+disc_acc: 0.9683168316831683
 
 Validation results:
-gen_loss: 9.148449
-disc_loss: 2.3569828e-07
-disc_acc: 1.0
+gen_loss: 16.644705
+disc_loss: 4.1713505
+disc_acc: 0.4677579365079365
 
 
 	Epoch 41
 Training results:
-gen_loss: 11.858118
-disc_loss: 0.0004887387
-disc_acc: 0.9998762376237624
+gen_loss: 13.781542
+disc_loss: 0.08074074
+disc_acc: 0.9714108910891089
 
 Validation results:
-gen_loss: 8.498633
-disc_loss: 9.999151e-08
-disc_acc: 1.0
+gen_loss: 16.840199
+disc_loss: 1.528488
+disc_acc: 0.6096230158730159
 
 
 	Epoch 42
 Training results:
-gen_loss: 12.527555
-disc_loss: 0.0015244132
-disc_acc: 0.9996287128712872
+gen_loss: 13.882265
+disc_loss: 0.079260774
+disc_acc: 0.971039603960396
 
 Validation results:
-gen_loss: 10.725287
-disc_loss: 1.0513595e-07
-disc_acc: 1.0
+gen_loss: 14.16997
+disc_loss: 0.6503049
+disc_acc: 0.8571428571428571
 
 
 	Epoch 43
 Training results:
-gen_loss: 12.99643
-disc_loss: 1.809253e-05
-disc_acc: 1.0
+gen_loss: 14.224946
+disc_loss: 0.07382814
+disc_acc: 0.9733910891089109
 
 Validation results:
-gen_loss: 8.544814
-disc_loss: 9.839494e-08
-disc_acc: 1.0
+gen_loss: 15.598033
+disc_loss: 0.368101
+disc_acc: 0.878968253968254
 
 
 	Epoch 44
 Training results:
-gen_loss: 12.651974
-disc_loss: 1.4173491e-05
-disc_acc: 1.0
+gen_loss: 14.885089
+disc_loss: 0.086060695
+disc_acc: 0.9717821782178218
 
 Validation results:
-gen_loss: 8.189278
-disc_loss: 9.242265e-08
-disc_acc: 1.0
+gen_loss: 14.008818
+disc_loss: 2.1890466
+disc_acc: 0.5719246031746031
 
 
 	Epoch 45
 Training results:
-gen_loss: 12.548302
-disc_loss: 0.000329677
-disc_acc: 0.9998762376237624
+gen_loss: 14.99759
+disc_loss: 0.078832954
+disc_acc: 0.9709158415841584
 
 Validation results:
-gen_loss: 8.628718
-disc_loss: 1.2535891e-07
-disc_acc: 1.0
+gen_loss: 16.82114
+disc_loss: 1.7502352
+disc_acc: 0.6011904761904762
 
 
 	Epoch 46
 Training results:
-gen_loss: 12.856269
-disc_loss: 0.002770791
-disc_acc: 0.9996287128712872
+gen_loss: 14.948076
+disc_loss: 0.084601946
+disc_acc: 0.9695544554455445
 
 Validation results:
-gen_loss: 9.273656
-disc_loss: 5.108969e-08
-disc_acc: 1.0
+gen_loss: 13.976321
+disc_loss: 0.061735407
+disc_acc: 0.9791666666666666
 
 
 	Epoch 47
 Training results:
-gen_loss: 12.49212
-disc_loss: 4.76003e-05
-disc_acc: 1.0
+gen_loss: 14.899067
+disc_loss: 0.08294546
+disc_acc: 0.9702970297029703
 
 Validation results:
-gen_loss: 9.917421
-disc_loss: 1.6095605e-07
-disc_acc: 1.0
+gen_loss: 14.714953
+disc_loss: 0.70227665
+disc_acc: 0.7886904761904762
 
 
 	Epoch 48
 Training results:
-gen_loss: 13.199042
-disc_loss: 0.00025815587
-disc_acc: 0.9998762376237624
+gen_loss: 15.079775
+disc_loss: 0.08519772
+disc_acc: 0.9699257425742575
 
 Validation results:
-gen_loss: 12.071165
-disc_loss: 1.04840275e-07
-disc_acc: 1.0
+gen_loss: 10.181169
+disc_loss: 0.05804385
+disc_acc: 0.9816468253968254
 
 
 	Epoch 49
 Training results:
-gen_loss: 14.861473
-disc_loss: 0.0049706833
-disc_acc: 0.999009900990099
+gen_loss: 15.148202
+disc_loss: 0.06757698
+disc_acc: 0.9764851485148515
 
 Validation results:
-gen_loss: 10.822443
-disc_loss: 1.270737e-07
-disc_acc: 1.0
+gen_loss: 14.546229
+disc_loss: 2.6339216
+disc_acc: 0.5982142857142857
 
 
 	Epoch 50
 Training results:
-gen_loss: 15.218309
-disc_loss: 9.027811e-05
-disc_acc: 1.0
+gen_loss: 14.830742
+disc_loss: 0.0765766
+disc_acc: 0.9726485148514852
 
 Validation results:
-gen_loss: 11.304817
-disc_loss: 7.4505797e-09
-disc_acc: 1.0
+gen_loss: 23.52714
+disc_loss: 1.7337476
+disc_acc: 0.6607142857142857
 
 
 	Epoch 51
 Training results:
-gen_loss: 15.0762205
-disc_loss: 0.00021211973
-disc_acc: 1.0
+gen_loss: 15.558085
+disc_loss: 0.0842904
+disc_acc: 0.9705445544554455
 
 Validation results:
-gen_loss: 10.944142
-disc_loss: 5.913159e-11
-disc_acc: 1.0
+gen_loss: 17.130285
+disc_loss: 1.2182968
+disc_acc: 0.7311507936507936
 
 
 	Epoch 52
 Training results:
-gen_loss: 14.55052
-disc_loss: 0.0006140403
-disc_acc: 0.9997524752475248
+gen_loss: 15.610873
+disc_loss: 0.08889053
+disc_acc: 0.9686881188118812
 
 Validation results:
-gen_loss: 9.6179695
-disc_loss: 2.3179581e-08
-disc_acc: 1.0
+gen_loss: 14.978234
+disc_loss: 0.45830742
+disc_acc: 0.8511904761904762
 
 
 	Epoch 53
 Training results:
-gen_loss: 14.172544
-disc_loss: 0.002764176
-disc_acc: 0.999009900990099
+gen_loss: 15.0033045
+disc_loss: 0.068607785
+disc_acc: 0.9751237623762377
 
 Validation results:
-gen_loss: 11.574793
-disc_loss: 1.4901159e-08
-disc_acc: 1.0
+gen_loss: 13.617295
+disc_loss: 1.2025967
+disc_acc: 0.6478174603174603
 
 
 	Epoch 54
 Training results:
-gen_loss: 14.149316
-disc_loss: 0.00036959426
-disc_acc: 0.9998762376237624
+gen_loss: 15.501172
+disc_loss: 0.07058113
+disc_acc: 0.9751237623762377
 
 Validation results:
-gen_loss: 8.627737
-disc_loss: 1.5965528e-08
-disc_acc: 1.0
+gen_loss: 17.357208
+disc_loss: 1.8203973
+disc_acc: 0.6205357142857143
 
 
 	Epoch 55
 Training results:
-gen_loss: 14.312473
-disc_loss: 0.00072269875
-disc_acc: 0.9997524752475248
+gen_loss: 15.892296
+disc_loss: 0.073746316
+disc_acc: 0.9742574257425742
 
 Validation results:
-gen_loss: 11.216791
-disc_loss: 5.913159e-11
-disc_acc: 1.0
+gen_loss: 18.948835
+disc_loss: 1.1591312
+disc_acc: 0.7579365079365079
 
 
 	Epoch 56
 Training results:
-gen_loss: 14.873864
-disc_loss: 1.8835919e-05
-disc_acc: 1.0
+gen_loss: 16.065472
+disc_loss: 0.08466522
+disc_acc: 0.9705445544554455
 
 Validation results:
-gen_loss: 10.844871
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 21.826996
+disc_loss: 3.997149
+disc_acc: 0.5610119047619048
 
 
 	Epoch 57
 Training results:
-gen_loss: 14.897784
-disc_loss: 1.8101136e-05
-disc_acc: 1.0
+gen_loss: 16.002419
+disc_loss: 0.07165548
+disc_acc: 0.9724009900990099
 
 Validation results:
-gen_loss: 10.322175
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 16.726349
+disc_loss: 0.10086407
+disc_acc: 0.964781746031746
 
 
 	Epoch 58
 Training results:
-gen_loss: 15.02236
-disc_loss: 0.00014137039
-disc_acc: 1.0
+gen_loss: 16.503017
+disc_loss: 0.08000068
+disc_acc: 0.9737623762376237
 
 Validation results:
-gen_loss: 10.600091
-disc_loss: 7.2140534e-09
-disc_acc: 1.0
+gen_loss: 17.763517
+disc_loss: 1.2513291
+disc_acc: 0.7028769841269841
 
 
 	Epoch 59
 Training results:
-gen_loss: 15.347678
-disc_loss: 1.9968222e-05
-disc_acc: 1.0
+gen_loss: 16.62633
+disc_loss: 0.06591437
+disc_acc: 0.9774752475247525
 
 Validation results:
-gen_loss: 10.737214
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 16.38169
+disc_loss: 0.25518063
+disc_acc: 0.9122023809523809
 
 
 	Epoch 60
 Training results:
-gen_loss: 15.443308
-disc_loss: 0.0037506619
-disc_acc: 0.999009900990099
+gen_loss: 17.029787
+disc_loss: 0.067491144
+disc_acc: 0.9763613861386139
 
 Validation results:
-gen_loss: 11.634894
-disc_loss: 6.634563e-08
-disc_acc: 1.0
+gen_loss: 14.495442
+disc_loss: 0.66822064
+disc_acc: 0.7693452380952381
 
 
 	Epoch 61
 Training results:
-gen_loss: 15.314459
-disc_loss: 0.00080036966
-disc_acc: 0.9997524752475248
+gen_loss: 17.19856
+disc_loss: 0.06546803
+disc_acc: 0.977970297029703
 
 Validation results:
-gen_loss: 10.625218
-disc_loss: 5.966374e-08
-disc_acc: 1.0
+gen_loss: 15.034926
+disc_loss: 0.88068306
+disc_acc: 0.7108134920634921
 
 
 	Epoch 62
 Training results:
-gen_loss: 15.212103
-disc_loss: 0.0008813126
-disc_acc: 0.9997524752475248
+gen_loss: 17.028044
+disc_loss: 0.07510448
+disc_acc: 0.9738861386138614
 
 Validation results:
-gen_loss: 9.879668
-disc_loss: 4.0682522e-08
-disc_acc: 1.0
+gen_loss: 13.98712
+disc_loss: 0.40414992
+disc_acc: 0.8591269841269841
 
 
 	Epoch 63
 Training results:
-gen_loss: 15.429744
-disc_loss: 0.0047119292
-disc_acc: 0.9991336633663367
+gen_loss: 17.391851
+disc_loss: 0.06215241
+disc_acc: 0.9789603960396039
 
 Validation results:
-gen_loss: 11.431674
-disc_loss: 1.5427415e-07
-disc_acc: 1.0
+gen_loss: 15.693606
+disc_loss: 0.16367717
+disc_acc: 0.9305555555555556
 
 
 	Epoch 64
 Training results:
-gen_loss: 16.22531
-disc_loss: 9.8273245e-05
-disc_acc: 1.0
+gen_loss: 16.851025
+disc_loss: 0.07288318
+disc_acc: 0.9735148514851485
 
 Validation results:
-gen_loss: 10.565121
-disc_loss: 2.8560555e-08
-disc_acc: 1.0
+gen_loss: 26.744875
+disc_loss: 5.6373124
+disc_acc: 0.49503968253968256
 
 
 	Epoch 65
 Training results:
-gen_loss: 16.22852
-disc_loss: 5.1323528e-05
-disc_acc: 1.0
+gen_loss: 17.273287
+disc_loss: 0.06861835
+disc_acc: 0.9773514851485149
 
 Validation results:
-gen_loss: 10.4802
-disc_loss: 6.6227375e-09
-disc_acc: 1.0
+gen_loss: 15.173442
+disc_loss: 0.03356161
+disc_acc: 0.9866071428571429
 
 
 	Epoch 66
 Training results:
-gen_loss: 16.40659
-disc_loss: 5.281478e-06
-disc_acc: 1.0
+gen_loss: 16.938627
+disc_loss: 0.066655785
+disc_acc: 0.975
 
 Validation results:
-gen_loss: 10.534189
-disc_loss: 1.1235002e-09
-disc_acc: 1.0
+gen_loss: 13.456769
+disc_loss: 0.45558226
+disc_acc: 0.8551587301587301
 
 
 	Epoch 67
 Training results:
-gen_loss: 16.026121
-disc_loss: 0.0011584766
-disc_acc: 0.9995049504950495
+gen_loss: 16.940191
+disc_loss: 0.06297522
+disc_acc: 0.9778465346534654
 
 Validation results:
-gen_loss: 7.9096956
-disc_loss: 6.563606e-09
-disc_acc: 1.0
+gen_loss: 13.486574
+disc_loss: 0.20294914
+disc_acc: 0.9260912698412699
 
 
 	Epoch 68
 Training results:
-gen_loss: 14.542221
-disc_loss: 0.00034196608
-disc_acc: 0.9998762376237624
+gen_loss: 17.14416
+disc_loss: 0.05531746
+disc_acc: 0.9819306930693069
 
 Validation results:
-gen_loss: 8.061446
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 10.6769705
+disc_loss: 0.11769337
+disc_acc: 0.9533730158730159
 
 
 	Epoch 69
 Training results:
-gen_loss: 14.651858
-disc_loss: 0.00011432516
-disc_acc: 1.0
+gen_loss: 17.293352
+disc_loss: 0.053213805
+disc_acc: 0.9798267326732674
 
 Validation results:
-gen_loss: 9.495326
-disc_loss: 1.3363738e-08
-disc_acc: 1.0
+gen_loss: 14.285483
+disc_loss: 0.069810525
+disc_acc: 0.9766865079365079
 
 
 	Epoch 70
 Training results:
-gen_loss: 15.516982
-disc_loss: 0.0005627983
-disc_acc: 0.9997524752475248
+gen_loss: 17.517384
+disc_loss: 0.057234984
+disc_acc: 0.9800742574257426
 
 Validation results:
-gen_loss: 11.5781145
-disc_loss: 1.980908e-08
-disc_acc: 1.0
+gen_loss: 20.415022
+disc_loss: 2.617886
+disc_acc: 0.5178571428571429
 
 
 	Epoch 71
 Training results:
-gen_loss: 15.76536
-disc_loss: 2.87769e-05
-disc_acc: 1.0
+gen_loss: 17.518677
+disc_loss: 0.07056617
+disc_acc: 0.9756188118811882
 
 Validation results:
-gen_loss: 9.932615
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 20.394487
+disc_loss: 3.0577254
+disc_acc: 0.529265873015873
 
 
 	Epoch 72
 Training results:
-gen_loss: 15.728243
-disc_loss: 1.2163215e-05
-disc_acc: 1.0
+gen_loss: 17.82297
+disc_loss: 0.0639454
+disc_acc: 0.9775990099009901
 
 Validation results:
-gen_loss: 9.641766
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 14.774529
+disc_loss: 0.45125297
+disc_acc: 0.8492063492063492
 
 
 	Epoch 73
 Training results:
-gen_loss: 15.802177
-disc_loss: 0.00067268306
-disc_acc: 0.9997524752475248
+gen_loss: 18.081526
+disc_loss: 0.058249697
+disc_acc: 0.977970297029703
 
 Validation results:
-gen_loss: 11.368552
-disc_loss: 1.2417634e-09
-disc_acc: 1.0
+gen_loss: 14.914551
+disc_loss: 1.8139049
+disc_acc: 0.5902777777777778
 
 
 	Epoch 74
 Training results:
-gen_loss: 15.948814
-disc_loss: 0.00035302283
-disc_acc: 0.9998762376237624
+gen_loss: 18.139631
+disc_loss: 0.0693912
+disc_acc: 0.9756188118811882
 
 Validation results:
-gen_loss: 10.910443
-disc_loss: 5.913159e-10
-disc_acc: 1.0
+gen_loss: 29.775814
+disc_loss: 3.1697388
+disc_acc: 0.6532738095238095
 
 
 	Epoch 75
 Training results:
-gen_loss: 16.170656
-disc_loss: 6.1002797e-06
-disc_acc: 1.0
+gen_loss: 18.055534
+disc_loss: 0.059809882
+disc_acc: 0.9795792079207921
 
 Validation results:
-gen_loss: 11.362387
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 17.234312
+disc_loss: 0.07314877
+disc_acc: 0.9751984126984127
 
 
 	Epoch 76
 Training results:
-gen_loss: 16.256592
-disc_loss: 6.056532e-06
-disc_acc: 1.0
+gen_loss: 18.551283
+disc_loss: 0.05800519
+disc_acc: 0.9788366336633664
 
 Validation results:
-gen_loss: 9.879557
-disc_loss: 3.8317264e-08
-disc_acc: 1.0
+gen_loss: 15.4533415
+disc_loss: 0.738486
+disc_acc: 0.8273809523809523
 
 
 	Epoch 77
 Training results:
-gen_loss: 16.084774
-disc_loss: 0.00194337
-disc_acc: 0.9992574257425743
+gen_loss: 18.903831
+disc_loss: 0.05473149
+disc_acc: 0.9809405940594059
 
 Validation results:
-gen_loss: 11.588785
-disc_loss: 1.3127211e-08
-disc_acc: 1.0
+gen_loss: 24.663437
+disc_loss: 2.8589792
+disc_acc: 0.5793650793650794
 
 
 	Epoch 78
 Training results:
-gen_loss: 15.822713
-disc_loss: 5.7323872e-05
-disc_acc: 1.0
+gen_loss: 19.12416
+disc_loss: 0.056421638
+disc_acc: 0.9805693069306931
 
 Validation results:
-gen_loss: 10.192452
-disc_loss: 1.1826318e-10
-disc_acc: 1.0
+gen_loss: 12.275533
+disc_loss: 0.0341536
+disc_acc: 0.9871031746031746
 
 
 	Epoch 79
 Training results:
-gen_loss: 15.544297
-disc_loss: 0.0006553913
-disc_acc: 0.9996287128712872
+gen_loss: 18.65429
+disc_loss: 0.054352183
+disc_acc: 0.9804455445544554
 
 Validation results:
-gen_loss: 10.552072
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 19.047237
+disc_loss: 1.4338789
+disc_acc: 0.6319444444444444
 
 
 	Epoch 80
 Training results:
-gen_loss: 15.824153
-disc_loss: 1.6074988e-05
-disc_acc: 1.0
+gen_loss: 19.177088
+disc_loss: 0.06044199
+disc_acc: 0.9784653465346534
 
 Validation results:
-gen_loss: 10.297327
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 16.529366
+disc_loss: 0.024847707
+disc_acc: 0.9925595238095238
 
 
 	Epoch 81
 Training results:
-gen_loss: 16.700577
-disc_loss: 0.0007736755
-disc_acc: 0.9996287128712872
+gen_loss: 19.239477
+disc_loss: 0.053925283
+disc_acc: 0.9806930693069307
 
 Validation results:
-gen_loss: 11.486722
-disc_loss: 2.60179e-09
-disc_acc: 1.0
+gen_loss: 22.552298
+disc_loss: 0.18894225
+disc_acc: 0.9315476190476191
 
 
 	Epoch 82
 Training results:
-gen_loss: 17.324608
-disc_loss: 0.0002619404
-disc_acc: 0.9998762376237624
+gen_loss: 19.724628
+disc_loss: 0.06707309
+disc_acc: 0.9763613861386139
 
 Validation results:
-gen_loss: 12.296174
-disc_loss: 3.0157108e-09
-disc_acc: 1.0
+gen_loss: 16.884804
+disc_loss: 0.27940613
+disc_acc: 0.9057539682539683
 
 
 	Epoch 83
 Training results:
-gen_loss: 17.100573
-disc_loss: 2.1360152e-05
-disc_acc: 1.0
+gen_loss: 19.193012
+disc_loss: 0.051393457
+disc_acc: 0.9829207920792079
 
 Validation results:
-gen_loss: 12.27283
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 15.858965
+disc_loss: 0.12148713
+disc_acc: 0.9548611111111112
 
 
 	Epoch 84
 Training results:
-gen_loss: 17.149168
-disc_loss: 9.017667e-06
-disc_acc: 1.0
+gen_loss: 19.001272
+disc_loss: 0.0736997
+disc_acc: 0.9758663366336634
 
 Validation results:
-gen_loss: 10.991533
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 12.600036
+disc_loss: 0.021512048
+disc_acc: 0.9925595238095238
 
 
 	Epoch 85
 Training results:
-gen_loss: 17.03482
-disc_loss: 2.1277678e-05
-disc_acc: 1.0
+gen_loss: 18.712399
+disc_loss: 0.054351293
+disc_acc: 0.9814356435643564
 
 Validation results:
-gen_loss: 10.990201
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 15.272546
+disc_loss: 0.024957595
+disc_acc: 0.9915674603174603
 
 
 	Epoch 86
 Training results:
-gen_loss: 16.79577
-disc_loss: 5.8301184e-06
-disc_acc: 1.0
+gen_loss: 19.041534
+disc_loss: 0.048786685
+disc_acc: 0.9831683168316832
 
 Validation results:
-gen_loss: 11.137267
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 24.447742
+disc_loss: 0.8878342
+disc_acc: 0.7703373015873016
 
 
 	Epoch 87
 Training results:
-gen_loss: 16.767769
-disc_loss: 1.9012479e-06
-disc_acc: 1.0
+gen_loss: 19.042456
+disc_loss: 0.05291152
+disc_acc: 0.9804455445544554
 
 Validation results:
-gen_loss: 12.317692
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 14.528476
+disc_loss: 0.25300393
+disc_acc: 0.8953373015873016
 
 
 	Epoch 88
 Training results:
-gen_loss: 16.625599
-disc_loss: 1.6023208e-05
-disc_acc: 1.0
+gen_loss: 19.550924
+disc_loss: 0.056511827
+disc_acc: 0.9798267326732674
 
 Validation results:
-gen_loss: 11.320172
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 13.739999
+disc_loss: 0.19184764
+disc_acc: 0.9300595238095238
 
 
 	Epoch 89
 Training results:
-gen_loss: 17.025183
-disc_loss: 0.0003828102
-disc_acc: 0.9998762376237624
+gen_loss: 20.339365
+disc_loss: 0.058299094
+disc_acc: 0.9788366336633664
 
 Validation results:
-gen_loss: 12.429166
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 19.401731
+disc_loss: 7.548406
+disc_acc: 0.44345238095238093
 
 
 	Epoch 90
 Training results:
-gen_loss: 16.8911
-disc_loss: 2.060837e-06
-disc_acc: 1.0
+gen_loss: 19.613447
+disc_loss: 0.05245138
+disc_acc: 0.9806930693069307
 
 Validation results:
-gen_loss: 11.24404
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 25.519735
+disc_loss: 0.93056196
+disc_acc: 0.7559523809523809
 
 
 	Epoch 91
 Training results:
-gen_loss: 17.02056
-disc_loss: 1.4794271e-05
-disc_acc: 1.0
+gen_loss: 19.646832
+disc_loss: 0.05702391
+disc_acc: 0.9788366336633664
 
 Validation results:
-gen_loss: 10.918765
-disc_loss: 8.751475e-09
-disc_acc: 1.0
+gen_loss: 19.462234
+disc_loss: 2.380777
+disc_acc: 0.6031746031746031
 
 
 	Epoch 92
 Training results:
-gen_loss: 16.668236
-disc_loss: 0.0013994535
-disc_acc: 0.9995049504950495
+gen_loss: 20.032444
+disc_loss: 0.050050125
+disc_acc: 0.9825495049504951
 
 Validation results:
-gen_loss: 10.2930975
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 16.839592
+disc_loss: 0.06942803
+disc_acc: 0.9761904761904762
 
 
 	Epoch 93
 Training results:
-gen_loss: 16.86177
-disc_loss: 0.0032936917
-disc_acc: 0.9991336633663367
+gen_loss: 20.366669
+disc_loss: 0.047528084
+disc_acc: 0.9820544554455446
 
 Validation results:
-gen_loss: 11.843816
-disc_loss: 4.4940002e-08
-disc_acc: 1.0
+gen_loss: 20.348606
+disc_loss: 1.1594847
+disc_acc: 0.7390873015873016
 
 
 	Epoch 94
 Training results:
-gen_loss: 16.63118
-disc_loss: 0.0015534004
-disc_acc: 0.9995049504950495
+gen_loss: 20.375034
+disc_loss: 0.04844359
+disc_acc: 0.9818069306930693
 
 Validation results:
-gen_loss: 13.282678
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 19.967907
+disc_loss: 0.15433232
+disc_acc: 0.9518849206349206
 
 
 	Epoch 95
 Training results:
-gen_loss: 17.756495
-disc_loss: 7.6544224e-05
-disc_acc: 1.0
+gen_loss: 19.541836
+disc_loss: 0.045889586
+disc_acc: 0.9835396039603961
 
 Validation results:
-gen_loss: 11.414964
-disc_loss: 1.7739477e-10
-disc_acc: 1.0
+gen_loss: 17.555328
+disc_loss: 0.049555402
+disc_acc: 0.9816468253968254
 
 
 	Epoch 96
 Training results:
-gen_loss: 17.336924
-disc_loss: 1.7424582e-06
-disc_acc: 1.0
+gen_loss: 20.04105
+disc_loss: 0.052165236
+disc_acc: 0.9819306930693069
 
 Validation results:
-gen_loss: 10.617872
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 19.340406
+disc_loss: 0.34994215
+disc_acc: 0.8849206349206349
 
 
 	Epoch 97
 Training results:
-gen_loss: 17.380493
-disc_loss: 5.0730483e-05
-disc_acc: 1.0
+gen_loss: 19.637276
+disc_loss: 0.050020184
+disc_acc: 0.9814356435643564
 
 Validation results:
-gen_loss: 11.670338
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 18.806381
+disc_loss: 1.4266353
+disc_acc: 0.6830357142857143
 
 
 	Epoch 98
 Training results:
-gen_loss: 17.384699
-disc_loss: 6.463378e-06
-disc_acc: 1.0
+gen_loss: 19.834742
+disc_loss: 0.05779043
+disc_acc: 0.9784653465346534
 
 Validation results:
-gen_loss: 11.215808
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 15.449928
+disc_loss: 0.08820534
+disc_acc: 0.9652777777777778
 
 
 	Epoch 99
 Training results:
-gen_loss: 17.192852
-disc_loss: 0.00023221194
-disc_acc: 1.0
+gen_loss: 19.952255
+disc_loss: 0.050415967
+disc_acc: 0.9820544554455446
 
 Validation results:
-gen_loss: 12.42023
-disc_loss: 0.0
-disc_acc: 1.0
+gen_loss: 20.146816
+disc_loss: 3.742765
+disc_acc: 0.5104166666666666
 
 
 	Epoch 100
 Training results:
-gen_loss: 16.60732
-disc_loss: 3.0599127e-05
-disc_acc: 1.0
+gen_loss: 19.908754
+disc_loss: 0.045768913
+disc_acc: 0.9831683168316832
 
 Validation results:
-gen_loss: 9.241955
-disc_loss: 5.913159e-11
-disc_acc: 1.0
+gen_loss: 23.076326
+disc_loss: 1.8966055
+disc_acc: 0.652281746031746
 
 
 
-gen_train_loss: 0.020652138, 3.0688076, 4.900911, 5.9410787, 6.730286, 7.2411695, 7.720818, 8.032492, 8.5523815, 8.921854, 9.0501, 9.398312, 9.307827, 9.808648, 10.259366, 10.618273, 10.278083, 10.952094, 11.39966, 11.653527, 12.32338, 12.804258, 13.040118, 13.303512, 14.01391, 14.745846, 15.604823, 15.621905, 16.605251, 16.968435, 17.977219, 17.75999, 18.605621, 19.791819, 20.041506, 19.861341, 20.533895, 19.817343, 21.173744, 21.924215, 21.820736, 21.437132, 21.5346, 22.66438, 23.53719, 23.153042, 24.267366, 23.74468, 24.317543, 24.419598, 25.155235, 24.280775, 25.33212, 24.921352, 25.087221, 25.590637, 25.086914, 24.731386, 25.111282, 24.495424, 25.254173, 25.682829, 25.445951, 26.299788, 26.567442, 27.038855, 26.871569, 27.069838, 26.790955, 26.998573, 26.801128, 27.347445, 27.772127, 27.159971, 27.70548, 27.62852, 27.54835, 27.202433, 26.772038, 27.18862, 26.903597, 26.994724, 27.311834, 27.003538, 27.4602, 27.54314, 27.776068, 27.88597, 27.795568, 27.656845, 27.748795, 27.321459, 27.373344, 27.50904, 27.642246, 27.635967, 27.531977, 27.37888, 28.043926, 28.531073, 29.20333, 0.73057747, 2.7779226, 3.2708182, 3.4474576, 3.5424592, 4.163602, 4.676849, 5.024178, 5.716104, 5.943478, 5.9409227, 6.1862326, 6.5754333, 6.9122458, 7.402808, 7.254368, 7.208675, 7.1429467, 7.4805737, 8.572699, 8.687278, 8.679935, 9.188217, 9.02457, 9.239476, 9.7481365, 9.874684, 9.989573, 10.282968, 10.404163, 9.89672, 9.863184, 9.999861, 11.050143, 11.947732, 12.149928, 13.060889, 12.37021, 12.426103, 12.05088, 12.322423, 11.858118, 12.527555, 12.99643, 12.651974, 12.548302, 12.856269, 12.49212, 13.199042, 14.861473, 15.218309, 15.0762205, 14.55052, 14.172544, 14.149316, 14.312473, 14.873864, 14.897784, 15.02236, 15.347678, 15.443308, 15.314459, 15.212103, 15.429744, 16.22531, 16.22852, 16.40659, 16.026121, 14.542221, 14.651858, 15.516982, 15.76536, 15.728243, 15.802177, 15.948814, 16.170656, 16.256592, 16.084774, 15.822713, 15.544297, 15.824153, 16.700577, 17.324608, 17.100573, 17.149168, 17.03482, 16.79577, 16.767769, 16.625599, 17.025183, 16.8911, 17.02056, 16.668236, 16.86177, 16.63118, 17.756495, 17.336924, 17.380493, 17.384699, 17.192852, 16.60732
-disc_train_loss: 5.5611715, 0.5122117, 0.20857859, 0.25897297, 0.18551418, 0.14322616, 0.10184222, 0.07461764, 0.0762715, 0.05843197, 0.043697204, 0.05679878, 0.050208855, 0.068154134, 0.04341007, 0.042633288, 0.053714316, 0.035776448, 0.04612996, 0.022880033, 0.022485487, 0.022125036, 0.023154344, 0.025273398, 0.011717273, 0.027514422, 0.019634213, 0.015802871, 0.016036035, 0.018104056, 0.018031191, 0.01130297, 0.013146137, 0.008856899, 0.010108042, 0.008617019, 0.004607048, 0.0076604798, 0.009684525, 0.012640387, 0.0068310387, 0.0023873616, 0.004852511, 0.0038386995, 0.0048238407, 0.0064422335, 0.009660865, 0.008469212, 0.009117013, 0.0014238225, 0.0018158281, 0.0010788625, 0.0021286148, 0.00072560005, 0.0046705557, 0.0043259645, 0.006063701, 0.005403701, 0.0047282963, 0.0025898141, 0.0044526868, 0.0013174126, 0.0023315982, 0.0031612387, 0.009877171, 0.006072585, 0.00038556522, 0.0018128917, 0.001182403, 0.00059999456, 0.0013322243, 0.0021303224, 0.0015727452, 0.0053303167, 0.006028541, 0.0042226566, 0.0026942862, 0.0054216716, 0.0016561527, 0.00017565326, 0.0019172193, 0.00016553528, 0.0026813678, 0.00015765775, 0.0064733233, 0.00040399618, 0.0020124472, 0.002059913, 0.0003394199, 0.002896267, 0.00655305, 6.978542e-05, 0.00043558885, 0.0013230367, 0.00057056826, 0.0023050832, 0.0002615065, 5.547328e-05, 0.0025336666, 0.0010804735, 0.0023031947, 5.575994, 0.22397512, 0.009703333, 0.0017146614, 0.00094447914, 0.0119920205, 0.00083688775, 0.0049728383, 0.0067785135, 0.00142119, 0.00030440858, 0.0049908934, 0.004892172, 0.00096849725, 0.000491242, 0.0010880185, 0.0021558567, 0.0003122543, 0.0018047356, 0.00496174, 0.00034872067, 0.00026683422, 0.00037667638, 3.9308663e-05, 0.0020009826, 0.004903212, 0.00012503639, 0.0017890431, 0.0021915485, 0.004334061, 0.00040799295, 4.622104e-05, 3.2992597e-05, 0.0013112021, 0.0005952073, 0.0016315957, 0.0024591784, 7.80752e-05, 0.0013754639, 0.00021617408, 0.00016245176, 0.0004887387, 0.0015244132, 1.809253e-05, 1.4173491e-05, 0.000329677, 0.002770791, 4.76003e-05, 0.00025815587, 0.0049706833, 9.027811e-05, 0.00021211973, 0.0006140403, 0.002764176, 0.00036959426, 0.00072269875, 1.8835919e-05, 1.8101136e-05, 0.00014137039, 1.9968222e-05, 0.0037506619, 0.00080036966, 0.0008813126, 0.0047119292, 9.8273245e-05, 5.1323528e-05, 5.281478e-06, 0.0011584766, 0.00034196608, 0.00011432516, 0.0005627983, 2.87769e-05, 1.2163215e-05, 0.00067268306, 0.00035302283, 6.1002797e-06, 6.056532e-06, 0.00194337, 5.7323872e-05, 0.0006553913, 1.6074988e-05, 0.0007736755, 0.0002619404, 2.1360152e-05, 9.017667e-06, 2.1277678e-05, 5.8301184e-06, 1.9012479e-06, 1.6023208e-05, 0.0003828102, 2.060837e-06, 1.4794271e-05, 0.0013994535, 0.0032936917, 0.0015534004, 7.6544224e-05, 1.7424582e-06, 5.0730483e-05, 6.463378e-06, 0.00023221194, 3.0599127e-05
-disc_train_acc: 0.0, 0.9107673267326732, 0.9392326732673267, 0.9195544554455446, 0.9428217821782178, 0.9539603960396039, 0.9648514851485148, 0.9764851485148515, 0.9763613861386139, 0.9819306930693069, 0.9873762376237624, 0.9814356435643564, 0.9827970297029703, 0.9784653465346534, 0.9853960396039604, 0.9860148514851486, 0.9818069306930693, 0.9873762376237624, 0.9818069306930693, 0.9918316831683168, 0.9917079207920793, 0.9925742574257426, 0.9915841584158416, 0.9917079207920793, 0.9955445544554455, 0.9910891089108911, 0.9931930693069307, 0.996039603960396, 0.9955445544554455, 0.9943069306930693, 0.9948019801980198, 0.996039603960396, 0.995420792079208, 0.9969059405940595, 0.9967821782178218, 0.9976485148514852, 0.9987623762376238, 0.9976485148514852, 0.9971534653465347, 0.9969059405940595, 0.9977722772277228, 0.9993811881188119, 0.9986386138613862, 0.999009900990099, 0.9982673267326733, 0.998019801980198, 0.9969059405940595, 0.9969059405940595, 0.9972772277227723, 0.9996287128712872, 0.9993811881188119, 0.9995049504950495, 0.999009900990099, 0.9998762376237624, 0.9986386138613862, 0.9988861386138614, 0.9981435643564357, 0.9985148514851485, 0.999009900990099, 0.9992574257425743, 0.998391089108911, 0.9995049504950495, 0.9995049504950495, 0.9987623762376238, 0.9977722772277228, 0.9991336633663367, 1.0, 0.9995049504950495, 0.9996287128712872, 0.9998762376237624, 0.9995049504950495, 0.9993811881188119, 0.9995049504950495, 0.9985148514851485, 0.9988861386138614, 0.9985148514851485, 0.9991336633663367, 0.9986386138613862, 0.9996287128712872, 1.0, 0.9991336633663367, 1.0, 0.9991336633663367, 1.0, 0.9977722772277228, 0.9998762376237624, 0.9993811881188119, 0.999009900990099, 1.0, 0.9995049504950495, 0.9991336633663367, 1.0, 0.9998762376237624, 0.9996287128712872, 0.9997524752475248, 0.9995049504950495, 1.0, 1.0, 0.9995049504950495, 0.9996287128712872, 0.9993811881188119, 0.05965346534653465, 0.9845297029702971, 0.9988861386138614, 1.0, 1.0, 0.9969059405940595, 1.0, 0.9987623762376238, 0.9981435643564357, 0.9997524752475248, 1.0, 0.9985148514851485, 0.998391089108911, 0.9997524752475248, 1.0, 0.9996287128712872, 0.9996287128712872, 1.0, 0.9993811881188119, 0.998019801980198, 0.9998762376237624, 1.0, 1.0, 1.0, 0.9992574257425743, 0.9986386138613862, 1.0, 0.9991336633663367, 0.9996287128712872, 0.9985148514851485, 0.9998762376237624, 1.0, 1.0, 0.9996287128712872, 0.9997524752475248, 0.9993811881188119, 0.999009900990099, 1.0, 0.9996287128712872, 0.9998762376237624, 0.9998762376237624, 0.9998762376237624, 0.9996287128712872, 1.0, 1.0, 0.9998762376237624, 0.9996287128712872, 1.0, 0.9998762376237624, 0.999009900990099, 1.0, 1.0, 0.9997524752475248, 0.999009900990099, 0.9998762376237624, 0.9997524752475248, 1.0, 1.0, 1.0, 1.0, 0.999009900990099, 0.9997524752475248, 0.9997524752475248, 0.9991336633663367, 1.0, 1.0, 1.0, 0.9995049504950495, 0.9998762376237624, 1.0, 0.9997524752475248, 1.0, 1.0, 0.9997524752475248, 0.9998762376237624, 1.0, 1.0, 0.9992574257425743, 1.0, 0.9996287128712872, 1.0, 0.9996287128712872, 0.9998762376237624, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9998762376237624, 1.0, 1.0, 0.9995049504950495, 0.9991336633663367, 0.9995049504950495, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
-gen_val_loss: 0.019758703, 2.6411147, 3.1119452, 3.0379894, 4.446616, 5.8129144, 3.7220652, 4.304258, 4.680233, 4.2561417, 5.286981, 6.5177603, 11.465573, 7.2426443, 7.6639624, 5.9599094, 6.2430515, 5.682639, 8.061711, 5.115519, 7.602053, 11.865521, 6.216358, 7.4382505, 7.729998, 11.954341, 8.779384, 13.0213995, 8.492714, 7.433298, 7.770406, 9.917009, 9.691946, 8.682157, 9.619574, 9.926307, 14.08135, 10.322397, 10.394581, 9.286358, 11.353717, 10.777244, 17.1766, 6.917303, 19.221758, 18.335686, 12.339654, 12.805579, 9.272402, 12.707017, 11.942009, 16.091774, 15.429879, 19.69678, 18.202187, 15.410263, 10.490431, 13.024472, 12.561502, 9.108266, 9.983175, 12.08148, 16.361462, 9.25034, 11.811234, 14.345364, 10.219139, 15.645705, 15.191483, 15.686722, 16.16812, 36.191387, 19.119564, 20.005606, 12.942223, 10.226024, 14.446469, 11.964831, 11.460821, 12.286625, 11.336455, 11.700575, 11.69056, 12.419482, 12.508894, 11.041588, 23.631622, 14.341649, 14.531545, 11.294324, 13.807808, 16.539917, 23.14185, 9.1135435, 15.723137, 10.781958, 12.977536, 12.513364, 10.807241, 12.594146, 9.771464, 0.75544715, 2.2356637, 2.6335359, 2.7027392, 2.5412188, 3.7383657, 4.0533514, 4.6623487, 4.275085, 4.4272723, 4.3122697, 4.6678867, 4.9763126, 5.3341002, 6.0402403, 5.4108915, 5.846806, 4.3890743, 5.5068765, 6.547218, 6.7086415, 7.4257145, 6.8988605, 7.0444098, 8.274451, 7.1759257, 7.218032, 7.510013, 7.9893565, 8.184084, 6.4276905, 7.3265676, 6.9594975, 9.460898, 7.7968836, 11.063459, 11.564793, 10.703239, 10.181035, 9.2958975, 9.148449, 8.498633, 10.725287, 8.544814, 8.189278, 8.628718, 9.273656, 9.917421, 12.071165, 10.822443, 11.304817, 10.944142, 9.6179695, 11.574793, 8.627737, 11.216791, 10.844871, 10.322175, 10.600091, 10.737214, 11.634894, 10.625218, 9.879668, 11.431674, 10.565121, 10.4802, 10.534189, 7.9096956, 8.061446, 9.495326, 11.5781145, 9.932615, 9.641766, 11.368552, 10.910443, 11.362387, 9.879557, 11.588785, 10.192452, 10.552072, 10.297327, 11.486722, 12.296174, 12.27283, 10.991533, 10.990201, 11.137267, 12.317692, 11.320172, 12.429166, 11.24404, 10.918765, 10.2930975, 11.843816, 13.282678, 11.414964, 10.617872, 11.670338, 11.215808, 12.42023, 9.241955
-disc_val_loss: 5.5615115, 0.077750735, 0.07745773, 0.059568536, 0.032126322, 0.008640942, 0.03824953, 0.009407168, 0.007300833, 0.0018765159, 0.006072243, 0.005910879, 0.018906549, 0.18007264, 0.0018160786, 0.0013028682, 0.0037740539, 0.0021901114, 0.00060490996, 0.00012024039, 0.0016348085, 0.51128525, 0.027276522, 0.0002274733, 0.00018384792, 0.14107521, 0.00029409517, 0.00044802262, 6.8594534e-05, 0.0009948219, 5.9970327e-05, 0.0007715634, 0.0005937475, 0.00018734089, 0.00016059607, 0.00012606454, 0.0001778013, 0.00010512716, 3.7328056e-05, 3.9313392e-05, 0.0001137213, 4.5450717e-05, 0.00029637734, 6.759674e-06, 0.0019702096, 0.00020784678, 0.00029355503, 0.00012363443, 7.806568e-06, 3.19429e-05, 2.1663049e-05, 2.138249e-05, 4.3754437e-05, 0.00026191483, 0.0011108518, 7.467334e-05, 2.3710107e-05, 1.908584e-05, 3.2262316e-05, 1.1469629e-05, 2.664509e-06, 6.3382877e-06, 7.466181e-06, 4.430058e-05, 1.7150426e-06, 4.680352e-06, 1.5253131e-05, 1.165834e-06, 3.0112358e-06, 6.30613e-06, 1.6201376e-06, 4.5364823e-06, 1.2159782e-06, 1.0631826e-06, 2.1594105e-06, 8.5799925e-08, 3.7483488e-07, 1.8573226e-07, 2.4811595e-07, 9.52018e-08, 1.1246132e-06, 1.3109465e-07, 8.260682e-08, 4.8428767e-08, 1.2535892e-07, 9.2659164e-08, 2.369993e-07, 5.6038937e-07, 6.8888276e-08, 1.7331456e-07, 3.9677293e-08, 1.1175863e-07, 1.1589787e-07, 1.2535896e-08, 1.3085815e-07, 2.0045608e-08, 7.2554435e-08, 6.681869e-09, 3.2936292e-08, 3.8258136e-08, 6.5636057e-09, 5.5695558, 0.0037381214, 0.00038571126, 0.0002536321, 6.543422e-05, 8.293682e-05, 2.1573855e-05, 5.5672634e-05, 2.7766764e-05, 1.2321903e-05, 7.092884e-06, 1.4083235e-05, 3.1179276e-05, 7.372807e-06, 2.7824744e-06, 1.9995885e-05, 2.467588e-06, 1.1701532e-06, 0.00014484244, 3.0336107e-06, 7.4978766e-07, 6.1479034e-07, 4.1575333e-07, 2.3611224e-07, 3.550354e-06, 4.776044e-07, 1.5527954e-07, 8.4055387e-07, 3.4704297e-07, 1.0981869e-06, 4.528292e-07, 1.5320987e-07, 4.414158e-07, 2.866104e-07, 6.427602e-08, 6.5434796e-07, 2.805201e-07, 2.760851e-07, 3.0435007e-07, 5.0853163e-08, 2.3569828e-07, 9.999151e-08, 1.0513595e-07, 9.839494e-08, 9.242265e-08, 1.2535891e-07, 5.108969e-08, 1.6095605e-07, 1.04840275e-07, 1.270737e-07, 7.4505797e-09, 5.913159e-11, 2.3179581e-08, 1.4901159e-08, 1.5965528e-08, 5.913159e-11, 0.0, 0.0, 7.2140534e-09, 0.0, 6.634563e-08, 5.966374e-08, 4.0682522e-08, 1.5427415e-07, 2.8560555e-08, 6.6227375e-09, 1.1235002e-09, 6.563606e-09, 0.0, 1.3363738e-08, 1.980908e-08, 0.0, 0.0, 1.2417634e-09, 5.913159e-10, 0.0, 3.8317264e-08, 1.3127211e-08, 1.1826318e-10, 0.0, 0.0, 2.60179e-09, 3.0157108e-09, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.751475e-09, 0.0, 4.4940002e-08, 0.0, 1.7739477e-10, 0.0, 0.0, 0.0, 0.0, 5.913159e-11
-disc_val_acc: 0.0, 0.9945436507936508, 0.9945436507936508, 1.0, 1.0, 1.0, 0.9930555555555556, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8953373015873016, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.8864087301587301, 1.0, 1.0, 1.0, 0.9424603174603174, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.07390873015873016, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+gen_train_loss: 0.017465893, 3.915103, 5.359791, 6.1232867, 6.422283, 6.778576, 7.0762687, 7.385945, 7.511315, 7.5624566, 7.7609596, 7.970894, 8.125742, 8.725919, 9.2088585, 9.3916855, 9.883738, 10.020084, 10.356579, 10.497956, 11.149219, 11.9213295, 12.468105, 12.399582, 12.615928, 13.380621, 13.648167, 13.526952, 14.93153, 15.466533, 16.517145, 16.794031, 16.444252, 16.057573, 16.227089, 16.450352, 17.43786, 17.86974, 17.687178, 18.021996, 17.66883, 17.855276, 17.653025, 17.574366, 17.520292, 17.981894, 18.033323, 18.254786, 18.506, 18.84505, 18.591366, 18.864815, 19.249887, 19.485132, 19.74276, 19.103647, 19.36562, 19.534061, 19.725288, 20.054394, 21.176226, 20.390657, 20.88933, 21.049458, 21.361412, 21.219856, 21.031046, 20.823439, 20.571106, 20.62096, 21.473932, 20.86941, 20.60384, 20.650803, 20.291166, 20.748623, 20.656572, 20.607208, 21.058195, 21.022537, 21.382975, 21.38699, 21.40211, 21.182783, 20.824425, 21.041313, 20.831566, 20.677591, 21.086899, 21.289839, 21.238892, 20.484928, 21.053051, 20.85598, 20.268553, 20.33169, 20.447805, 20.80666, 21.002544, 20.440088, 20.262842, 0.018100196, 3.6775413, 4.908653, 5.5429354, 5.7819376, 6.070267, 6.728553, 7.0716615, 7.1919746, 7.496708, 7.477155, 7.16317, 7.5851293, 7.6821494, 8.099609, 8.43827, 8.41461, 8.960338, 9.1525955, 9.435323, 9.897832, 10.108103, 9.910032, 9.973559, 10.027574, 10.473286, 11.020243, 11.226613, 11.61745, 11.487653, 11.6286335, 11.678376, 11.709267, 11.823549, 12.1685295, 12.635714, 12.72229, 13.011059, 13.172666, 13.456501, 13.608423, 13.781542, 13.882265, 14.224946, 14.885089, 14.99759, 14.948076, 14.899067, 15.079775, 15.148202, 14.830742, 15.558085, 15.610873, 15.0033045, 15.501172, 15.892296, 16.065472, 16.002419, 16.503017, 16.62633, 17.029787, 17.19856, 17.028044, 17.391851, 16.851025, 17.273287, 16.938627, 16.940191, 17.14416, 17.293352, 17.517384, 17.518677, 17.82297, 18.081526, 18.139631, 18.055534, 18.551283, 18.903831, 19.12416, 18.65429, 19.177088, 19.239477, 19.724628, 19.193012, 19.001272, 18.712399, 19.041534, 19.042456, 19.550924, 20.339365, 19.613447, 19.646832, 20.032444, 20.366669, 20.375034, 19.541836, 20.04105, 19.637276, 19.834742, 19.952255, 19.908754
+disc_train_loss: 5.549591, 1.3360267, 0.47511926, 0.3436792, 0.27859452, 0.26534748, 0.23966871, 0.21985598, 0.22690952, 0.18341644, 0.19174926, 0.19230376, 0.17956884, 0.16799966, 0.14860587, 0.13126352, 0.15552475, 0.15761939, 0.13105054, 0.13568904, 0.13098845, 0.1315735, 0.1290503, 0.116363235, 0.12276954, 0.123682804, 0.1115701, 0.11749535, 0.10924785, 0.11100927, 0.1018547, 0.111782566, 0.11344695, 0.095632516, 0.09177675, 0.09777222, 0.092829846, 0.088303745, 0.0904583, 0.09177679, 0.08424382, 0.07714309, 0.0878833, 0.08168051, 0.08340695, 0.075717665, 0.08185212, 0.086831495, 0.07580806, 0.07287904, 0.07870535, 0.06637685, 0.08220758, 0.07103909, 0.07222977, 0.07354433, 0.0694536, 0.07657911, 0.06857457, 0.07217313, 0.07333897, 0.06694848, 0.07235697, 0.055669274, 0.07463365, 0.05937065, 0.06810823, 0.0752082, 0.05757061, 0.061033342, 0.06529443, 0.061487306, 0.06143135, 0.047937457, 0.07449291, 0.059174106, 0.06326708, 0.05487957, 0.06473869, 0.0532951, 0.070082605, 0.05883564, 0.063105196, 0.05076837, 0.055332772, 0.052032016, 0.056849528, 0.053410932, 0.058384992, 0.051421855, 0.059696026, 0.050160673, 0.049992785, 0.055234745, 0.05950347, 0.051932737, 0.05023499, 0.05354743, 0.03839709, 0.0503911, 0.056449525, 5.542061, 1.3224822, 0.47654638, 0.3379635, 0.29153284, 0.2529349, 0.25708795, 0.2201324, 0.19715099, 0.1942019, 0.19003154, 0.16112779, 0.1756617, 0.1547248, 0.16331747, 0.15213937, 0.14647096, 0.14539066, 0.14366414, 0.13019374, 0.13004716, 0.13275065, 0.11928067, 0.11813701, 0.12735133, 0.11588082, 0.12076815, 0.10822381, 0.1068441, 0.1027333, 0.10100211, 0.1026367, 0.101743795, 0.10020211, 0.10051834, 0.09183855, 0.09860909, 0.095389955, 0.087962344, 0.09293946, 0.09531117, 0.08074074, 0.079260774, 0.07382814, 0.086060695, 0.078832954, 0.084601946, 0.08294546, 0.08519772, 0.06757698, 0.0765766, 0.0842904, 0.08889053, 0.068607785, 0.07058113, 0.073746316, 0.08466522, 0.07165548, 0.08000068, 0.06591437, 0.067491144, 0.06546803, 0.07510448, 0.06215241, 0.07288318, 0.06861835, 0.066655785, 0.06297522, 0.05531746, 0.053213805, 0.057234984, 0.07056617, 0.0639454, 0.058249697, 0.0693912, 0.059809882, 0.05800519, 0.05473149, 0.056421638, 0.054352183, 0.06044199, 0.053925283, 0.06707309, 0.051393457, 0.0736997, 0.054351293, 0.048786685, 0.05291152, 0.056511827, 0.058299094, 0.05245138, 0.05702391, 0.050050125, 0.047528084, 0.04844359, 0.045889586, 0.052165236, 0.050020184, 0.05779043, 0.050415967, 0.045768913
+disc_train_acc: 0.0, 0.5897277227722773, 0.8474009900990099, 0.8851485148514852, 0.9110148514851485, 0.9090346534653465, 0.9201732673267327, 0.9262376237623763, 0.9246287128712871, 0.9352722772277228, 0.9327970297029703, 0.93490099009901, 0.94009900990099, 0.9446782178217822, 0.9523514851485149, 0.9548267326732673, 0.9443069306930693, 0.9475247524752475, 0.9560643564356436, 0.9560643564356436, 0.9573019801980198, 0.9537128712871287, 0.9577970297029703, 0.9601485148514851, 0.9594059405940594, 0.9591584158415841, 0.9606435643564356, 0.9587871287128713, 0.9641089108910891, 0.9613861386138614, 0.9647277227722773, 0.9638613861386138, 0.9594059405940594, 0.9655940594059406, 0.968069306930693, 0.9665841584158416, 0.9641089108910891, 0.9685643564356435, 0.968069306930693, 0.9676980198019802, 0.9701732673267327, 0.9702970297029703, 0.968069306930693, 0.9714108910891089, 0.9709158415841584, 0.9721534653465347, 0.9731435643564357, 0.9711633663366337, 0.974009900990099, 0.9726485148514852, 0.9717821782178218, 0.9761138613861386, 0.9715346534653465, 0.9761138613861386, 0.9741336633663367, 0.9752475247524752, 0.9764851485148515, 0.9726485148514852, 0.9764851485148515, 0.9751237623762377, 0.9745049504950495, 0.9767326732673267, 0.9746287128712872, 0.9794554455445544, 0.9737623762376237, 0.9782178217821782, 0.9773514851485149, 0.9737623762376237, 0.9795792079207921, 0.9780940594059406, 0.9782178217821782, 0.9793316831683169, 0.9775990099009901, 0.9832920792079208, 0.9746287128712872, 0.9792079207920792, 0.9778465346534654, 0.9805693069306931, 0.9771039603960396, 0.9801980198019802, 0.9768564356435644, 0.9793316831683169, 0.9788366336633664, 0.9824257425742574, 0.9793316831683169, 0.9818069306930693, 0.9778465346534654, 0.9804455445544554, 0.9805693069306931, 0.9821782178217822, 0.9774752475247525, 0.9816831683168317, 0.9820544554455446, 0.9821782178217822, 0.9793316831683169, 0.9816831683168317, 0.9820544554455446, 0.9815594059405941, 0.9853960396039604, 0.9842821782178218, 0.9810643564356436, 0.0, 0.5935643564356435, 0.8422029702970297, 0.8902227722772277, 0.9042079207920792, 0.9157178217821782, 0.9173267326732674, 0.925990099009901, 0.9371287128712872, 0.9330445544554455, 0.9393564356435643, 0.943069306930693, 0.9405940594059405, 0.9516089108910891, 0.9466584158415842, 0.948019801980198, 0.9488861386138614, 0.9507425742574257, 0.9521039603960396, 0.9563118811881188, 0.9577970297029703, 0.9551980198019802, 0.9586633663366336, 0.9616336633663366, 0.9597772277227723, 0.9603960396039604, 0.9585396039603961, 0.9625, 0.9638613861386138, 0.9662128712871287, 0.968069306930693, 0.9629950495049505, 0.9637376237623763, 0.9659653465346535, 0.9650990099009901, 0.9683168316831683, 0.9676980198019802, 0.9673267326732673, 0.970049504950495, 0.9662128712871287, 0.9683168316831683, 0.9714108910891089, 0.971039603960396, 0.9733910891089109, 0.9717821782178218, 0.9709158415841584, 0.9695544554455445, 0.9702970297029703, 0.9699257425742575, 0.9764851485148515, 0.9726485148514852, 0.9705445544554455, 0.9686881188118812, 0.9751237623762377, 0.9751237623762377, 0.9742574257425742, 0.9705445544554455, 0.9724009900990099, 0.9737623762376237, 0.9774752475247525, 0.9763613861386139, 0.977970297029703, 0.9738861386138614, 0.9789603960396039, 0.9735148514851485, 0.9773514851485149, 0.975, 0.9778465346534654, 0.9819306930693069, 0.9798267326732674, 0.9800742574257426, 0.9756188118811882, 0.9775990099009901, 0.977970297029703, 0.9756188118811882, 0.9795792079207921, 0.9788366336633664, 0.9809405940594059, 0.9805693069306931, 0.9804455445544554, 0.9784653465346534, 0.9806930693069307, 0.9763613861386139, 0.9829207920792079, 0.9758663366336634, 0.9814356435643564, 0.9831683168316832, 0.9804455445544554, 0.9798267326732674, 0.9788366336633664, 0.9806930693069307, 0.9788366336633664, 0.9825495049504951, 0.9820544554455446, 0.9818069306930693, 0.9835396039603961, 0.9819306930693069, 0.9814356435643564, 0.9784653465346534, 0.9820544554455446, 0.9831683168316832
+gen_val_loss: 0.016667297, 4.925635, 4.2505674, 8.210184, 5.1402287, 5.8560047, 8.014394, 6.1189947, 5.7750382, 9.759907, 8.911359, 10.480018, 7.5078, 6.7395844, 7.723098, 6.3017983, 7.0546823, 8.821914, 7.139569, 11.046736, 10.75118, 12.579869, 12.234857, 13.592762, 12.686326, 21.630947, 13.631503, 13.36135, 9.400121, 13.927616, 15.655143, 14.579443, 15.031311, 12.956967, 15.0595045, 15.201976, 16.752146, 20.767643, 21.772957, 12.74014, 19.233583, 12.198323, 15.33354, 20.955286, 17.959387, 13.658522, 21.317303, 12.064492, 15.982727, 21.675825, 13.708792, 23.016771, 15.166815, 19.146696, 15.063337, 15.439414, 17.898617, 17.723343, 15.837041, 17.214922, 16.194221, 18.668812, 23.07856, 19.576004, 16.060272, 12.234263, 24.239513, 20.610504, 28.314623, 15.69535, 14.804232, 12.705679, 15.992057, 17.136566, 22.67824, 19.446482, 15.522743, 17.416601, 20.567953, 20.338623, 18.065365, 15.811594, 24.228315, 22.461933, 22.997303, 15.098549, 24.904915, 20.91807, 14.493197, 16.364115, 23.633938, 16.074224, 16.08741, 16.837143, 15.64648, 18.557882, 16.7631, 17.686737, 14.795434, 14.404691, 29.89829, 0.017171964, 5.079787, 6.986336, 6.808677, 5.6960187, 7.8110633, 4.8258457, 6.9699264, 7.6939235, 8.085631, 5.877345, 8.51126, 6.2680345, 6.3179665, 6.2138553, 10.97687, 11.619981, 8.781651, 9.902598, 11.296499, 11.630225, 7.791545, 13.007236, 11.910486, 9.595809, 9.870242, 10.053329, 13.828928, 14.298131, 8.988095, 11.624245, 12.891351, 11.186227, 10.847013, 16.806074, 9.7276945, 9.394194, 11.835873, 14.718118, 13.502487, 16.644705, 16.840199, 14.16997, 15.598033, 14.008818, 16.82114, 13.976321, 14.714953, 10.181169, 14.546229, 23.52714, 17.130285, 14.978234, 13.617295, 17.357208, 18.948835, 21.826996, 16.726349, 17.763517, 16.38169, 14.495442, 15.034926, 13.98712, 15.693606, 26.744875, 15.173442, 13.456769, 13.486574, 10.6769705, 14.285483, 20.415022, 20.394487, 14.774529, 14.914551, 29.775814, 17.234312, 15.4533415, 24.663437, 12.275533, 19.047237, 16.529366, 22.552298, 16.884804, 15.858965, 12.600036, 15.272546, 24.447742, 14.528476, 13.739999, 19.401731, 25.519735, 19.462234, 16.839592, 20.348606, 19.967907, 17.555328, 19.340406, 18.806381, 15.449928, 20.146816, 23.076326
+disc_val_loss: 5.5523176, 2.5600905, 0.8639209, 1.3382838, 0.74151844, 1.4709806, 1.1345569, 1.5772299, 0.40081233, 3.4698524, 0.7623847, 4.508161, 0.57705307, 0.13639009, 0.9461669, 2.3974693, 0.41815588, 0.56746906, 0.42741773, 0.49227577, 0.3081923, 1.3629926, 0.20846026, 0.5603758, 0.6530965, 2.1543024, 0.40881288, 0.6401487, 0.14914691, 0.08537866, 0.16256449, 0.15835121, 0.7205155, 0.04790979, 0.22643448, 0.15851073, 0.21819052, 0.66081953, 2.2278516, 0.0629691, 0.8247781, 0.11515096, 0.12843736, 1.4283112, 1.5619378, 0.23354764, 3.9428723, 0.030870495, 0.14934266, 3.3645415, 0.047056098, 0.38575518, 0.16763252, 0.22243059, 0.11697554, 0.026392309, 0.1330982, 0.26791123, 0.04905136, 0.101452805, 0.14022027, 0.14336905, 0.325764, 0.53220934, 0.2036549, 0.17797801, 1.2972687, 1.2463837, 2.5032573, 0.029343836, 0.09428618, 0.23913613, 0.09051301, 0.03850209, 0.339486, 0.069458425, 0.06313546, 0.066069424, 0.7743636, 0.15323383, 0.06127911, 0.23533577, 0.7749133, 1.3148426, 0.9198271, 0.062348757, 0.91776097, 0.06267202, 0.121269576, 0.040895786, 0.523134, 0.7766852, 0.07745434, 0.1671921, 0.030203601, 0.6331275, 0.03768678, 0.018571863, 0.020616729, 0.030198231, 0.59615976, 5.5420732, 2.492341, 1.9154705, 1.9603481, 0.9328407, 3.2532477, 2.0045009, 0.9249822, 3.4847202, 1.3541857, 0.4233324, 0.729473, 0.63950545, 2.2228146, 0.59125, 3.3948758, 1.468594, 1.220788, 1.4914796, 4.28534, 3.6923, 0.317091, 1.2913477, 1.3895314, 1.0472003, 1.8711388, 0.73439246, 1.9993641, 1.459912, 0.6173007, 0.23342036, 3.115723, 1.1140757, 0.26643237, 1.6423099, 1.5568159, 0.29970846, 0.77591723, 1.526123, 2.4837754, 4.1713505, 1.528488, 0.6503049, 0.368101, 2.1890466, 1.7502352, 0.061735407, 0.70227665, 0.05804385, 2.6339216, 1.7337476, 1.2182968, 0.45830742, 1.2025967, 1.8203973, 1.1591312, 3.997149, 0.10086407, 1.2513291, 0.25518063, 0.66822064, 0.88068306, 0.40414992, 0.16367717, 5.6373124, 0.03356161, 0.45558226, 0.20294914, 0.11769337, 0.069810525, 2.617886, 3.0577254, 0.45125297, 1.8139049, 3.1697388, 0.07314877, 0.738486, 2.8589792, 0.0341536, 1.4338789, 0.024847707, 0.18894225, 0.27940613, 0.12148713, 0.021512048, 0.024957595, 0.8878342, 0.25300393, 0.19184764, 7.548406, 0.93056196, 2.380777, 0.06942803, 1.1594847, 0.15433232, 0.049555402, 0.34994215, 1.4266353, 0.08820534, 3.742765, 1.8966055
+disc_val_acc: 0.0, 0.2698412698412698, 0.7063492063492064, 0.6036706349206349, 0.7395833333333334, 0.5629960317460317, 0.6423611111111112, 0.5024801587301587, 0.8467261904761905, 0.3343253968253968, 0.7366071428571429, 0.27728174603174605, 0.7931547619047619, 0.9588293650793651, 0.7058531746031746, 0.5114087301587301, 0.8308531746031746, 0.7941468253968254, 0.8377976190476191, 0.8283730158730159, 0.8705357142857143, 0.621031746031746, 0.9131944444444444, 0.7976190476190477, 0.7658730158730159, 0.6413690476190477, 0.847718253968254, 0.8010912698412699, 0.9389880952380952, 0.96875, 0.9444444444444444, 0.9424603174603174, 0.7316468253968254, 0.9816468253968254, 0.9161706349206349, 0.939484126984127, 0.9171626984126984, 0.8194444444444444, 0.6101190476190477, 0.9751984126984127, 0.7862103174603174, 0.9538690476190477, 0.9538690476190477, 0.6815476190476191, 0.6096230158730159, 0.9087301587301587, 0.4826388888888889, 0.9895833333333334, 0.9439484126984127, 0.6130952380952381, 0.9811507936507936, 0.8581349206349206, 0.935515873015873, 0.9161706349206349, 0.9523809523809523, 0.9915674603174603, 0.9499007936507936, 0.9087301587301587, 0.9831349206349206, 0.9652777777777778, 0.9459325396825397, 0.9469246031746031, 0.8784722222222222, 0.8288690476190477, 0.9250992063492064, 0.9350198412698413, 0.6845238095238095, 0.7271825396825397, 0.5927579365079365, 0.9880952380952381, 0.9627976190476191, 0.9057539682539683, 0.9637896825396826, 0.9846230158730159, 0.8923611111111112, 0.9722222222222222, 0.9791666666666666, 0.9747023809523809, 0.8660714285714286, 0.935515873015873, 0.9776785714285714, 0.9151785714285714, 0.8452380952380952, 0.7390873015873016, 0.7415674603174603, 0.9836309523809523, 0.8020833333333334, 0.9781746031746031, 0.9593253968253969, 0.9861111111111112, 0.8363095238095238, 0.873015873015873, 0.9717261904761905, 0.9360119047619048, 0.9875992063492064, 0.8343253968253969, 0.9866071428571429, 0.9930555555555556, 0.9940476190476191, 0.9885912698412699, 0.8571428571428571, 0.0, 0.28422619047619047, 0.4801587301587302, 0.44246031746031744, 0.6641865079365079, 0.310515873015873, 0.42212301587301587, 0.6463293650793651, 0.33779761904761907, 0.5739087301587301, 0.8263888888888888, 0.716765873015873, 0.7490079365079365, 0.47619047619047616, 0.7663690476190477, 0.46130952380952384, 0.6641865079365079, 0.6865079365079365, 0.5763888888888888, 0.35813492063492064, 0.3551587301587302, 0.8953373015873016, 0.6795634920634921, 0.6185515873015873, 0.6691468253968254, 0.5694444444444444, 0.7217261904761905, 0.5952380952380952, 0.6438492063492064, 0.8115079365079365, 0.9171626984126984, 0.4513888888888889, 0.6666666666666666, 0.9002976190476191, 0.6443452380952381, 0.6364087301587301, 0.8834325396825397, 0.7574404761904762, 0.6964285714285714, 0.5357142857142857, 0.4677579365079365, 0.6096230158730159, 0.8571428571428571, 0.878968253968254, 0.5719246031746031, 0.6011904761904762, 0.9791666666666666, 0.7886904761904762, 0.9816468253968254, 0.5982142857142857, 0.6607142857142857, 0.7311507936507936, 0.8511904761904762, 0.6478174603174603, 0.6205357142857143, 0.7579365079365079, 0.5610119047619048, 0.964781746031746, 0.7028769841269841, 0.9122023809523809, 0.7693452380952381, 0.7108134920634921, 0.8591269841269841, 0.9305555555555556, 0.49503968253968256, 0.9866071428571429, 0.8551587301587301, 0.9260912698412699, 0.9533730158730159, 0.9766865079365079, 0.5178571428571429, 0.529265873015873, 0.8492063492063492, 0.5902777777777778, 0.6532738095238095, 0.9751984126984127, 0.8273809523809523, 0.5793650793650794, 0.9871031746031746, 0.6319444444444444, 0.9925595238095238, 0.9315476190476191, 0.9057539682539683, 0.9548611111111112, 0.9925595238095238, 0.9915674603174603, 0.7703373015873016, 0.8953373015873016, 0.9300595238095238, 0.44345238095238093, 0.7559523809523809, 0.6031746031746031, 0.9761904761904762, 0.7390873015873016, 0.9518849206349206, 0.9816468253968254, 0.8849206349206349, 0.6830357142857143, 0.9652777777777778, 0.5104166666666666, 0.652281746031746
 
