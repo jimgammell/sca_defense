@@ -10,7 +10,8 @@
         "extract": true,
         "preprocess": true,
         "delete_download_after_extraction": false,
-        "delete_extracted_after_preprocess": false
+        "delete_extracted_after_preprocess": false,
+        "samples_to_use": 500
     },
     "dataloader_kwargs":
     {
@@ -42,7 +43,7 @@
         "layers": [256],
         "hidden_activation": "ReLU"
     },
-    "discriminator_constructor": "get_google_style_resnet_discriminator",
+    "discriminator_constructor": "get_xdeepsca_discriminator",
     "discriminator_kwargs": {},
     "discriminator_loss_constructor": "CrossEntropyLoss",
     "discriminator_loss_kwargs": {},

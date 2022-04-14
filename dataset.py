@@ -223,7 +223,8 @@ class AesSingleKeyDataset(Dataset):
                  extract=True,
                  preprocess=True,
                  delete_download_after_extraction=False,
-                 delete_extracted_after_preprocess=False):
+                 delete_extracted_after_preprocess=False,
+                 samples_to_use=None):
         super().__init__()
         
         self.key = key
@@ -233,6 +234,7 @@ class AesSingleKeyDataset(Dataset):
         self.keep_data_in_memory = keep_data_in_memory
         self.data_path = data_path
         self.data_filename = 'byte_%x__key_%02x.pickle'%(byte, key)
+        self.samples_to_use = samples_to_use
         
         if download:
             download_dataset(self.data_path)
@@ -259,6 +261,8 @@ class AesSingleKeyDataset(Dataset):
     
     def __getitem__(self, idx):
         plaintext, trace = self.getitem_fn(idx)
+        if self.samples_to_use != None:
+            trace = trace[:self.samples_to_use]
         if self.plaintext_transform:
             plaintext = self.plaintext_transform(plaintext)
         if self.trace_transform:

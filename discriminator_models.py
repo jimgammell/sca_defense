@@ -14,6 +14,21 @@ class Discriminator(nn.Module):
             output = self.output_transform(output)
         return output
 
+# Credit: https://eprint.iacr.org/2019/818.pdf
+def get_xdeepsca_discriminator(input_shape,
+                               dropout_rate=.2):
+    modules = [nn.Flatten(),
+               nn.Linear(in_features=np.prod(input_shape), out_features=200),
+               nn.BatchNorm1d(200),
+               nn.ReLU(),
+               nn.Dropout(p=.2),
+               nn.Linear(in_features=200, out_features=200),
+               nn.BatchNorm1d(200),
+               nn.ReLU(),
+               nn.Linear(in_features=200, out_features=256)]
+    model = nn.Sequential(*modules)
+    return model
+    
 # Credit: https://github.com/google/scaaml/blob/master/scaaml/intro/model.py
 def get_google_style_resnet_discriminator(input_shape,
                                           pool_size=4,
