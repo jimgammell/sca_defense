@@ -30,8 +30,12 @@
         "layers": [64],
         "hidden_activation": "ReLU"
     },
-    "key_map_constructor": "get_zero_map",
-    "key_map_kwargs": {},
+    "key_map_constructor": "get_mlp_map",
+    "key_map_kwargs":
+    {
+        "layers": [64, 256],
+        "hidden_activation": "ReLU"
+    },
     "cumulative_map_constructor": "None",
     "cumulative_map_kwargs":
     {
@@ -51,7 +55,7 @@
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 500,
-    "discriminator_posttraining_epochs": 500,
+    "gan_training_epochs": 100,
+    "discriminator_posttraining_epochs": 100,
     "seed": 0
 }
