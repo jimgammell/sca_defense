@@ -30,8 +30,8 @@ def test_results():
 class Results:
     def __init__(self):
         self.data = {}
-    def evaluate(self, method, *args, name=None):
-        result = method(*args)
+    def evaluate(self, method, *method_args, name=None, **method_kwargs):
+        result = method(*method_args, **method_kwargs)
         if name == None:
             name = method.__name__
         if name in self.data.keys():
@@ -45,7 +45,11 @@ class Results:
     def __repr__(self):
         s = ''
         for key in self.data.keys():
-            s += str(key) + ': %s'%(', '.join([str(e) for e in self.data[key]])) + '\n'
+            if type(self.data[key][0] == float):
+                rep_fn = lambda x: str(x)
+            else:
+                rep_fn = lambda x: x.shape
+            s += str(key) + ': %s'%(', '.join([str(rep_fn(e)) for e in self.data[key]])) + '\n'
         return s
     def extend(self, res):
         for key in self.data.keys():
@@ -80,37 +84,68 @@ def mean_accuracy(logits, labels):
     res = np.mean(np.equal(predictions, labels))
     return res
 
-def get_traces(generator, batch, device):
+def run_special_evaluation_methods(methods, generator, discriminator, dataloader, device):
+    kwargs = {'generator': generator,
+              'discriminator': discriminator,
+              'dataloader': dataloader,
+              'device': device}
+    results = Results()
+    for method in methods:
+        results.evaluate(method, **kwargs)
+    return results        
+
+def get_traces(**kwargs):
+    generator = kwargs['generator']
+    dataloader = kwargs['dataloader']
+    device = kwargs['device']
+    batch = next(iter(dataloader))
     key_idx, trace, plaintext, key = batch
     trace = trace.to(device)
     plaintext = plaintext.to(device)
     key = key.to(device)
     generator.eval()
-    discriminator.eval()
     with torch.no_grad():
         protective_traces = generator.get_protective_trace(key_idx, trace, plaintext, key)
         visible_traces = generator(key_idx, trace, plaintext, key)
-    protective_traces = torch.unbind(protective_traces)
-    visible_traces = torch.unbind(visible_traces)
-    raw_traces = torch.unbind(trace)
-    res = (protective_traces, raw_traces, visible_traces)
+    get_bounds = lambda x: (np.min(x, axis=0), np.median(x, axis=0), np.max(x, axis=0))
+    protective_traces = protective_traces.detach().squeeze().cpu().numpy()
+    protective_trace_bounds = get_bounds(protective_traces)
+    visible_traces = visible_traces.detach().squeeze().cpu().numpy()
+    visible_trace_bounds = get_bounds(visible_traces)
+    raw_traces = trace.detach().squeeze().cpu().numpy()
+    raw_trace_bounds = get_bounds(raw_traces)
+    res = (raw_trace_bounds, protective_trace_bounds, visible_trace_bounds)
     return res
 
-def get_saliency(discriminator, trace, device):
+def get_saliency(**kwargs):
+    discriminator = kwargs['discriminator']
+    dataloader = kwargs['dataloader']
+    device = kwargs['device']
+    batch = next(iter(dataloader))
+    _, trace, _, _ = batch
     trace = trace.to(device)
+    trace.requires_grad = True
     discriminator.eval()
     logits = discriminator(trace)
-    prediction_idx = logits.argmax(dim=-1)
-    prediction = logits[:, prediction_idx]
-    prediction.backward()
-    saliency = prediction.grad.data.detach().numpy()
-    saliency = torch.unbind(saliency)
-    return saliency
+    prediction_logits, _ = torch.max(logits, dim=-1)
+    saliency = []
+    for (idx, p) in enumerate(torch.unbind(prediction_logits)):
+        p.backward(retain_graph=True)
+        s = trace.grad.data.detach().cpu().numpy()[idx]
+        saliency.append(s)
+    med_saliency = np.median(np.concatenate(saliency), axis=0)
+    max_saliency = np.max(np.concatenate(saliency), axis=0)
+    min_saliency = np.min(np.concatenate(saliency), axis=0)
+    return (min_saliency, med_saliency, max_saliency)
 
-def get_confusion_matrix(dataloader, generator, discriminator, device):
+def get_confusion_matrix(**kwargs):
+    dataloader = kwargs['dataloader']
+    generator = kwargs['generator']
+    discriminator = kwargs['discriminator']
+    device = kwargs['device']
     generator.eval()
     discriminator.eval()
-    confusion_matrix = np.zeros((16, 16))
+    confusion_matrix = np.zeros((256, 256))
     for batch in dataloader:
         key_idx, trace, plaintext, key = batch
         trace = trace.to(device)

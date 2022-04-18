@@ -62,7 +62,9 @@ def multigen_experiment(byte,
                         generator_pretraining_epochs,
                         gan_training_epochs,
                         discriminator_posttraining_epochs,
-                        seed):
+                        seed,
+                        special_evaluation_methods,
+                        special_evaluation_methods_period):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -148,10 +150,17 @@ def multigen_experiment(byte,
             validation_results.rename('disc_acc', 'disc_val_acc')
             results.extend(validation_results)
     
+    def run_special_evaluations(epoch):
+        if special_evaluation_methods_period != 0:
+            if epoch % special_evaluation_methods_period == 0:
+                se_results = run_special_evaluation_methods(special_evaluation_methods, generator, discriminator, validation_dataloader, device)
+                results.extend(se_results)
+    
     # Initial results
     print('Calculating initial results.')
     training_results = eval_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
     validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    run_special_evaluations(0)
     update_results(results, training_results, validation_results)
     print()
     
@@ -161,6 +170,7 @@ def multigen_experiment(byte,
         print('\tEpoch', epoch+1)
         training_results = train_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, generator_optimizer, discriminator_optimizer, device)
         validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+        run_special_evaluations(epoch)
         update_results(results, training_results, validation_results)
         print()
     print()
@@ -174,6 +184,7 @@ def multigen_experiment(byte,
     print('\tInitial performance')
     training_results = eval_gan_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
     validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+    run_special_evaluations(0)
     update_results(results, training_results, validation_results)
     print()
     
@@ -181,6 +192,7 @@ def multigen_experiment(byte,
         print('\tEpoch', epoch+1)
         training_results = train_discriminator_alone_epoch(training_dataloader, generator, discriminator, generator_loss, discriminator_loss, discriminator_optimizer, device)
         validation_results = eval_gan_epoch(validation_dataloader, generator, discriminator, generator_loss, discriminator_loss, device)
+        run_special_evaluations(epoch)
         update_results(results, training_results, validation_results)
         print()
     print()

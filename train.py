@@ -58,7 +58,7 @@ def train_gan_step(*args):
     generator_optimizer.zero_grad()
     generator_logits = generator(*generator_input)
     discriminator_logits = discriminator(generator_logits)
-    generator_loss = generator_loss_fn(discriminator_logits, discriminator_target)
+    generator_loss = generator_loss_fn(discriminator_logits, discriminator_target, generator_logits)
     generator_loss.backward()
     generator_optimizer.step()
     
@@ -77,7 +77,7 @@ def eval_gan_step(*args):
     with torch.no_grad():
         generator_logits = generator(*generator_input)
         discriminator_logits = discriminator(generator_logits)
-        generator_loss = generator_loss_fn(discriminator_logits, discriminator_target)
+        generator_loss = generator_loss_fn(discriminator_logits, discriminator_target, generator_logits)
         discriminator_loss = discriminator_loss_fn(discriminator_logits, discriminator_target)
     
     res = (generator_logits.detach(), discriminator_logits.detach(), generator_loss.detach(), discriminator_loss.detach())
@@ -113,7 +113,7 @@ def train_discriminator_alone_step(*args):
     discriminator_optimizer.zero_grad()
     generator_logits = generator(*generator_input)
     discriminator_logits = discriminator(generator_logits)
-    generator_loss = generator_loss_fn(discriminator_logits, discriminator_target)
+    generator_loss = generator_loss_fn(discriminator_logits, discriminator_target, generator_logits)
     discriminator_loss = discriminator_loss_fn(discriminator_logits, discriminator_target)
     discriminator_loss.backward()
     discriminator_optimizer.step()

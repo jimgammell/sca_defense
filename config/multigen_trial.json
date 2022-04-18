@@ -31,9 +31,11 @@
         "layers": [64],
         "hidden_activation": "ReLU"
     },
-    "key_map_constructor": "get_zero_map",
+    "key_map_constructor": "get_mlp_map",
     "key_map_kwargs":
     {
+        "layers": [64, 256],
+        "hidden_activation": "ReLU"
     },
     "cumulative_map_constructor": "None",
     "cumulative_map_kwargs":
@@ -45,16 +47,21 @@
     "discriminator_kwargs": {},
     "discriminator_loss_constructor": "CrossEntropyLoss",
     "discriminator_loss_kwargs": {},
-    "discriminator_optimizer_constructor": "SGD",
-    "discriminator_optimizer_kwargs": {"lr": 0.01},
-    "generator_loss_constructor": "BatchStdLoss",
-    "generator_loss_kwargs": {},
+    "discriminator_optimizer_constructor": "Adam",
+    "discriminator_optimizer_kwargs": {},
+    "generator_loss_constructor": "NegativeLoss",
+    "generator_loss_kwargs":
+    {
+        "loss_constructor": "CrossEntropyLoss"
+    },
     "generator_optimizer_constructor": "Adam",
     "generator_optimizer_kwargs": {},
     "device": "cuda",
     "discriminator_pretraining_epochs": 0,
     "generator_pretraining_epochs": 0,
-    "gan_training_epochs": 500,
-    "discriminator_posttraining_epochs": 500,
-    "seed": 0
+    "gan_training_epochs": 100,
+    "discriminator_posttraining_epochs": 100,
+    "seed": 0,
+    "special_evaluation_methods": ["get_traces", "get_saliency", "get_confusion_matrix"],
+    "special_evaluation_methods_period": 1
 }

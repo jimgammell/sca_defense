@@ -3,3 +3,4 @@ __pycache__
 data/*
 datasets/*
 google_pretrained_models/*
+results/*

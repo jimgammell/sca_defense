@@ -6,6 +6,7 @@ from torch import nn, optim
 import generator_models
 import discriminator_models
 import loss_functions
+import results
 
 from multigen_experiment import multigen_experiment
 
@@ -132,6 +133,16 @@ def parse_json(json_filepath):
     seed = config_params['seed']
     assert type(seed) == int
     
+    special_evaluation_methods = config_params['special_evaluation_methods']
+    assert type(special_evaluation_methods) == list
+    assert all([type(m) == str for m in special_evaluation_methods])
+    for (idx, m) in enumerate(special_evaluation_methods):
+        special_evaluation_methods[idx] = getattr(results, m)
+    
+    special_evaluation_methods_period = config_params['special_evaluation_methods_period']
+    assert type(special_evaluation_methods_period) == int
+    assert special_evaluation_methods_period >= 0
+    
     exp_type = config_params['exp_type']
     
     exp_kwargs = {'byte': byte,
@@ -162,7 +173,9 @@ def parse_json(json_filepath):
                   'generator_pretraining_epochs': generator_pretraining_epochs,
                   'gan_training_epochs': gan_training_epochs,
                   'discriminator_posttraining_epochs': discriminator_posttraining_epochs,
-                  'seed': seed}
+                  'seed': seed,
+                  'special_evaluation_methods': special_evaluation_methods,
+                  'special_evaluation_methods_period': special_evaluation_methods_period}
     
     return exp_type, exp_kwargs
 
