@@ -52,7 +52,7 @@
     "generator_loss_constructor": "NegativeLoss",
     "generator_loss_kwargs":
     {
-        "loss_constructor": "CrossEntropyLoss",
+        "loss_constructor": "MseFromLabel",
         "l2_coeff": 1
     },
     "generator_optimizer_constructor": "Adam",

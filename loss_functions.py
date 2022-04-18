@@ -1,10 +1,28 @@
 import numpy as np
 import torch
 from torch import nn
+import sys
+thismod = sys.modules[__name__]
+
+def get_loss_constructor(name):
+    try:
+        import sys
+        thismod = sys.modules[__name__]
+        loss_constructor = getattr(thismod, name)
+    except:
+        loss_constructor = getattr(nn, name)
+    return loss_constructor
+
+class MseFromLabel:
+    def __init__(self):
+        self.base_loss_fn = nn.MSELoss()
+        self.to_oh_fn = lambda x: nn.functional.one_hot(x, num_classes=256).type(torch.float)
+    def __call__(self, logits, target):
+        return self.base_loss_fn(logits, self.to_oh_fn(target))
 
 class NegativeLoss:
     def __init__(self, loss_constructor, l2_coeff=0, **loss_constructor_kwargs):
-        loss_constructor = getattr(nn, loss_constructor)
+        loss_constructor = get_loss_constructor(loss_constructor)
         base_loss_fn = loss_constructor(**loss_constructor_kwargs)
         self.loss_fn = lambda x, y: -base_loss_fn(x, y)
         self.l2_coeff = l2_coeff
