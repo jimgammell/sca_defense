@@ -19,13 +19,7 @@ class KeyOnlyGenerator(nn.Module):
     def forward(self, *args):
         _, trace, _, _ = args
         protective_trace = self.get_protective_trace(*args)
-        visible_trace = trace + protective_trace
-        if self.output_transform != None:
-            visible_trace = torch.unbind(visible_trace)
-            for (idx, vt) in enumerate(visible_trace):
-                visible_trace[idx] = self.output_transform(vt)
-            visible_trace = torch.stack(visible_trace)
-        return visible_trace
+        return protective_trace
 
 class CompositeGenerator(nn.Module):
     def __init__(self, generators):

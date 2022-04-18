@@ -105,8 +105,8 @@ def get_traces(**kwargs):
     key = key.to(device)
     generator.eval()
     with torch.no_grad():
-        protective_traces = generator.get_protective_trace(key_idx, trace, plaintext, key)
-        visible_traces = generator(key_idx, trace, plaintext, key)
+        protective_traces = generator(key_idx, trace, plaintext, key)
+        visible_traces = trace + protective_traces
     get_bounds = lambda x: (np.min(x, axis=0), np.median(x, axis=0), np.max(x, axis=0))
     protective_traces = protective_traces.detach().squeeze().cpu().numpy()
     protective_trace_bounds = get_bounds(protective_traces)
@@ -119,19 +119,26 @@ def get_traces(**kwargs):
 
 def get_saliency(**kwargs):
     discriminator = kwargs['discriminator']
+    generator = kwargs['generator']
     dataloader = kwargs['dataloader']
     device = kwargs['device']
     batch = next(iter(dataloader))
-    _, trace, _, _ = batch
+    key_idx, trace, plaintext, key = batch
     trace = trace.to(device)
-    trace.requires_grad = True
+    plaintext = plaintext.to(device)
+    key = key.to(device)
+    generator.eval()
     discriminator.eval()
-    logits = discriminator(trace)
+    with torch.no_grad():
+        protective_trace = generator(key_idx, trace, plaintext, key)
+        discriminator_input = trace + protective_trace
+    discriminator_input.requires_grad = True
+    logits = discriminator(discriminator_input)
     prediction_logits, _ = torch.max(logits, dim=-1)
     saliency = []
     for (idx, p) in enumerate(torch.unbind(prediction_logits)):
         p.backward(retain_graph=True)
-        s = trace.grad.data.detach().cpu().numpy()[idx]
+        s = discriminator_input.grad.data.detach().cpu().numpy()[idx]
         saliency.append(s)
     med_saliency = np.median(np.concatenate(saliency), axis=0)
     max_saliency = np.max(np.concatenate(saliency), axis=0)
@@ -152,8 +159,9 @@ def get_confusion_matrix(**kwargs):
         plaintext = plaintext.to(device)
         key = key.to(device)
         with torch.no_grad():
-            protected_trace = generator(key_idx, trace, plaintext, key)
-            logits = discriminator(protected_trace)
+            protective_trace = generator(key_idx, trace, plaintext, key)
+            discriminator_input = trace + protective_trace
+            logits = discriminator(discriminator_input)
         predictions = logits.argmax(-1).cpu().numpy()
         for (prediction, target) in zip(predictions, key_idx):
             confusion_matrix[prediction, target] += 1
