@@ -22,8 +22,8 @@ class GanTrainer:
         self.generator_optimizer = generator_optimizer
         self.discriminator_optimizer = discriminator_optimizer
         self.device = parse_device(device)
-        self.generator_model = self.generator_model.to(self.generator_device)
-        self.discriminator_model = self.discriminator_model.to(self.discriminator_device)
+        self.generator_model = self.generator_model.to(self.device)
+        self.discriminator_model = self.discriminator_model.to(self.device)
         
     def train_step_d(self, batch):
         x, y = batch
@@ -56,7 +56,9 @@ class GanTrainer:
         prediction = self.discriminator_model(x)
         loss_g = self.generator_loss_fn(prediction, y).cpu().numpy()
         loss_d = self.discriminator_loss_fn(prediction, y).cpu().numpy()
-        return loss_g, loss_d
+        obfuscated_signal = x.cpu().numpy()
+        prediction = prediction.cpu().numpy()
+        return loss_g, loss_d, obfuscated_signal, prediction
     
     def train_epoch_d(self, dataloader):
         for batch in dataloader:
@@ -72,9 +74,11 @@ class GanTrainer:
             self.train_step_g(batch)
     
     def eval_epoch(self, dataloader):
-        losses_d, losses_g = [], []
+        losses_d, losses_g, obfuscated_signals, predictions = [], [], [], []
         for batch in dataloader:
-            loss_d, loss_g = self.eval_step(batch)
+            loss_g, loss_d, obfuscated_signal, prediction = self.eval_step(batch)
             losses_d.append(loss_d)
             losses_g.append(loss_g)
-        return losses_d, losses_g
+            obfuscated_signals.append(obfuscated_signal)
+            predictions.append(prediction)
+        return losses_d, losses_g, obfuscated_signals, predictions

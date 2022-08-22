@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 
 from model_trainer import GanTrainer
 
@@ -26,16 +27,20 @@ def run_trial(g_model, d_model, g_model_kwargs, d_model_kwargs,
         val_dataloader = None
     
     # Lists to store the generator/discriminator training/validation loss over time
-    g_losses_train, d_losses_train, g_losses_val, d_losses_val = [], [], [], []
+    g_losses_train, d_losses_train, obfuscated_signals_train, predictions_train, g_losses_val, d_losses_val, obfuscated_signals_val, predictions_val = [], [], [], [], [], [], [], []
     # Function to record the current 
     def evaluate_losses():
-        d_loss_train, g_loss_train = gan_trainer.eval_epoch(train_dataloader)
+        d_loss_train, g_loss_train, obfuscated_signal_train, prediction_train = gan_trainer.eval_epoch(train_dataloader)
         d_losses_train.append(np.mean(d_loss_train))
         g_losses_train.append(np.mean(g_loss_train))
+        obfuscated_signals_train.append(obfuscated_signal_train)
+        predictions_train.append(prediction_train)
         if val_dataloader != None:
-            d_loss_val, g_loss_val = gan_trainer.eval_epoch(val_dataloader)
+            d_loss_val, g_loss_val, obfuscated_signal_val, prediction_val = gan_trainer.eval_epoch(val_dataloader)
             d_losses_val.append(np.mean(d_loss_val))
             g_losses_val.append(np.mean(g_loss_val))
+            obfuscated_signals_val.append(obfuscated_signal_val)
+            predictions_val.append(prediction_val)
         
     # Gather initial results
     evaluate_losses()
@@ -60,4 +65,4 @@ def run_trial(g_model, d_model, g_model_kwargs, d_model_kwargs,
         gan_trainer.train_epoch_g(train_dataloader)
         evaluate_losses()
     
-    return g_losses_train, d_losses_train, g_losses_val, d_losses_val
+    return g_losses_train, d_losses_train, obfuscated_signals_train, predictions_train, g_losses_val, d_losses_val, obfuscated_signals_val, predictions_val
