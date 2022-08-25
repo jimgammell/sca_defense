@@ -1,6 +1,6 @@
 .ipynb_checkpoints
 __pycache__
-datasets
+saved_datasets
 temp
 google_pretrained_models
 results
