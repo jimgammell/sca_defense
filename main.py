@@ -3,9 +3,9 @@ import argparse
 import datetime
 
 from parse_config import parse_config
-from utils import get_print_to_log, specify_log_path
+from utils import get_print_to_log, specify_log_path, get_package_module_names, get_package_modules
 print = get_print_to_log(__file__)
-import trial
+import trials
 
 def get_command_line_arguments():
     parser = argparse.ArgumentParser()
@@ -32,13 +32,15 @@ def get_command_line_arguments():
                         action='store_true',
                         help='Run each trial for the minimum amount of time that is reasonable (i.e. train for 1 epoch), for debugging purposes.')
     args = parser.parse_args()
-    if args.config == None:
-        args.config = [f for f in os.listdir(args.config_dir) if 'json' in f.split('.')]
+    if args.config_files == None:
+        args.config_files = [f for f in os.listdir(args.config_dir) if 'json' in f.split('.')]
     return args
 
 def main():
     dt = datetime.datetime.now()
     cl_args = get_command_line_arguments()
+    if not os.path.exists(cl_args.results_dir):
+        os.mkdir(cl_args.results_dir)
     
     print('Beginning trials...')
     print('\tConfiguration directory: {}'.format(cl_args.config_dir))
@@ -46,38 +48,42 @@ def main():
     print('\tDatasets directory: {}'.format(cl_args.datasets_dir))
     print('\tConfig files to run: {}'.format(', '.join(cl_args.config_files)))
     print('\tDebug mode: {}'.format(cl_args.debug))
-    if not os.path.exists(os.path.join(cl_args.results_dir, 'execution_logs')):
-        os.mkdir(os.path.join(cl_args.results_dir, 'execution_logs'))
-    specify_log_path(os.mkdir(os.path.join(cl_args.results_dir, 'execution_logs', 'log__%d_%d_%d_%d_%d_%d.txt'%(
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))), save_buffer=True)
+    if not os.path.exists(os.path.join('.', 'results', 'execution_logs')):
+        os.mkdir(os.path.join('.', 'results', 'execution_logs'))
+    specify_log_path(os.path.join('.', 'results', 'execution_logs', 'log__%d_%d_%d_%d_%d_%d.txt'%(
+        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)), save_buffer=True)
     
     for config_file in cl_args.config_files:
+        specify_log_path(None)
         print()
         print()
         if config_file.split('.')[-1] != 'json':
             config_file = '.'.join((config_file, 'json'))
         print('Running trial specified in {}...'.format(os.path.join(cl_args.config_dir, config_file)))
         results_dir = os.path.join(cl_args.results_dir, config_file.split('.')[0])
-        specify_log_path(os.path.join(results_dir, 'log.txt'), save_buffer=True)
         print('\tResults directory: {}'.format(results_dir))
         if os.path.exists(results_dir):
             os.rename(results_dir, results_dir + '__%d_%d_%d_%d_%d_%d'%(
                 dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second))
         os.mkdir(results_dir)
-        expanded_config_files, expanded_keys = parse_config(os.path.join(cl_args.config_fir, config_file))
+        specify_log_path(os.path.join(results_dir, 'log.txt'), save_buffer=True)
+        expanded_config_files, expanded_keys = parse_config(os.path.join(cl_args.config_dir, config_file))
         print('\tTrial description: {}'.format(expanded_config_files[0]['trial_description']))
         print('\tConfig file expanded into %d trials'%(len(expanded_config_files)))
         print('\t\tExpanded keys: {}'.format(', '.join(expanded_keys)))
         for trial_idx, expanded_config_file in enumerate(expanded_config_files):
+            print()
             specify_log_path(None)
-            print('Running trial %d'%(trial_idx+1))
+            print('Running trial %d'%(trial_idx))
             print('Expanded elements:')
             for key in expanded_keys:
                 print('\t{}: {}'.format(key, expanded_config_file[key]))
             trial_dir = os.path.join(results_dir, 'trial_%d'%(trial_idx))
+            os.mkdir(trial_dir)
             print('Saving results in {}'.format(trial_dir))
             specify_log_path(os.path.join(trial_dir, 'log.txt'), save_buffer=True)
-            trial = getattr(trials, expanded_config_file['trial'])
+            trial = get_package_modules(trials)[
+                get_package_module_names(trials)[0].index(expanded_config_file['trial'])]
             results = trial.main(debug=cl_args.debug, **expanded_config_file['trial_kwargs'])
             trial.save_results(results, trial_dir)
 

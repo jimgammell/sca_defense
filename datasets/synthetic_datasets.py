@@ -1,4 +1,5 @@
 import numpy as np
+from torch.utils.data import Dataset
 
 from utils import get_print_to_log
 print = get_print_to_log(__file__)

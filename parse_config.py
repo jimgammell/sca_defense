@@ -1,13 +1,15 @@
 from copy import deepcopy
+import os
 import json
 import time
 from itertools import product
 import torch
 from torch import nn, optim
 
-import datasets
+from datasets import google_power_traces, purdue_power_traces
 import trials
 import models
+from utils import get_package_modules, get_package_module_names, list_module_attributes
 
 def load_config(path):
     with open(path, 'r') as F:
@@ -23,16 +25,15 @@ def get_config_valid_arguments():
                    'seed': int,
                    'trial': str,
                    'trial_kwargs': dict}
-    valid_arguments = {'dataset': [name for name in dir(file)
-                                   for file in [datasets.google_power_traces, datasets.purdue_power_traces]],
+    valid_arguments = {'dataset': [name for f in [google_power_traces, purdue_power_traces]
+                                   for name in list_module_attributes(f)],
                        'device': ['cpu', 'cuda'] +\
                                  ['cuda:%d'%(idx) for idx in range(torch.cuda.device_count())],
-                       'trial': [name for name in dir(file)
-                                 for file in dir(trials)]}
+                       'trial': get_package_module_names(trials)[0]}
     for suffix in ['', 'd', 'g']:
         def add_suffix(base):
             if suffix != '':
-                return '_'.join(base, suffix)
+                return '_'.join((base, suffix))
             else:
                 return base
         valid_types.update({add_suffix('model'): str,
@@ -41,10 +42,10 @@ def get_config_valid_arguments():
                             add_suffix('loss_fn_kwargs'): dict,
                             add_suffix('optimizer'): str,
                             add_suffix('optimizer_kwargs'): dict})
-        valid_arguments.update({add_suffix('model'): [name for name in dir(file)
-                                                      for file in dir(models)],
-                                add_suffix('loss_fn'): [name for name in dir(nn)],
-                                add_suffix('optimizer'): [name for name in dir(optim)]})
+        valid_arguments.update({add_suffix('model'): [name for file in get_package_modules(models)
+                                                      for name in list_module_attributes(file)],
+                                add_suffix('loss_fn'): [name for name in list_module_attributes(nn)],
+                                add_suffix('optimizer'): [name for name in list_module_attributes(optim)]})
     return valid_types, valid_arguments
 
 def apply_default_settings(config):
@@ -94,6 +95,17 @@ def expand_config(config):
 
 def validate_config(config):
     valid_types, valid_arguments = get_config_valid_arguments()
+    for key, item in config.items():
+        if not key in valid_types.keys():
+            print('Key {} is not in the list of valid keys {}'.format(key, valid_types.keys()))
+            assert False
+        if type(item) != valid_types[key]:
+            print('Item {} corresponding to key {} has type {}, but should be of type {}'.format(item, key, valid_types[key]))
+            assert False
+        if key in valid_arguments.keys() and not(item in valid_arguments[key]):
+            print('Item {} corresponding to key {} is not one of the valid arguments {}'.format(item, key, valid_arguments[key]))
+            assert False
+    
     for key, item in config.items():
         assert key in valid_types.keys()
         assert type(item) == valid_types[key]

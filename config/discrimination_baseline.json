@@ -1,7 +1,7 @@
 {
     "trial_description": "The goal here is to establish a baseline for how-effective various discriminator models are at mapping power trace to key, without any defense mechanisms present. 3 discriminator models are evaluated: a linear map, the X-DeepSCA model developed at Purdue, and the ResNet-style model developed at Google. The power trace datasets which were used to develop the latter two models are used in these evaluations. Each model is trained using 3 different random seeds with the recommended hyperparameters in their respective papers.",
     "trial": "train_discriminator",
-    "model": ["Linear", "XDeepSca", "ResNetSca"],
+    "model": ["Linear", "XDeepSca", "ResNet1D"],
     "loss_fn": "CrossEntropyLoss",
     "optimizer": "Adam",
     "dataset": ["PurduePowerTraceDataset", "GooglePowerTraceDataset"],
