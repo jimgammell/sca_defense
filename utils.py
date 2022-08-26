@@ -52,3 +52,12 @@ def get_package_modules(package):
     modules = [importlib.import_module('.'+module_name, package=package_name)
                for module_name in module_names]
     return modules
+
+def get_attribute_from_package(attr_name, package):
+    modules = get_package_modules(package)
+    attr = None
+    for module in modules:
+        if attr_name in list_module_attributes(module):
+            attr = getattr(module, attr_name)
+    assert attr != None
+    return attr

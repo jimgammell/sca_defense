@@ -12,6 +12,7 @@ class PurduePowerTraceDataset(SavedNpzDataset):
                  trace_transform=None,
                  plaintext_transform=None,
                  ap_transform=None,
+                 train=True,
                  data_path=None,
                  download_base = r'https://github.com/SparcLab/X-DeepSCA/raw/master/mat_traces',
                  download_urls=[r'cw308XGD2_10k_nov5_1447.zip',
@@ -22,6 +23,7 @@ class PurduePowerTraceDataset(SavedNpzDataset):
                                 r'cw308XGD7_10k_nov22_2022.zip',
                                 r'cw308XGD8_50k_nov14_1635.zip',
                                 r'cw308XGD9_nov14_2011.zip'],
+                 test_indices = [0, 1, 2, 3, 4, 5],
                  data_partition_size=250):
         if data_path == None:
             d = os.path.join('.', 'saved_datasets')
@@ -39,13 +41,15 @@ class PurduePowerTraceDataset(SavedNpzDataset):
             try:
                 print('Creating directory structure...')
                 os.mkdir(d)
+                os.mkdir(os.path.join(d, 'train'))
+                os.mkdir(os.path.join(d, 'test'))
                 temp_dir = os.path.join('.', 'temp')
                 os.mkdir(temp_dir)
                 mat_dir = os.path.join(temp_dir, 'mat')
                 os.mkdir(mat_dir)
                 print('Downloading and installing dataset...')
                 shard_idx = 0
-                for download_url in download_urls:
+                for dl_idx, download_url in enumerate(download_urls):
                     compressed_filename = download_url.split('/')[-1]
                     print('Downloading file %s...'%(compressed_filename))
                     r = requests.get('/'.join((download_base, download_url)), allow_redirects=True, timeout=10)
@@ -59,7 +63,11 @@ class PurduePowerTraceDataset(SavedNpzDataset):
                     data = io.loadmat(os.path.join(mat_dir, extracted_filename))
                     assert len(data['traces']) == len(data['textin']) == len(data['key'])
                     for idx in range(0, len(data['traces'])//data_partition_size):
-                        with open(os.path.join(d, 'shard_%d.npz'%(shard_idx)), 'wb') as F:
+                        if dl_idx in test_indices:
+                            save_path = os.path.join(d, 'test', 'shard_%d.npz'%(shard_idx))
+                        else:
+                            save_path = os.path.join(d, 'train', 'shard_%d.npz'%(shard_idx))
+                        with open(save_path, 'wb') as F:
                             np.savez(F,
                                      keys=data['key'][data_partition_size*idx:data_partition_size*(idx+1)],
                                      pts=data['textin'][data_partition_size*idx:data_partition_size*(idx+1)],
@@ -70,4 +78,5 @@ class PurduePowerTraceDataset(SavedNpzDataset):
                 assert False
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
-        super().__init__(d, 'key', trace_length, byte, trace_transform, plaintext_transform, ap_transform)
+        base_path = os.path.join(d, 'train' if train else 'test')
+        super().__init__(base_path, 'key', trace_length, byte, trace_transform, plaintext_transform, ap_transform)
