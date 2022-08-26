@@ -1,5 +1,8 @@
 from matplotlib import pyplot as plt
 
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
 def loss_over_time(g_losses_train, g_losses_val, d_losses_train, d_losses_val):
     fig, ax = plt.subplots(1, 2, figsize=(8, 4))
     ax[0].plot(g_losses_train, color='blue', linestyle='--', label='Train')

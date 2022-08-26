@@ -1,6 +1,9 @@
 import numpy as np
 from torch import nn
 
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
 class MultilayerPerceptron(nn.Module):
     def __init__(self, n_inputs, n_outputs,
                  hidden_layers=[],

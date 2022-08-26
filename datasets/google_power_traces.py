@@ -1,23 +1,20 @@
 import os
-import requests
-import zipfile
-import shutil
-import random
-import numpy as np
-import torch
-from torch.utils.data import Dataset
+from datasets.common import SavedNpzDataset
 
-class GooglePowerTraceDataset(Dataset):
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
+class GooglePowerTraceDataset(SavedNpzDataset):
     def __init__(self,
                  attack_point,
                  trace_length,
                  byte,
-                 plaintext_encoding,
-                 num_keys=None,
+                 trace_transform=None,
+                 plaintext_transform=None,
+                 ap_transform=None,
                  train=True,
                  data_path=None,
                  download_url=r'https://storage.googleapis.com/scaaml-public/scaaml_intro/datasets.zip'):
-        super().__init__()
         if data_path == None:
             d = os.path.join('.', 'saved_datasets')
         else:
@@ -26,6 +23,9 @@ class GooglePowerTraceDataset(Dataset):
             os.mkdir(d)
         d = os.path.join(d, 'google_scaaml')
         if not os.path.isdir(d):
+            import requests
+            import zipfile
+            import shutil
             print('Downloading Google SCAAML dataset...')
             try:
                 print('Creating directory structure...')
@@ -52,31 +52,5 @@ class GooglePowerTraceDataset(Dataset):
                 assert False
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
-        self.attack_point = attack_point
-        self.num_keys = num_keys
-        self.trace_length = trace_length
-        self.byte = byte
         base_path = os.path.join(d, 'train' if train else 'test')
-        self.get_shard = lambda filename: np.load(os.path.join(base_path, filename))
-        self.files = [f for f in os.listdir(base_path) if f.split('.')[-1] == 'npz']
-        if num_keys != None:
-            self.files = random.choices(self.files, k=num_keys)
-        self.num_examples = 0
-        for file in self.files:
-            shard = self.get_shard(file)
-            self.num_examples += len(shard['traces'])
-        self.shard_size = len(shard['traces'])
-        
-    def __getitem__(self, idx):
-        shard_idx = idx // self.shard_size
-        trace_idx = idx % self.shard_size
-        shard = self.get_shard(self.files[shard_idx])
-        trace = shard['traces'][trace_idx]
-        plaintext = shard['pts'][self.byte]
-        ap = shard[self.attack_point][self.byte]
-        return trace, plaintext, ap
-    
-    def __len__(self):
-        return self.num_examples
-        
-        
+        super().__init__(base_path, attack_point, trace_length, byte, trace_transform, plaintext_transform, ap_transform)

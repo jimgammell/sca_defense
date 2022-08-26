@@ -1,19 +1,17 @@
 import os
-import requests
-import zipfile
-import shutil
-from scipy import io
-from torch.utils.data import Dataset
 import numpy as np
+from datasets.common import SavedNpzDataset
 
-class PurduePowerTraceDataset(Dataset):
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
+class PurduePowerTraceDataset(SavedNpzDataset):
     def __init__(self,
-                 attack_point,
                  trace_length,
                  byte,
-                 plaintext_encoding,
-                 num_keys=None,
-                 train=True,
+                 trace_transform=None,
+                 plaintext_transform=None,
+                 ap_transform=None,
                  data_path=None,
                  download_base = r'https://github.com/SparcLab/X-DeepSCA/raw/master/mat_traces',
                  download_urls=[r'cw308XGD2_10k_nov5_1447.zip',
@@ -24,8 +22,7 @@ class PurduePowerTraceDataset(Dataset):
                                 r'cw308XGD7_10k_nov22_2022.zip',
                                 r'cw308XGD8_50k_nov14_1635.zip',
                                 r'cw308XGD9_nov14_2011.zip'],
-                 data_partition_size=10000):
-        super().__init__()
+                 data_partition_size=250):
         if data_path == None:
             d = os.path.join('.', 'saved_datasets')
         else:
@@ -34,6 +31,10 @@ class PurduePowerTraceDataset(Dataset):
             os.mkdir(d)
         d = os.path.join(d, 'purdue_power_traces')
         if not os.path.isdir(d):
+            import requests
+            import zipfile
+            import shutil
+            from scipy import io
             print('Downloading Purdue power traces dataset...')
             try:
                 print('Creating directory structure...')
@@ -69,3 +70,4 @@ class PurduePowerTraceDataset(Dataset):
                 assert False
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
+        super().__init__(d, 'key', trace_length, byte, trace_transform, plaintext_transform, ap_transform)

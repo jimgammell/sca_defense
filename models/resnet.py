@@ -5,6 +5,9 @@ import collections
 import torch
 from torch import nn
 
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
 class Block(nn.Module):
     def __init__(self,
                  input_filters,

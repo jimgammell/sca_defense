@@ -1,3 +1,8 @@
+import numpy as np
+
+from utils import get_print_to_log
+print = get_print_to_log(__file__)
+
 class BinaryDataset(Dataset):
     def __init__(self,
                  x_transform=None,
