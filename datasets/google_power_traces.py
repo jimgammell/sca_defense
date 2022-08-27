@@ -6,15 +6,11 @@ print = get_print_to_log(__file__)
 
 class GooglePowerTraceDataset(SavedNpzDataset):
     def __init__(self,
-                 attack_point,
-                 trace_length,
-                 byte,
-                 trace_transform=None,
-                 plaintext_transform=None,
-                 ap_transform=None,
-                 train=True,
+                 *args,
                  data_path=None,
-                 download_url=r'https://storage.googleapis.com/scaaml-public/scaaml_intro/datasets.zip'):
+                 train=True,
+                 download_url=r'https://storage.googleapis.com/scaaml-public/scaaml_intro/datasets.zip',
+                 **kwargs):
         if data_path == None:
             d = os.path.join('.', 'saved_datasets')
         else:
@@ -53,4 +49,4 @@ class GooglePowerTraceDataset(SavedNpzDataset):
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
         base_path = os.path.join(d, 'train' if train else 'test')
-        super().__init__(base_path, attack_point, trace_length, byte, trace_transform, plaintext_transform, ap_transform)
+        super().__init__(base_path, *args, **kwargs)

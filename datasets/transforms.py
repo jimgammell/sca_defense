@@ -29,10 +29,18 @@ class IntToBinary:
     def __repr__(self):
         return self.__class__.__name__ + '()'
 
+class IntToInt:
+    def __init__(self):
+        pass
+    def __call__(self, x):
+        return torch.tensor(x).type(torch.long).squeeze()
+    def __repr__(self):
+        return self.__class__.__name__ + '()'
+
 class ToTensor1D:
     def __init__(self):
         pass
     def __call__(self, x):
-        return torch.tensor(x).type(torch.float).squeeze().unsqueeze(0)
+        return torch.tensor(x).type(torch.float).squeeze()
     def __repr__(self):
         return self.__class__.__name__ + '()'

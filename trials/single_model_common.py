@@ -1,9 +1,10 @@
 import numpy as np
 import torch
+from tqdm import tqdm
 
 def train_step(batch, model, optimizer, loss_fn, device):
     model.train()
-    x, y = batch
+    x, _, y = batch
     x = x.to(device)
     y = y.to(device)
     logits = model(x)
@@ -15,7 +16,7 @@ def train_step(batch, model, optimizer, loss_fn, device):
 @torch.no_grad()
 def eval_step(batch, model, loss_fn, device):
     model.eval()
-    x, y = batch
+    x, _, y = batch
     x = x.to(device)
     y = y.to(device)
     logits = model(x)
@@ -25,12 +26,12 @@ def eval_step(batch, model, loss_fn, device):
             'target': y.cpu().numpy()}
 
 def train_epoch(dataloader, model, optimizer, loss_fn, device):
-    for batch in dataloader:
+    for batch in tqdm(dataloader):
         train_step(batch, model, optimizer, loss_fn, device)
 
 def eval_epoch(dataloader, model, loss_fn, device):
     results = {}
-    for batch in dataloader:
+    for batch in tqdm(dataloader):
         results_val = eval_step(batch, model, loss_fn, device)
         for key in results_val.keys():
             if not key in results.keys():

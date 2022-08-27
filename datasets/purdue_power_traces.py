@@ -7,11 +7,8 @@ print = get_print_to_log(__file__)
 
 class PurduePowerTraceDataset(SavedNpzDataset):
     def __init__(self,
-                 trace_length,
-                 byte,
-                 trace_transform=None,
-                 plaintext_transform=None,
-                 ap_transform=None,
+                 attack_point,
+                 *args,
                  train=True,
                  data_path=None,
                  download_base = r'https://github.com/SparcLab/X-DeepSCA/raw/master/mat_traces',
@@ -24,7 +21,8 @@ class PurduePowerTraceDataset(SavedNpzDataset):
                                 r'cw308XGD8_50k_nov14_1635.zip',
                                 r'cw308XGD9_nov14_2011.zip'],
                  test_indices = [0, 1, 2, 3, 4, 5],
-                 data_partition_size=250):
+                 data_partition_size=250,
+                 **kwargs):
         if data_path == None:
             d = os.path.join('.', 'saved_datasets')
         else:
@@ -79,4 +77,4 @@ class PurduePowerTraceDataset(SavedNpzDataset):
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
         base_path = os.path.join(d, 'train' if train else 'test')
-        super().__init__(base_path, 'key', trace_length, byte, trace_transform, plaintext_transform, ap_transform)
+        super().__init__(base_path, 'keys', *args, **kwargs)

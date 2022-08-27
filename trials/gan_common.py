@@ -9,7 +9,7 @@ def train_step_discriminator(batch,
                              device):
     discriminator.train()
     generator.train()
-    x, y = batch
+    x, _, y = batch
     x = x.to(device)
     y = y.to(device)
     protected_x = x + generator(x)
@@ -27,7 +27,7 @@ def train_step_generator(batch,
                          device):
     discriminator.train()
     generator.train()
-    x, y = batch
+    x, _, y = batch
     x = x.to(device)
     y = y.to(device)
     protected_x = x + generator(x)

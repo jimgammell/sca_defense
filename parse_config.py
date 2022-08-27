@@ -52,7 +52,7 @@ def apply_default_settings(config):
     default_arguments = {'trial_description': 'none provided',
                          'dataset_kwargs': {},
                          'dataloader_kwargs': {},
-                         'trial_kwargs': {},
+                         'trial_kwargs': {'n_epochs': 1},
                          'device': 'cuda' if torch.cuda.is_available() else 'cpu',
                          'seed': time.time_ns()&0xFFFFFFFF}
     if 'model' in config.keys():

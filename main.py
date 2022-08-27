@@ -84,7 +84,7 @@ def main():
             specify_log_path(os.path.join(trial_dir, 'log.txt'), save_buffer=True)
             trial = get_package_modules(trials)[
                 get_package_module_names(trials)[0].index(expanded_config_file['trial'])]
-            results = trial.main(debug=cl_args.debug, **expanded_config_file['trial_kwargs'])
+            results = trial.main(debug=cl_args.debug, **expanded_config_file)
             trial.save_results(results, trial_dir)
 
 if __name__ == '__main__':

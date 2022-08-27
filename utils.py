@@ -24,7 +24,10 @@ def get_print_to_log(prefix):
         else:
             print_buffer.append((args, kwargs))
     return print_to_log
-        
+
+def get_filename(file_var):
+    return file_var.split('sca_defense/')[-1]
+
 def specify_log_path(path, save_buffer=False):
     global log_file
     global print_buffer
