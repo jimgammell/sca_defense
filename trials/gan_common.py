@@ -1,6 +1,9 @@
 import numpy as np
 import torch
 
+from utils import get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
+
 def train_step_discriminator(batch,
                              discriminator,
                              generator,

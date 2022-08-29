@@ -9,7 +9,8 @@ from torch import nn, optim
 from datasets import google_power_traces, purdue_power_traces
 import trials
 import models
-from utils import get_package_modules, get_package_module_names, list_module_attributes
+from utils import get_package_modules, get_package_module_names, list_module_attributes, get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
 
 def load_config(path):
     with open(path, 'r') as F:
@@ -77,19 +78,15 @@ def apply_default_settings(config):
 def expand_config(config):
     expanded_configs = []
     keys_to_expand = []
-    valid_types, _ = get_config_valid_arguments()
     for key, item in config.items():
-        if type(item) == list:
-            if type(valid_types[key] != list):
-                assert type(item[0]) == valid_types[key]
-                keys_to_expand.append(key)
-            else:
-                if type(item[0]) == list:
-                    keys_to_expand.append(key)
+        if 'expand' in key:
+            keys_to_expand.append(key)
     for elements in product(*[config[key] for key in keys_to_expand]):
         expanded_config = deepcopy(config)
-        for key, element in zip(keys_to_expand, elements):
-            expanded_config[key] = element
+        for exp_key, settings in zip(keys_to_expand, elements):
+            del expanded_config[exp_key]
+            for key, item in settings.items():
+                expanded_config.update({key: item})
         expanded_configs.append(expanded_config)
     return expanded_configs, keys_to_expand
 
@@ -114,8 +111,9 @@ def validate_config(config):
     
 def parse_config(path):
     config = load_config(path)
-    config = apply_default_settings(config)
     expanded_configs, expanded_keys = expand_config(config)
-    for expanded_config in expanded_configs:
+    for idx, expanded_config in enumerate(expanded_configs):
+        expanded_config = apply_default_settings(expanded_config)
         validate_config(expanded_config)
+        expanded_configs[idx] = expanded_config
     return expanded_configs, expanded_keys

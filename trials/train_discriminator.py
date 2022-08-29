@@ -17,6 +17,7 @@ def save_results(results, trial_dir):
     torch.save(results['optimizer'].state_dict(), os.path.join(trial_dir, 'optimizer_state'))
 
 def main(debug=False, **config_kwargs):
+    print(config_kwargs)
     print('Parsing config arguments...')
     model_name = config_kwargs['model']
     model_kwargs = config_kwargs['model_kwargs']

@@ -2,6 +2,9 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+from utils import get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
+
 def train_step(batch, model, optimizer, loss_fn, device):
     model.train()
     x, _, y = batch

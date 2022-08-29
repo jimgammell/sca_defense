@@ -2,8 +2,8 @@ import os
 import numpy as np
 from datasets.common import SavedNpzDataset
 
-from utils import get_print_to_log
-print = get_print_to_log(__file__)
+from utils import get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
 
 class PurduePowerTraceDataset(SavedNpzDataset):
     def __init__(self,

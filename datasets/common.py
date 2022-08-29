@@ -5,8 +5,8 @@ from torch.utils.data import Dataset
 import torchvision
 
 import datasets
-from utils import get_print_to_log, list_module_attributes
-print = get_print_to_log(__file__)
+from utils import get_print_to_log, list_module_attributes, get_filename
+print = get_print_to_log(get_filename(__file__))
 
 class SavedNpzDataset(Dataset):
     def __init__(self,

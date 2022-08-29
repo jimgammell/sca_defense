@@ -2,11 +2,12 @@
 # -- Adapted from Keras to PyTorch
 
 import collections
+import numpy as np
 import torch
 from torch import nn
 
-from utils import get_print_to_log
-print = get_print_to_log(__file__)
+from utils import get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
 
 class Block(nn.Module):
     def __init__(self,
@@ -28,27 +29,28 @@ class Block(nn.Module):
                                       stride=strides)
         else:
             if strides > 1:
-                self.shortcut = nn.MaxPool1d(1, stride=strides)
+                self.shortcut = nn.Sequential(nn.ConstantPad1d((1, 1), -np.inf),
+                                              nn.MaxPool1d(1, stride=strides))
             else:
                 self.shortcut = nn.Identity()
                 
         self.residual = nn.Sequential(nn.Conv1d(input_filters,
-                                               output_filters,
-                                               1,
-                                               bias=False,
-                                               padding='same'),
-                                     nn.BatchNorm1d(output_filters),
-                                     activation(),
-                                     nn.Conv1d(output_filters,
-                                               output_filters,
-                                               kernel_size,
-                                               bias=False,
-                                               padding='same'),
-                                     nn.BatchNorm1d(output_filters),
-                                     activation(),
-                                     nn.Conv1d(output_filters,
-                                               4*output_filters,
-                                               1))
+                                                output_filters,
+                                                1,
+                                                bias=False),
+                                      nn.BatchNorm1d(output_filters),
+                                      activation(),
+                                      nn.Conv1d(output_filters,
+                                                output_filters,
+                                                kernel_size,
+                                                stride=strides,
+                                                bias=False),
+                                      nn.ConstantPad1d(kernel_size//2, 0),
+                                      nn.BatchNorm1d(output_filters),
+                                      activation(),
+                                      nn.Conv1d(output_filters,
+                                                4*output_filters,
+                                                1))
         
         self.input_filters = input_filters
         self.output_filters = output_filters
@@ -56,6 +58,7 @@ class Block(nn.Module):
         self.strides = strides
         self.conv_shortcut = conv_shortcut
         self.activation = activation
+        
         
     def forward(self, x):
         x = self.input_transform(x)
@@ -99,6 +102,7 @@ class Stack(nn.Module):
                              output_filters,
                              strides=strides,
                              activation=activation))
+        self.modules = modules
         self.stack = nn.Sequential(*modules)
         
         self.input_filters = input_filters
@@ -118,6 +122,9 @@ class Stack(nn.Module):
             '\n\tBlocks: %d'%(self.blocks) +\
             '\n\tKernel size: %d'%(self.kernel_size) +\
             '\n\tActivation: {}'.format(self.activation)
+        for block_idx, block in enumerate(self.modules):
+            print('\t\nBlock %d:'%(block_idx))
+            print(block)
         return s
     
     def summary(self):
@@ -125,8 +132,8 @@ class Stack(nn.Module):
 
 class ResNet1D(nn.Module):
     def __init__(self,
-                 input_size,
-                 output_size,
+                 n_inputs,
+                 n_outputs,
                  pool_size=4,
                  filters=8,
                  block_kernel_size=3,
@@ -135,7 +142,8 @@ class ResNet1D(nn.Module):
                  num_blocks=[3, 4, 4, 3]):
         super().__init__()
         
-        modules = [('input_downsampling', nn.MaxPool1d(pool_size))]
+        modules = [('input_reshaping', nn.Unflatten(1, (1, n_inputs))),
+                   ('input_downsampling', nn.MaxPool1d(pool_size))]
         input_filters = 1
         output_filters = filters
         for block_idx in range(len(num_blocks)):
@@ -146,22 +154,30 @@ class ResNet1D(nn.Module):
                                                           kernel_size=block_kernel_size,
                                                           activation=activation)))
             input_filters = 4*output_filters
-        modules.append(('feature_reducer', nn.AvgPool1d(block_kernel_size))) # Replace kernel size with size of full trace to get global average pooling
+        eg_input = torch.rand((64, n_inputs))
+        for _, module in modules:
+            eg_input = module(eg_input)
+        modules.append(('feature_reducer', nn.Sequential(nn.AvgPool1d(eg_input.shape[-1]),
+                                                         nn.Flatten(1, -1))))
+        
         modules.append(('dense_probe', nn.Sequential(nn.Dropout(dense_dropout),
-                                                     nn.Linear(input_filters, output_size),
-                                                     nn.BatchNorm1d(output_size),
+                                                     nn.Linear(input_filters, n_outputs),
+                                                     nn.BatchNorm1d(n_outputs),
                                                      activation(),
-                                                     nn.Linear(output_size, output_size))))
+                                                     nn.Linear(n_outputs, n_outputs))))
         self.model = nn.Sequential(collections.OrderedDict(modules))
         
-        self.input_size = input_size
-        self.output_size = output_size
+        self.input_size = n_inputs
+        self.output_size = n_outputs
         self.pool_size = pool_size
         self.filters = filters
         self.block_kernel_size = block_kernel_size
         self.activation = activation
         self.dense_dropout = dense_dropout
         self.num_blocks = num_blocks
+    
+    def forward(self, x):
+        return self.model(x)
     
     def __repr__(self):
         s = 'ResNet1d:' +\

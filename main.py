@@ -1,10 +1,11 @@
 import os
 import argparse
 import datetime
+import json
 
 from parse_config import parse_config
-from utils import get_print_to_log, specify_log_path, get_package_module_names, get_package_modules
-print = get_print_to_log(__file__)
+from utils import get_print_to_log, specify_log_path, get_package_module_names, get_package_modules, get_filename
+print = get_print_to_log(get_filename(__file__))
 import trials
 
 def get_command_line_arguments():
@@ -75,9 +76,6 @@ def main():
             print()
             specify_log_path(None)
             print('Running trial %d'%(trial_idx))
-            print('Expanded elements:')
-            for key in expanded_keys:
-                print('\t{}: {}'.format(key, expanded_config_file[key]))
             trial_dir = os.path.join(results_dir, 'trial_%d'%(trial_idx))
             os.mkdir(trial_dir)
             print('Saving results in {}'.format(trial_dir))
@@ -86,6 +84,8 @@ def main():
                 get_package_module_names(trials)[0].index(expanded_config_file['trial'])]
             results = trial.main(debug=cl_args.debug, **expanded_config_file)
             trial.save_results(results, trial_dir)
+            with open(os.path.join(trial_dir, 'config.json'), 'w') as F:
+                json.dump(expanded_config_file, F, indent=2)
 
 if __name__ == '__main__':
     main()

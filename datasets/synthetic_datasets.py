@@ -1,8 +1,8 @@
 import numpy as np
 from torch.utils.data import Dataset
 
-from utils import get_print_to_log
-print = get_print_to_log(__file__)
+from utils import get_print_to_log, get_filename
+print = get_print_to_log(get_filename(__file__))
 
 class BinaryDataset(Dataset):
     def __init__(self,
