@@ -1,0 +1,22 @@
+{
+    "disc": "StandardGanDiscriminator",
+    "disc_kwargs": {"image_shape": [1, 28, 28]},
+    "gen": "StandardGanGenerator",
+    "gen_kwargs": {"latent_dims": 100, "image_shape": [1, 28, 28]},
+    "disc_loss_fn": "CrossEntropyLoss",
+    "gen_loss_fn": "BCELoss",
+    "disc_opt": "Adam",
+    "disc_opt_kwargs": {"lr": 0.0002,"betas": [0.5, 0.999]},
+    "gen_opt": "Adam",
+    "gen_opt_kwargs": {"lr": 0.0002, "betas": [0.5, 0.999]},
+    "latent_var_shape": [32, 100],
+    "latent_var_distr": "Normal",
+    "latent_var_distr_kwargs": {"loc__EXPAND": 0.0, "scale__EXPAND": 1.0},
+    "dataloader_kwargs": {"batch_size": 32, "shuffle": true},
+    "trial_kwargs": {"n_epochs": ["dg": 50], "observe_gen_period": 1},
+    "expand": [
+        {"seed": 0},
+        {"seed": 1},
+        {"seed": 2}],
+    "device": "cuda"
+}

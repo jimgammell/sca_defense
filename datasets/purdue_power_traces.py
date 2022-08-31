@@ -7,8 +7,6 @@ print = get_print_to_log(get_filename(__file__))
 
 class PurduePowerTraceDataset(SavedNpzDataset):
     def __init__(self,
-                 attack_point,
-                 *args,
                  train=True,
                  data_path=None,
                  download_base = r'https://github.com/SparcLab/X-DeepSCA/raw/master/mat_traces',
@@ -77,4 +75,4 @@ class PurduePowerTraceDataset(SavedNpzDataset):
             finally:
                 shutil.rmtree(os.path.join('.', 'temp'))
         base_path = os.path.join(d, 'train' if train else 'test')
-        super().__init__(base_path, 'keys', *args, **kwargs)
+        super().__init__(base_path, 'keys', **kwargs)

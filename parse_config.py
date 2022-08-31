@@ -49,32 +49,6 @@ def get_config_valid_arguments():
                                 add_suffix('optimizer'): [name for name in list_module_attributes(optim)]})
     return valid_types, valid_arguments
 
-def apply_default_settings(config):
-    default_arguments = {'trial_description': 'none provided',
-                         'dataset_kwargs': {},
-                         'dataloader_kwargs': {},
-                         'trial_kwargs': {'n_epochs': 1},
-                         'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-                         'seed': time.time_ns()&0xFFFFFFFF}
-    if 'model' in config.keys():
-        default_arguments.update({'model_kwargs': {},
-                                  'loss_fn_kwargs': {},
-                                  'optimizer': 'Adam',
-                                  'optimizer_kwargs': {}})
-    else:
-        default_arguments.update({'model_kwargs_d': {},
-                                  'model_kwargs_g': {},
-                                  'loss_fn_kwargs_d': {},
-                                  'loss_fn_kwargs_g': {},
-                                  'optimizer_d': 'Adam',
-                                  'optimizer_g': 'Adam',
-                                  'optimizer_kwargs_d': {},
-                                  'optimizer_kwargs_g': {}})
-    for key, item in default_arguments.items():
-        if not(key in config.keys()):
-            config.update({key: item})
-    return config
-
 def expand_config(config):
     expanded_configs = []
     keys_to_expand = []
@@ -113,7 +87,6 @@ def parse_config(path):
     config = load_config(path)
     expanded_configs, expanded_keys = expand_config(config)
     for idx, expanded_config in enumerate(expanded_configs):
-        expanded_config = apply_default_settings(expanded_config)
         validate_config(expanded_config)
         expanded_configs[idx] = expanded_config
     return expanded_configs, expanded_keys

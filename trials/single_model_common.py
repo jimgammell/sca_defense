@@ -23,10 +23,11 @@ def eval_step(batch, model, loss_fn, device):
     x = x.to(device)
     y = y.to(device)
     logits = model(x)
-    loss = loss_fn(logits, y)
-    return {'logits': logits.cpu().numpy(),
-            'loss': loss.cpu().numpy(),
-            'target': y.cpu().numpy()}
+    loss = loss_fn(logits, y).cpu().numpy()
+    predictions = np.argmax(logits.cpu().numpy(), axis=-1)
+    accuracy = np.mean(np.equal(predictions, y.cpu().numpy()))
+    return {'loss': np.mean(loss),
+            'accuracy': np.mean(accuracy)}
 
 def train_epoch(dataloader, model, optimizer, loss_fn, device):
     for batch in tqdm(dataloader):

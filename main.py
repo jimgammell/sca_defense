@@ -82,6 +82,7 @@ def main():
             specify_log_path(os.path.join(trial_dir, 'log.txt'), save_buffer=True)
             trial = get_package_modules(trials)[
                 get_package_module_names(trials)[0].index(expanded_config_file['trial'])]
+            expanded_config_file = trial.preprocess_config(expanded_config_file)
             results = trial.main(debug=cl_args.debug, **expanded_config_file)
             trial.save_results(results, trial_dir)
             with open(os.path.join(trial_dir, 'config.json'), 'w') as F:

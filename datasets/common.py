@@ -43,7 +43,8 @@ class SavedNpzDataset(Dataset):
                 shard = np.load(os.path.join(base_path, filename))
                 shard_to_store = get_shard_dict(shard)
                 for key in shard_to_store.keys():
-                    shard_to_store[key] = torch.tensor(shard_to_store[key]).to(data_storage_device)
+                    shard_to_store[key] = torch.tensor(shard_to_store[key]).to('cpu' if data_storage_device == 'ram'
+                                                                               else data_storage_device)
                 self.dataset_on_device[filename] = shard_to_store
             self.get_shard = lambda filename: self.dataset_on_device[filename]
         eg_shard = self.get_shard(self.files[0])
