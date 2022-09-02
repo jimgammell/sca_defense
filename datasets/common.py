@@ -3,10 +3,34 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 import torchvision
+from torchvision.datasets import MNIST
 
 import datasets
 from utils import get_print_to_log, list_module_attributes, get_filename
 print = get_print_to_log(get_filename(__file__))
+
+def preprocess_transform(transform_constructor, transform_kwargs):
+    if transform_constructor == None:
+        return None
+    if type(transform_constructor) == list:
+        assert type(transform_kwargs) == list
+        assert len(transform_constructor) == len(transform_kwargs)
+    else:
+        transform_constructor = [transform_constructor]
+        transform_kwargs = [transform_kwargs]
+    transforms = []
+    for idx, (constructor, kwargs) in enumerate(zip(transform_constructor, transform_kwargs)):
+        if type(constructor) == str:
+            if constructor in list_module_attributes(datasets.transforms):
+                constructor = getattr(datasets.transforms, constructor)
+            elif constructor in list_module_attributes(torchvision.transforms):
+                constructor = getattr(torchvision.transforms, constructor)
+            else:
+                assert False
+        transform = constructor(**kwargs)
+        transforms.append(transform)
+    full_transform = torchvision.transforms.Compose(transforms)
+    return full_transform
 
 class SavedNpzDataset(Dataset):
     def __init__(self,
@@ -54,28 +78,6 @@ class SavedNpzDataset(Dataset):
         self.attack_point = attack_point
         self.trace_length = trace_length
         self.byte = byte
-        def preprocess_transform(transform_constructor, transform_kwargs):
-            if transform_constructor == None:
-                return None
-            if type(transform_constructor) == list:
-                assert type(transform_kwargs) == list
-                assert len(transform_constructor) == len(transform_kwargs)
-            else:
-                transform_constructor = [transform_constructor]
-                transform_kwargs = [transform_kwargs]
-            transforms = []
-            for idx, (constructor, kwargs) in enumerate(zip(transform_constructor, transform_kwargs)):
-                if type(constructor) == str:
-                    if constructor in list_module_attributes(datasets.transforms):
-                        constructor = getattr(datasets.transforms, constructor)
-                    elif constructor in list_module_attributes(torchvision.transforms):
-                        constructor = getattr(torchvision.transforms, constructor)
-                    else:
-                        assert False
-                transform = constructor(**kwargs)
-                transforms.append(transform)
-            full_transform = torchvision.transforms.Compose(transforms)
-            return full_transform
         self.trace_transform = preprocess_transform(trace_transform, trace_transform_kwargs)
         self.plaintext_transform = preprocess_transform(plaintext_transform, plaintext_transform_kwargs)
         self.ap_transform = preprocess_transform(ap_transform, ap_transform_kwargs)

@@ -7,7 +7,7 @@ print = get_print_to_log(get_filename(__file__))
 
 class MultilayerPerceptron(nn.Module):
     def __init__(self,
-                 eg_input_shape,
+                 n_inputs,
                  n_outputs=256,
                  hidden_layers=[],
                  hidden_activation=nn.ReLU,
@@ -15,8 +15,6 @@ class MultilayerPerceptron(nn.Module):
                  batch_norm_kwargs={},
                  dropout=0.):
         super().__init__()
-        modules = [nn.Flatten(1, -1)]
-        n_inputs = eg_input_shape[-1]
         layer_sizes = [n_inputs] + hidden_layers + [n_outputs]
         if type(hidden_activation) == list:
             assert len(hidden_activation) == len(hidden_layers)
@@ -32,6 +30,7 @@ class MultilayerPerceptron(nn.Module):
             dropout = (len(layer_sizes)-1)*[dropout]
         else:
             assert len(dropout) == len(layer_sizes)-1
+        modules = []
         if batch_norm[0] != False:
             modules.append(nn.BatchNorm1d(layer_sizes[0], **batch_norm_kwargs))
         if dropout[0] != 0.:
@@ -49,32 +48,27 @@ class MultilayerPerceptron(nn.Module):
         self.layer_sizes = layer_sizes
         self.hidden_activation = hidden_activation
         self.batch_norm = batch_norm
+        self.batch_norm_kwargs = batch_norm_kwargs
         self.dropout = dropout
-        
         
     def forward(self, x):
         return self.model(x)
-    
-    def __repr__(self):
-        s = 'Multilayer Perceptron model:' +\
-            '\n\tLayer sizes: {}'.format(self.layer_sizes) +\
-            '\n\tHidden activations: {}'.format(self.hidden_activation) +\
-            '\n\tBatch norm: {}'.format(self.batch_norm) +\
-            '\n\tBatch norm kwargs: {}'.format(self.batch_norm_kwargs) +\
-            '\n\tDropout: {}'.format(self.dropout) +\
-            '\n\tParameter count: {}'.format(get_param_count(self)) +\
-            '\nModel summary:\n' + super(nn.Module, self).__repr__()
-        return s
 
 class Linear(MultilayerPerceptron):
     def __init__(self, eg_input_shape):
-        super().__init__(eg_input_shape)
+        n_inputs = np.prod(eg_input_shape[1:])
+        super().__init__(n_inputs)
+        self.input_transform = nn.Flatten(1, -1)
+        
+    def forward(self, x):
+        transformed_x = self.input_transform(x)
+        return super().forward(transformed_x)
         
     def __repr__(self):
         s = 'Linear model:' +\
             '\n\tLayer sizes: {}'.format(self.layer_sizes) +\
             '\n\tParameter count: {}'.format(get_param_count(self)) +\
-            '\nModel summary:\n' + super(nn.Module, self).__repr__()
+            '\nModel summary:\n{}'.format(self.model)
         return s
 
 class XDeepSca(MultilayerPerceptron):
@@ -84,11 +78,17 @@ class XDeepSca(MultilayerPerceptron):
                  hidden_activation=nn.ReLU,
                  batch_norm=[False, True, True],
                  dropout=[0., .1, .05]):
-        super().__init__(eg_input_shape,
+        n_inputs = np.prod(eg_input_shape[1:])
+        super().__init__(n_inputs,
                          hidden_layers=hidden_layers,
                          hidden_activation=hidden_activation,
                          batch_norm=batch_norm,
                          dropout=dropout)
+        self.input_transform = nn.Flatten(1, -1)
+        
+    def forward(self, x):
+        transformed_x = self.input_transform(x)
+        return super().forward(transformed_x)
     
     def __repr__(self):
         s = 'X-DeepSCA model:' +\
@@ -97,34 +97,56 @@ class XDeepSca(MultilayerPerceptron):
             '\n\tBatch norm: {}'.format(self.batch_norm) +\
             '\n\tDropout: {}'.format(self.dropout) +\
             '\n\tParameter count: {}'.format(get_param_count(self)) +\
-            '\nModel summary:\n' + super(nn.Module, self).__repr__()
+            '\nModel summary:\n{}'.format(self.model)
         return s
 
 class StandardGanGenerator(MultilayerPerceptron):
     def __init__(self,
                  latent_dims,
                  image_shape,
+                 conditions = [],
                  output_transform=nn.Tanh,
                  hidden_layers=[128, 256, 512, 1024],
                  hidden_activation=lambda: nn.LeakyReLU(0.2),
                  batch_norm=[False, False, True, True, True],
                  batch_norm_kwargs={'momentum': 0.2}):
-        super().__init__(eg_input_shape=(latent_dims,),
-                         n_outputs=int(np.prod(image_shape)),
+        
+        self.latent_dims = latent_dims
+        self.image_shape = image_shape
+        if len(conditions) > 0:
+            self.conditional_gan = True
+            self.conditions = conditions
+            n_inputs = latent_dims+len(conditions)
+        else:
+            self.conditional_gan = False
+            n_inputs = latent_dims
+            
+        super().__init__(n_inputs=n_inputs,
+                         n_outputs=int(np.prod(image_shape[1:])),
                          hidden_layers=hidden_layers,
                          hidden_activation=hidden_activation,
                          batch_norm=batch_norm,
                          batch_norm_kwargs=batch_norm_kwargs)
         
-        self.latent_dims = latent_dims
-        self.image_shape = image_shape
+        if self.conditional_gan:
+            self.condition_embedding = nn.Embedding(len(conditions), len(conditions))
+        self.input_transform = nn.Flatten(1, -1)
+        if type(output_transform) == str:
+            output_transform = getattr(nn, output_transform)
         self.output_transform = output_transform()
     
-    def forward(self, x):
-        logits = super().forward(x)
-        pixels = self.output_transform(logits)
-        generated_image = pixels.view(-1, *self.image_shape)
-        return generated_image
+    def forward(self, *args):
+        if self.conditional_gan:
+            (x, labels) = args
+            transformed_x = self.input_transform(x)
+            embedded_labels = self.condition_embedding(labels)
+            logits = super().forward(torch.cat((transformed_x, embedded_labels), dim=1))
+        else:
+            (x,) = args
+            transformed_x = self.input_transform(x)
+            logits = super().forward(transformed_x)
+        output = self.output_transform(logits).view(-1, *self.image_shape[1:])
+        return output
     
     def __repr__(self):
         s = 'Standard GAN Generator model.' +\
@@ -132,45 +154,69 @@ class StandardGanGenerator(MultilayerPerceptron):
             '\n\tGenerated image shape: {}'.format(self.image_shape) +\
             '\n\tOutput activation: {}'.format(self.output_transform) +\
             '\n\tLayer sizes: {}'.format(self.layer_sizes) +\
-            '\n\tHidden activations: {}'.format(self.hidden_activations) +\
+            '\n\tHidden activations: {}'.format(self.hidden_activation) +\
             '\n\tBatch norm: {}'.format(self.batch_norm) +\
             '\n\tBatch norm kwargs: {}'.format(self.batch_norm_kwargs) +\
             '\n\tDropout: {}'.format(self.dropout) +\
             '\n\tParameter count: {}'.format(get_param_count(self)) +\
-            '\nModel summary:\n' + super(nn.Module, self).__repr__()
+            '\nModel summary:\n{}'.format(self.model)
         return s
 
 class StandardGanDiscriminator(MultilayerPerceptron):
     def __init__(self,
                  image_shape,
+                 conditions=[],
                  n_outputs=1,
-                 output_transform=nn.Identity,
+                 output_transform=nn.Sigmoid,
                  hidden_layers=[512, 256, 1],
                  hidden_activation=lambda: nn.LeakyReLU(0.2)):
-        super().__init__(eg_input_shape=input_shape,
-                         n_outputs=n_outputs,
-                         hidden_layers=hidden_layers,
-                         hidden_activation=hidden_activation,
-                         batch_norm=False,
-                         dropout=False)
         
         self.image_shape = image_shape
+        if len(conditions) > 0:
+            self.conditional_gan = True
+            self.conditions = conditions
+            n_inputs = np.prod(image_shape[1:]) + len(conditions)
+        else:
+            self.conditional_gan = False
+            n_inputs = np.prod(image_shape[1:])
+            
+        super().__init__(n_inputs=n_inputs,
+                         n_outputs=n_outputs,
+                         hidden_layers=hidden_layers,
+                         hidden_activation=hidden_activation,)
+        
+        if self.conditional_gan:
+            self.condition_embedding = nn.Embedding(len(conditions), len(conditions))
+        self.input_transform = nn.Flatten(1, -1)
+        if type(output_transform) == str:
+            output_transform = getattr(nn, output_transform)
         self.output_transform = output_transform()
     
-    def forward(self, x):
-        logits = super().forward(x)
+    def forward(self, *args):
+        if self.conditional_gan:
+            (x, labels) = args
+            transformed_x = self.input_transform(x)
+            embedded_labels = self.condition_embedding(labels)
+            logits = super().forward(torch.cat((transformed_x, embedded_labels), dim=1))
+        else:
+            (x,) = args
+            transformed_x = self.input_transform(x)
+            logits = super().forward(transformed_x)
         output = self.output_transform(logits)
         return output
     
     def __repr__(self):
         s = 'Standard GAN Discriminator model.' +\
+            '\n\tConditional GAN: {}'.format(
+            'True with conditions {}'.format(self.conditions)
+            if self.conditional_gan else 'False') +\
             '\n\tInput image shape: {}'.format(self.image_shape) +\
             '\n\tOutput activation: {}'.format(self.output_transform) +\
             '\n\tLayer sizes: {}'.format(self.layer_sizes) +\
-            '\n\tHidden activations: {}'.format(self.hidden_activations) +\
+            '\n\tHidden activations: {}'.format(self.hidden_activation) +\
             '\n\tBatch norm: {}'.format(self.batch_norm) +\
             '\n\tBatch norm kwargs: {}'.format(self.batch_norm_kwargs) +\
             '\n\tDropout: {}'.format(self.dropout) +\
             '\n\tParameter count: {}'.format(get_param_count(self)) +\
-            '\nModel summary:\n' + super(nn.Module, self).__repr__()
+            '\nModel summary:\n{}'.format(self.model)
         return s

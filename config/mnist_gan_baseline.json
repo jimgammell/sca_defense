@@ -1,9 +1,9 @@
 {
+    "trial_description": "This is a sanity check trial to make sure that our code can reproduce the results seen in the big GAN papers -- original Goodfellow paper, conditional GANs, Wasserstein GANs.",
+    "trial": "train_gan",
     "disc": "StandardGanDiscriminator",
-    "disc_kwargs": {"image_shape": [1, 28, 28]},
     "gen": "StandardGanGenerator",
-    "gen_kwargs": {"latent_dims": 100, "image_shape": [1, 28, 28]},
-    "disc_loss_fn": "CrossEntropyLoss",
+    "disc_loss_fn": "BCELoss",
     "gen_loss_fn": "BCELoss",
     "disc_opt": "Adam",
     "disc_opt_kwargs": {"lr": 0.0002,"betas": [0.5, 0.999]},
@@ -12,11 +12,12 @@
     "latent_var_shape": [32, 100],
     "latent_var_distr": "Normal",
     "latent_var_distr_kwargs": {"loc__EXPAND": 0.0, "scale__EXPAND": 1.0},
+    "conditions": [],
+    "objective_formulation": "Goodfellow",
+    "dataset": "MNIST",
+    "dataset_kwargs": {"transform": "ToTensor"},
     "dataloader_kwargs": {"batch_size": 32, "shuffle": true},
-    "trial_kwargs": {"n_epochs": ["dg": 50], "observe_gen_period": 1},
-    "expand": [
-        {"seed": 0},
-        {"seed": 1},
-        {"seed": 2}],
+    "trial_kwargs": {"n_epochs": [["dg", 50]], "observe_gen_period": 1},
+    "seed": 0,
     "device": "cuda"
 }

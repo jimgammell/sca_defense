@@ -86,7 +86,4 @@ def validate_config(config):
 def parse_config(path):
     config = load_config(path)
     expanded_configs, expanded_keys = expand_config(config)
-    for idx, expanded_config in enumerate(expanded_configs):
-        validate_config(expanded_config)
-        expanded_configs[idx] = expanded_config
     return expanded_configs, expanded_keys

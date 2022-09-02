@@ -48,12 +48,17 @@ def list_module_attributes(module):
 def get_package_module_names(package):
     package_name = os.path.dirname(package.__file__).split('/')[-1]
     module_names = [name for _, name, _ in pkgutil.iter_modules([package_name])]
+    if len(module_names) == 0:
+        module_names = [x for x in dir(package) if not(x[:2] == '__' and x[-2:] == '__')]
     return module_names, package_name
         
 def get_package_modules(package):
     module_names, package_name = get_package_module_names(package)
-    modules = [importlib.import_module('.'+module_name, package=package_name)
-               for module_name in module_names]
+    try:
+        modules = [importlib.import_module('.'+module_name, package=package_name)
+                   for module_name in module_names]
+    except:
+        modules = [getattr(package, mod_name) for mod_name in module_names]
     return modules
 
 def get_attribute_from_package(attr_name, package):

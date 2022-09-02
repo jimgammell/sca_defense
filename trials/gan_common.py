@@ -1,3 +1,5 @@
+from tqdm import tqdm
+from copy import copy
 import numpy as np
 import torch
 
@@ -13,11 +15,12 @@ def clamp_model_params(model, val_1, val_2=None):
         max_param = val_2
     for param in model.parameters():
         param.data.clamp_(min_param, max_param)
-
+        
 def get_model_params_histogram(model):
     params = np.concatenate([param.data.flatten().cpu().numpy()
                              for param in model.parameters()])
-    hist, edges = np.histogram(params, bins=100)
+    hist, edges = np.histogram(params, bins=1000)
+    
     return {'histogram': hist,
             'bin_edges': edges}
 
@@ -25,9 +28,9 @@ def extract_rv(x):
     return x.detach().cpu().numpy()
 
 class GanExperiment:
-    def real_labels(self, n):
+    def get_real_labels(self, n):
         return torch.ones((n, 1), device=self.device)
-    def fake_labels(self, n):
+    def get_fake_labels(self, n):
         return torch.zeros((n, 1), device=self.device)
     def get_conditions(self, n):
         conditions = np.random.choice(self.conditions, (n, 1))
@@ -48,6 +51,7 @@ class GanExperiment:
             disc_loss = .5*(disc_loss_fake+disc_loss_real)
         elif self.objective_formulation in ['Wasserstein']:
             disc_loss = torch.mean(disc_logits_real) - torch.mean(disc_logits_fake)
+            disc_loss_fake = disc_loss_real = disc_loss
         else:
             assert False
         if granular:
@@ -74,6 +78,7 @@ class GanExperiment:
         self.disc_opt = disc_opt
         self.gen_opt = gen_opt
         self.latent_vars_distr = latent_vars_distr
+        self.eval_latent_vars = self.latent_vars_distr.sample()
         self.device = device
         if len(conditions) != 0:
             self.conditional_gan = True
@@ -90,8 +95,8 @@ class GanExperiment:
         real_images, real_labels = batch
         real_images = real_images.to(self.device)
         real_labels = real_labels.to(self.device)
-        gen_latent_variables = latent_vars_distr.sample().to(self.device)
-        disc_latent_variables = latent_vars_distr.sample().to(self.device)
+        gen_latent_variables = self.latent_vars_distr.sample().to(self.device)
+        disc_latent_variables = self.latent_vars_distr.sample().to(self.device)
         
         if train_gen:
             if self.conditional_gan:
@@ -148,8 +153,8 @@ class GanExperiment:
             disc_logits_fake, disc_logits_real, fake_images.size(0), real_images.size(0), granular=True)
         disc_preds_fake = torch.ge(disc_logits_fake, 0.5)
         disc_preds_real = torch.ge(disc_logits_real, 0.5)
-        disc_acc_fake = torch.mean(torch.eq(disc_preds_fake, self.get_fake_labels(fake_images.size(0))))
-        disc_acc_real = torch.mean(torch.eq(disc_preds_real, self.get_real_labels(real_images.size(0))))
+        disc_acc_fake = torch.mean(torch.eq(disc_preds_fake, self.get_fake_labels(fake_images.size(0))).to(torch.float))
+        disc_acc_real = torch.mean(torch.eq(disc_preds_real, self.get_real_labels(real_images.size(0))).to(torch.float))
         
         return {'gen_loss': extract_rv(gen_loss),
                 'disc_loss_fake': extract_rv(disc_loss_fake),
@@ -159,29 +164,35 @@ class GanExperiment:
     
     @torch.no_grad()
     def eval_disc_performance_step(self, batch):
+        self.gen.eval()
         self.disc.eval()
         
         real_images, real_labels = batch
         real_images = real_images.to(self.device)
         real_labels = real_labels.to(self.device)
+        latent_variables = self.latent_vars_distr.sample().to(self.device)
         
         if self.conditional_gan:
-            disc_logits = self.disc(real_images, real_labels)
+            conditions = self.get_conditions(latent_variables.size(0))
+            fake_images = self.gen(latent_variables, conditions)
+            disc_logits_fake = self.disc(fake_images, conditions)
+            disc_logits_real = self.disc(real_images, real_labels)
         else:
-            disc_logits = self.disc(real_images)
-        disc_loss = self.get_disc_loss(disc_logits, self.get_real_labels(real_images.size(0)))
-        disc_preds = torch.ge(disc_logits, 0.5)
-        disc_acc = torch.mean(torch.eq(disc_preds, self.get_real_labels(real_images.size(0))))
-        
+            fake_images = self.gen(latent_variables)
+            disc_logits_fake = self.disc(fake_images)
+            disc_logits_real = self.disc(real_images)
+        _, disc_loss = self.get_disc_loss(
+            disc_logits_fake, disc_logits_real, fake_images.size(0), real_images.size(0), granular=True)
+        disc_preds = torch.ge(disc_logits_real, 0.5)
+        disc_acc = torch.mean(torch.eq(disc_preds, self.get_real_labels(real_images.size(0))).to(torch.float))
         return {'disc_loss': extract_rv(disc_loss),
-                'disc_preds': extract_rv(disc_preds),
                 'disc_acc': extract_rv(disc_acc)}
     
     @torch.no_grad()
     def sample_generated_images(self):
-        self.generator.eval()
+        self.gen.eval()
         
-        latent_variables = self.latent_vars_distr.sample().to(device)
+        latent_variables = self.eval_latent_vars.to(self.device)
         if self.conditional_gan:
             conditions = [self.conditions[idx%len(self.conditions)]
                           for idx in range(latent_variables.size(0))]
@@ -192,11 +203,12 @@ class GanExperiment:
             
         return {'fake_images': extract_rv(fake_images)}
     
-    def train_epoch(dataloader, train_gen=True, train_disc=True):
+    def train_epoch(self, dataloader, train_gen=True, train_disc=True):
         for batch in tqdm(dataloader):
             self.train_step(batch, train_gen=train_gen, train_disc=train_disc)
     
-    def eval_epoch(train_dataloader=None,
+    def eval_epoch(self,
+                   train_dataloader=None,
                    eval_training_metrics=True,
                    test_dataloader=None,
                    eval_disc_generalization=True,
@@ -205,6 +217,11 @@ class GanExperiment:
                    sample_gen_images=True,
                    average_metrics=True):
         Results = {}
+        progress_bar = tqdm(total=(len(train_dataloader) if train_dataloader!=None else 0) +\
+                                  (len(test_dataloader) if test_dataloader!=None else 0) +\
+                                  (1 if eval_disc_hist else 0) +\
+                                  (1 if eval_gen_hist else 0) +\
+                                  (1 if sample_gen_images else 0))
         if eval_training_metrics:
             assert train_dataloader != None
             Results['training_metrics'] = {}
@@ -214,6 +231,7 @@ class GanExperiment:
                     if not key in Results['training_metrics'].keys():
                         Results['training_metrics'][key] = []
                     Results['training_metrics'][key].append(results[key])
+                progress_bar.update(1)
             if average_metrics:
                 for key, item in Results['training_metrics'].items():
                     Results['training_metrics'][key] = np.mean(item)
@@ -226,16 +244,20 @@ class GanExperiment:
                     if not key in Results['disc_generalization'].keys():
                         Results['disc_generalization'][key] = []
                     Results['disc_generalization'][key].append(results[key])
+                progress_bar.update(1)
             if average_metrics:
                 for key, item in Results['disc_generalization'].items():
                     Results['disc_generalization'][key] = np.mean(item)
         if eval_disc_hist:
             disc_hist = get_model_params_histogram(self.disc)
             Results['disc_hist'] = disc_hist
+            progress_bar.update(1)
         if eval_gen_hist:
             gen_hist = get_model_params_histogram(self.gen)
             Results['gen_hist'] = gen_hist
+            progress_bar.update(1)
         if sample_gen_images:
             sampled_images = self.sample_generated_images()
             Results['sampled_gen_images'] = sampled_images
+            progress_bar.update(1)
         return Results
