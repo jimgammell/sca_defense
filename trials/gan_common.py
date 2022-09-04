@@ -5,27 +5,8 @@ import torch
 
 from utils import get_print_to_log, get_filename
 print = get_print_to_log(get_filename(__file__))
+from trial_common import clamp_model_params, extract_rv_from_tensor, get_model_params_histogram
 
-def clamp_model_params(model, val_1, val_2=None):
-    if val_2 == None:
-        min_param = -val_1
-        max_param = val_1
-    else:
-        min_param = val_1
-        max_param = val_2
-    for param in model.parameters():
-        param.data.clamp_(min_param, max_param)
-        
-def get_model_params_histogram(model):
-    params = np.concatenate([param.data.flatten().cpu().numpy()
-                             for param in model.parameters()])
-    hist, edges = np.histogram(params, bins=1000)
-    
-    return {'histogram': hist,
-            'bin_edges': edges}
-
-def extract_rv(x):
-    return x.detach().cpu().numpy()
 
 class GanExperiment:
     def get_real_labels(self, n):
@@ -39,8 +20,10 @@ class GanExperiment:
     def get_gen_loss(self, disc_logits_fake, n_labels_fake):
         if self.objective_formulation in ['Naive']:
             gen_loss = -self.gen_loss_fn(disc_logits_fake, self.get_fake_labels(n_labels_fake))
-        elif self.objective_formulation in ['Goodfellow', 'Wasserstein']:
+        elif self.objective_formulation in ['Goodfellow']:
             gen_loss = self.gen_loss_fn(disc_logits_fake, self.get_real_labels(n_labels_fake))
+        elif self.objective_formulation in ['Wasserstein']:
+            gen_loss = -torch.mean(disc_logits_fake)
         else:
             assert False
         return gen_loss
@@ -50,7 +33,7 @@ class GanExperiment:
             disc_loss_real = self.disc_loss_fn(disc_logits_real, self.get_real_labels(n_labels_real))
             disc_loss = .5*(disc_loss_fake+disc_loss_real)
         elif self.objective_formulation in ['Wasserstein']:
-            disc_loss = torch.mean(disc_logits_real) - torch.mean(disc_logits_fake)
+            disc_loss = torch.mean(disc_logits_fake) - torch.mean(disc_logits_real)
             disc_loss_fake = disc_loss_real = disc_loss
         else:
             assert False
@@ -127,7 +110,7 @@ class GanExperiment:
             self.disc_opt.step()
             
         if self.objective_formulation in ['Wasserstein']:
-            clamp_model_params(self.discriminator, self.disc_weight_clip_val)
+            clamp_model_params(self.disc, self.disc_weight_clip_value)
     
     @torch.no_grad()
     def eval_step(self, batch):
@@ -156,11 +139,11 @@ class GanExperiment:
         disc_acc_fake = torch.mean(torch.eq(disc_preds_fake, self.get_fake_labels(fake_images.size(0))).to(torch.float))
         disc_acc_real = torch.mean(torch.eq(disc_preds_real, self.get_real_labels(real_images.size(0))).to(torch.float))
         
-        return {'gen_loss': extract_rv(gen_loss),
-                'disc_loss_fake': extract_rv(disc_loss_fake),
-                'disc_loss_real': extract_rv(disc_loss_real),
-                'disc_acc_fake': extract_rv(disc_acc_fake),
-                'disc_acc_real': extract_rv(disc_acc_real)}
+        return {'gen_loss': extract_rv_from_tensor(gen_loss),
+                'disc_loss_fake': extract_rv_from_tensor(disc_loss_fake),
+                'disc_loss_real': extract_rv_from_tensor(disc_loss_real),
+                'disc_acc_fake': extract_rv_from_tensor(disc_acc_fake),
+                'disc_acc_real': extract_rv_from_tensor(disc_acc_real)}
     
     @torch.no_grad()
     def eval_disc_performance_step(self, batch):
@@ -185,8 +168,8 @@ class GanExperiment:
             disc_logits_fake, disc_logits_real, fake_images.size(0), real_images.size(0), granular=True)
         disc_preds = torch.ge(disc_logits_real, 0.5)
         disc_acc = torch.mean(torch.eq(disc_preds, self.get_real_labels(real_images.size(0))).to(torch.float))
-        return {'disc_loss': extract_rv(disc_loss),
-                'disc_acc': extract_rv(disc_acc)}
+        return {'disc_loss': extract_rv_from_tensor(disc_loss),
+                'disc_acc': extract_rv_from_tensor(disc_acc)}
     
     @torch.no_grad()
     def sample_generated_images(self):
@@ -201,7 +184,7 @@ class GanExperiment:
         else:
             fake_images = self.gen(latent_variables)
             
-        return {'fake_images': extract_rv(fake_images)}
+        return {'fake_images': extract_rv_from_tensor(fake_images)}
     
     def train_epoch(self, dataloader, train_gen=True, train_disc=True):
         for batch in tqdm(dataloader):

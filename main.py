@@ -108,16 +108,17 @@ def main():
             with open(os.path.join(trial_dir, 'config.json'), 'w') as F:
                 json.dump(expanded_config_file, F, indent=2)
      
-    specify_log_path(os.path.join('.', 'results', 'execution_logs', 'log__%d_%d_%d_%d_%d_%d.txt'%(
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)), save_buffer=True)
-    for folder in cl_args.generate_figures:
-        subfolders = [os.path.join(folder, f) for f in os.listdir(folder)
-                      if os.path.isdir(os.path.join(folder, f))]
-        print()
-        print('Generating figures for results in {}...'.format(folder))
-        for subfolder in subfolders:
-            print('\tGenerating figures for results in {}...'.format(subfolder))
-            generate_figures.main(subfolder)
+    if cl_args.generate_figures is not False:
+        specify_log_path(os.path.join('.', 'results', 'execution_logs', 'log__%d_%d_%d_%d_%d_%d.txt'%(
+            dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)), save_buffer=True)
+        for folder in cl_args.generate_figures:
+            subfolders = [os.path.join(folder, f) for f in os.listdir(folder)
+                          if os.path.isdir(os.path.join(folder, f))]
+            print()
+            print('Generating figures for results in {}...'.format(folder))
+            for subfolder in subfolders:
+                print('\tGenerating figures for results in {}...'.format(subfolder))
+                generate_figures.main(subfolder)
 
 if __name__ == '__main__':
     main()

@@ -111,9 +111,9 @@ def main(debug=False, **config_kwargs):
     test_dataloader = DataLoader(test_dataset, **dataloader_kwargs)
     print('Test dataloader:\n{}\n'.format(test_dataloader))
     eg_input = next(iter(train_dataloader))[0]
-    discriminator = disc_constructor(eg_input.shape, **disc_kwargs)
+    discriminator = disc_constructor(eg_input.shape, conditions=conditions, **disc_kwargs)
     print('Discriminator:\n{}\n'.format(discriminator))
-    generator = gen_constructor(np.prod(latent_var_shape[1:]), eg_input.shape, **gen_kwargs)
+    generator = gen_constructor(np.prod(latent_var_shape[1:]), eg_input.shape, conditions=conditions, **gen_kwargs)
     print('Generator:\n{}\n'.format(generator))
     disc_loss_fn = disc_loss_fn_constructor(**disc_loss_fn_kwargs)
     print('Discriminator loss function:\n{}\n'.format(disc_loss_fn))
@@ -141,7 +141,7 @@ def main(debug=False, **config_kwargs):
                                 disc_weight_clip_value)
     
     if debug:
-        n_epochs = [['d', 1], ['g', 1], ['dg', 1], ['d', 1], ['g', 1]]
+        n_epochs = [['dg', 1]]
     else:
         n_epochs = trial_kwargs['n_epochs']
     n_epochs[0][1] += 1

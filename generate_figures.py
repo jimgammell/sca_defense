@@ -37,13 +37,13 @@ def color_trial_types(ax, results, alpha=.1):
 
 def get_training_traces(results):
     results_flat = flatten_results(results)
-    gen_loss = [r['training_metrics']['gen_loss'] for r in results_flat]
-    disc_loss_fake_train = [r['training_metrics']['disc_loss_fake'] for r in results_flat]
-    disc_loss_real_train = [r['training_metrics']['disc_loss_real'] for r in results_flat]
-    disc_acc_fake_train = [r['training_metrics']['disc_acc_fake'] for r in results_flat]
-    disc_acc_real_train = [r['training_metrics']['disc_acc_real'] for r in results_flat]
-    disc_loss_real_test = [r['disc_generalization']['disc_loss'] for r in results_flat]
-    disc_acc_real_test = [r['disc_generalization']['disc_acc'] for r in results_flat]
+    gen_loss = np.array([r['training_metrics']['gen_loss'] for r in results_flat])
+    disc_loss_fake_train = np.array([r['training_metrics']['disc_loss_fake'] for r in results_flat])
+    disc_loss_real_train = np.array([r['training_metrics']['disc_loss_real'] for r in results_flat])
+    disc_acc_fake_train = np.array([r['training_metrics']['disc_acc_fake'] for r in results_flat])
+    disc_acc_real_train = np.array([r['training_metrics']['disc_acc_real'] for r in results_flat])
+    disc_loss_real_test = np.array([r['disc_generalization']['disc_loss'] for r in results_flat])
+    disc_acc_real_test = np.array([r['disc_generalization']['disc_acc'] for r in results_flat])
     return {'Generator loss': gen_loss,
             'Discriminator loss (fake/train)': disc_loss_fake_train,
             'Discriminator loss (real/train)': disc_loss_real_train,
@@ -52,7 +52,7 @@ def get_training_traces(results):
             'Discriminator accuracy (real/train)': disc_acc_real_train,
             'Discriminator accuracy (real/test)': disc_acc_real_test}
 
-def plot_training_traces(fig, axes, results):
+def plot_training_traces(fig, axes, results, objective_formulation):
     def get_color(label):
         if 'Generator' in label:
             return 'blue'
@@ -80,6 +80,8 @@ def plot_training_traces(fig, axes, results):
             assert False
     epochs = get_epochs(results)
     traces = get_training_traces(results)
+    if objective_formulation == 'Naive':
+        traces['Generator loss'] *= -1
     for trace_label, trace in traces.items():
         ax = get_axis(trace_label)
         color = get_color(trace_label)
@@ -138,10 +140,10 @@ def plot_sampled_images(fig, axes, results):
     anim = FuncAnimation(fig, get_frame, frames=len(sampled_images))
     return lambda dest: anim.save(dest, writer='ffmpeg', fps=10)
         
-def generate_gan_figures(results):
+def generate_gan_figures(results, objective_formulation):
     
     training_curves_fig, axes = plt.subplots(3, 1, sharex=True, figsize=(8, 24))
-    training_curve_save_fn = plot_training_traces(training_curves_fig, axes, results)
+    training_curve_save_fn = plot_training_traces(training_curves_fig, axes, results, objective_formulation)
     for ax in axes:
         color_trial_types(ax, results)
         ax.set_xlabel('Epoch')
@@ -149,7 +151,15 @@ def generate_gan_figures(results):
         ax.grid()
         epochs = get_epochs(results)
         ax.set_xlim(0, len(epochs)-1)
-    axes[0].set_ylabel('Loss')
+    if objective_formulation == 'Naive':
+        axes[0].set_ylabel('-1 * Loss')
+    else:
+        axes[0].set_ylabel('Loss')
+    if objective_formulation == 'Wasserstein':
+        pass
+    else:
+        axes[1].set_yscale('log')
+        
     axes[1].set_ylabel('Loss')
     axes[2].set_ylabel('Accuracy')
     axes[2].set_ylim(-.05, 1.05)
@@ -157,7 +167,6 @@ def generate_gan_figures(results):
     axes[1].set_title('Discriminator')
     axes[2].set_title('Discriminator')
     axes[0].set_yscale('log')
-    axes[1].set_yscale('log')
     plt.tight_layout()
     
     hist_fig, axes = plt.subplots(1, 2, figsize=(16, 8))
@@ -189,7 +198,8 @@ def main(trial_dir):
     
     trial_type = settings['trial']
     if trial_type == 'train_gan':
-        training_curve_save_fn, hist_anim_save_fn, sampled_images_save_fn = generate_gan_figures(results)
+        objective_formulation = settings['objective_formulation']
+        training_curve_save_fn, hist_anim_save_fn, sampled_images_save_fn = generate_gan_figures(results, objective_formulation)
     
     training_curve_save_fn(os.path.join(trial_dir, 'figures', 'training_results.png'))
     hist_anim_save_fn(os.path.join(trial_dir, 'figures', 'param_hist.gif'))

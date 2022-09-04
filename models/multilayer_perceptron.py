@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch import nn
 
 from utils import get_print_to_log, get_filename
@@ -139,7 +140,7 @@ class StandardGanGenerator(MultilayerPerceptron):
         if self.conditional_gan:
             (x, labels) = args
             transformed_x = self.input_transform(x)
-            embedded_labels = self.condition_embedding(labels)
+            embedded_labels = self.condition_embedding(labels).view(-1, len(self.conditions))
             logits = super().forward(torch.cat((transformed_x, embedded_labels), dim=1))
         else:
             (x,) = args
@@ -196,7 +197,7 @@ class StandardGanDiscriminator(MultilayerPerceptron):
         if self.conditional_gan:
             (x, labels) = args
             transformed_x = self.input_transform(x)
-            embedded_labels = self.condition_embedding(labels)
+            embedded_labels = self.condition_embedding(labels).view(-1, len(self.conditions))
             logits = super().forward(torch.cat((transformed_x, embedded_labels), dim=1))
         else:
             (x,) = args
