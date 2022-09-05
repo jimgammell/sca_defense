@@ -7,7 +7,7 @@ from parse_config import parse_config
 from utils import get_print_to_log, specify_log_path, get_package_module_names, get_package_modules, get_filename
 print = get_print_to_log(get_filename(__file__))
 import trials
-import generate_figures
+from figure_generation.common import main as generate_figures
 
 def get_command_line_arguments():
     parser = argparse.ArgumentParser()
@@ -118,7 +118,7 @@ def main():
             print('Generating figures for results in {}...'.format(folder))
             for subfolder in subfolders:
                 print('\tGenerating figures for results in {}...'.format(subfolder))
-                generate_figures.main(subfolder)
+                generate_figures(subfolder)
 
 if __name__ == '__main__':
     main()

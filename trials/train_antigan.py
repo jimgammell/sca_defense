@@ -28,9 +28,7 @@ def save_results(results, trial_dir):
 def preprocess_config(config_kwargs):
     def req(key, valid_type=None):
         assert key in config_kwargs.keys()
-        if hasattr(valid_type, '__iter__'):
-            assert type(config_kwargs[key]) in valid_type
-        elif valid_type != None:
+        if valid_type != None:
             assert type(config_kwargs[key]) == valid_type
     def opt(key, default, enforce_default_type=True):
         if not key in config_kwargs.keys():
@@ -49,7 +47,7 @@ def preprocess_config(config_kwargs):
     req('gen_opt', str)
     opt('disc_opt_kwargs', {})
     opt('gen_opt_kwargs', {})
-    opt('latent_dims', 0)
+    opt('latent_var_shape', [32, 100])
     opt('latent_var_distr', None, enforce_default_type=False)
     opt('latent_var_distr_kwargs', {})
     opt('use_labels', True)
@@ -59,10 +57,14 @@ def preprocess_config(config_kwargs):
     opt('num_classes', 10)
     req('dataset', str)
     opt('dataset_kwargs', {})
-    opt('trial_kwargs', {'n_epochs': ['dg', 1],
-                         'observe_gen_period': 1,
-                         'gen_steps_per_disc_step': None,
-                         'disc_steps_per_gen_step': None})
+    opt('dataloader_kwargs', {})
+    trial_kwargs = {'n_epochs': [['dg', 1]],
+                    'observe_gen_period': 1,
+                    'gen_steps_per_disc_step': None,
+                    'disc_steps_per_gen_step': None}
+    if 'trial_kwargs' in config_kwargs.keys():
+        trial_kwargs.update(config_kwargs['trial_kwargs'])
+    config_kwargs['trial_kwargs'] = trial_kwargs
     opt('seed', time.time_ns()&0xFFFFFFFF)
     opt('device', 'cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -82,7 +84,7 @@ def main(debug=False, **config_kwargs):
     gen_opt_name = config_kwargs['gen_opt']
     disc_opt_kwargs = config_kwargs['disc_opt_kwargs']
     gen_opt_kwargs = config_kwargs['gen_opt_kwargs']
-    latent_dims = config_kwargs['latent_dims']
+    latent_var_shape = config_kwargs['latent_var_shape']
     latent_var_distr_name = config_kwargs['latent_var_distr']
     latent_var_distr_kwargs = copy(config_kwargs['latent_var_distr_kwargs'])
     use_labels = config_kwargs['use_labels']
@@ -92,6 +94,7 @@ def main(debug=False, **config_kwargs):
     num_classes = config_kwargs['num_classes']
     dataset_name = config_kwargs['dataset']
     dataset_kwargs = config_kwargs['dataset_kwargs']
+    dataloader_kwargs = config_kwargs['dataloader_kwargs']
     trial_kwargs = config_kwargs['trial_kwargs']
     seed = config_kwargs['seed']
     device = config_kwargs['device']
@@ -122,7 +125,7 @@ def main(debug=False, **config_kwargs):
     eg_input = next(iter(train_dataloader))[0]
     discriminator = disc_constructor(eg_input.shape, **disc_kwargs)
     print('Discriminator:\n{}\n'.format(discriminator))
-    generator = gen_constructor(latent_dims, num_classes if use_labels else 0, eg_imput.shape, **gen_kwargs)
+    generator = gen_constructor(latent_var_shape[-1], num_classes if use_labels else 0, eg_input.shape, **gen_kwargs)
     print('Generator:\n{}\n'.format(generator))
     disc_loss_fn = disc_loss_fn_constructor(**disc_loss_fn_kwargs)
     print('Discriminator loss function:\n{}\n'.format(disc_loss_fn))
@@ -158,7 +161,7 @@ def main(debug=False, **config_kwargs):
     else:
         n_epochs = trial_kwargs['n_epochs']
     n_epochs[0][1] += 1
-    observe_gen_period = trial_kwargs['observe_gen_period']
+    observe_gen_period = trial_kwargs['observe_gen_period'] if 'observe_gen_period' in trial_kwargs.keys() else 1
     epoch_idx, sub_trial_idx = 0, 0
     def get_sub_trial_key(_sub_trial_idx=None):
         if _sub_trial_idx == None:

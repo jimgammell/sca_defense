@@ -29,6 +29,8 @@ class AntiGanExperiment:
         self.gen_loss_fn = gen_loss_fn
         self.disc_opt = disc_opt
         self.gen_opt = gen_opt
+        self.device = device
+        self.num_classes = num_classes
         self.latent_vars_distr = latent_vars_distr
         if self.latent_vars_distr != None:
             self.eval_latent_variables = self.latent_vars_distr.sample()
@@ -39,7 +41,7 @@ class AntiGanExperiment:
         self.disc_weight_clamp = disc_weight_clamp
     
     def get_one_hot_labels(self, labels):
-        oh_labels = nn.functional.one_hot(labels).to(torch.float).to(self.device)
+        oh_labels = nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
         return oh_labels
     
     def get_complement_labels(self, labels):
@@ -88,7 +90,7 @@ class AntiGanExperiment:
             if self.use_labels:
                 gen_args.append(raw_labels)
             protective_noise = self.gen(*gen_args)
-            protected_images = raw_images + protective_noise
+            protected_images = .5*(raw_images + protective_noise)
             disc_logits = self.disc(protected_images)
             return disc_logits
         
@@ -126,7 +128,7 @@ class AntiGanExperiment:
         if self.use_labels:
             gen_args.append(raw_labels)
         protective_noise = self.gen(*gen_args)
-        protected_images = raw_images + protective_noise
+        protected_images = .5*(raw_images + protective_noise)
         disc_logits = self.disc(protected_images)
         gen_loss = self.get_gen_loss(disc_logits, raw_labels)
         disc_loss = self.get_disc_loss(disc_logits, raw_labels)
@@ -153,12 +155,12 @@ class AntiGanExperiment:
         
         gen_args = []
         if self.use_latent_variables:
-            latent_variables = self.eval_latent_vars.to(self.device)
+            latent_variables = self.eval_latent_variables.to(self.device)
             gen_args.append(latent_variables)
         if self.use_labels:
             gen_args.append(raw_labels)
         protective_noise = self.gen(*gen_args)
-        protected_images = raw_images + protective_noise
+        protected_images = .5*(raw_images + protective_noise)
         
         return {'protected_images': extract_rv_from_tensor(protected_images),
                 'labels': extract_rv_from_tensor(raw_labels)}
@@ -169,6 +171,7 @@ class AntiGanExperiment:
                     train_disc=True,
                     disc_steps_per_gen_step=None,
                     gen_steps_per_disc_step=None):
+        progress_bar = tqdm(total=len(dataloader))
         if disc_steps_per_gen_step != None:
             assert gen_steps_per_disc_step == None
             assert train_gen == True
@@ -181,6 +184,7 @@ class AntiGanExperiment:
                 else:
                     self.train_step(batch, train_gen=True, train_disc=True)
                     disc_step = 0
+                progress_bar.update(1)
         elif gen_steps_per_disc_step != None:
             assert gen_steps_per_disc_step == None
             assert train_gen == True
@@ -193,9 +197,11 @@ class AntiGanExperiment:
                 else:
                     self.train_step(batch, train_gen=True, train_disc=True)
                     gen_step = 0
+                progress_bar.update(1)
         else:
             for batch in dataloader:
                 self.train_step(batch, train_gen=train_gen, train_disc=train_disc)
+                progress_bar.update(1)
     
     def eval_epoch(self,
                    train_dataloader=None,
@@ -221,6 +227,7 @@ class AntiGanExperiment:
                 progress_bar.update(1)
             if average_metrics:
                 for key, item in Results['training_metrics'].items():
+                    item = np.array(item)
                     Results['training_metrics'][key] = np.mean(item, axis=0)
         if test_dataloader != None:
             Results['test_metrics'] = {}
@@ -247,6 +254,6 @@ class AntiGanExperiment:
                 assert test_dataloader != None
                 self.eval_batch = next(iter(test_dataloader))
             sampled_images = self.sample_generated_images(self.eval_batch)
-            Result['sampled_gen_images'] = sampled_images
+            Results['sampled_gen_images'] = sampled_images
             progress_bar.update(1)
         return Results

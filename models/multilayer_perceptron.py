@@ -260,6 +260,7 @@ class StandardAntiGanGenerator(MultilayerPerceptron):
     def forward(self, *args):
         if self.use_labels:
             (latent_vars, labels) = args
+            latent_vars = latent_vars[:labels.size(0), :]
             transformed_latent_vars = self.input_transform(latent_vars)
             embedded_labels = self.label_embedding(labels).view(-1, self.label_dims)
             logits = super().forward(torch.cat((transformed_latent_vars, embedded_labels), dim=1))
@@ -291,7 +292,8 @@ class StandardAntiGanDiscriminator(MultilayerPerceptron):
                  image_shape,
                  n_outputs=10,
                  output_transform=nn.Softmax,
-                 hidden_layers=[512, 256, 1],
+                 output_transform_kwargs={'dim': -1},
+                 hidden_layers=[512, 256],
                  hidden_activation=lambda: nn.LeakyReLU(0.2)):
         
         self.image_shape = image_shape
@@ -303,7 +305,7 @@ class StandardAntiGanDiscriminator(MultilayerPerceptron):
         self.input_transform = nn.Flatten(1, -1)
         if type(output_transform) == str:
             output_transform = getattr(nn, output_transform)
-        self.output_transform = output_transform()
+        self.output_transform = output_transform(**output_transform_kwargs)
         
     def forward(self, x):
         transformed_x = self.input_transform(x)
