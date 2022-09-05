@@ -1,0 +1,23 @@
+{
+    "disc": "StandardAntiGanDiscriminator",
+    "gen": "StandardAntiGanGenerator",
+    "disc_loss_fn": "BCELoss",
+    "gen_loss_fn": "BCELoss",
+    "disc_opt": "Adam",
+    "disc_opt_kwargs": {"lr": 0.0002, "betas": [0.5, 0.999]},
+    "gen_opt": "Adam",
+    "gen_opt_kwargs": {"lr": 0.0002, "betas": [0.5, 0.999]},
+    "latent_dims": 100,
+    "latent_var_distr": "Normal",
+    "latent_var_distr_kwargs": {"loc__EXPAND": 0.0, "scale__EXPAND": 1.0},
+    "use_labels": true,
+    "objective_formulation": "Complement",
+    "gen_weight_clamp": null,
+    "disc_weight_clamp": null,
+    "num_classes": 10,
+    "dataset": "MNIST",
+    "dataset_kwargs": {"transform": ["ToTensor", "Normalize"], "transform_kwargs": [{}, {"mean": [0.5], "std": [0.5]}]},
+    "dataloader_kwargs": {"batch_size": 32, "shuffle": true},
+    "seed": 0,
+    "device": "cuda"
+}

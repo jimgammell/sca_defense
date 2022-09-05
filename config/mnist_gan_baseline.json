@@ -6,7 +6,7 @@
     "disc_loss_fn": "BCELoss",
     "gen_loss_fn": "BCELoss",
     "disc_opt": "Adam",
-    "disc_opt_kwargs": {"lr": 0.0002,"betas": [0.5, 0.999]},
+    "disc_opt_kwargs": {"lr": 0.0002, "betas": [0.5, 0.999]},
     "gen_opt": "Adam",
     "gen_opt_kwargs": {"lr": 0.0002, "betas": [0.5, 0.999]},
     "latent_var_shape": [32, 100],
