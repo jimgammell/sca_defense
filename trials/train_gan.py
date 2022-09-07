@@ -146,6 +146,7 @@ def main(debug=False, **config_kwargs):
         n_epochs = trial_kwargs['n_epochs']
     n_epochs[0][1] += 1
     observe_gen_period = trial_kwargs['observe_gen_period']
+    disc_steps_per_gen_step = trial_kwargs['disc_steps_per_gen_step']
     epoch_idx, sub_trial_idx = 0, 0
     def get_sub_trial_key(_sub_trial_idx=None):
         if _sub_trial_idx == None:
@@ -170,7 +171,8 @@ def main(debug=False, **config_kwargs):
                                                                   sub_trial_idx+1, len(n_epochs)))
         gan_trainer.train_epoch(train_dataloader,
                                 train_gen='g' in n_epochs[sub_trial_idx][0],
-                                train_disc='d' in n_epochs[sub_trial_idx][0])
+                                train_disc='d' in n_epochs[sub_trial_idx][0],
+                                disc_steps_per_gen_step=disc_steps_per_gen_step)
         print('Evaluating epoch {}/{} of sub-trial {}/{}...'.format(epoch_idx+1, n_epochs[sub_trial_idx][1],
                                                                     sub_trial_idx+1, len(n_epochs)))
         eval_models()

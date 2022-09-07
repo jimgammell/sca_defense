@@ -59,10 +59,16 @@ def get_param_histograms(fig, axes, results):
 
 def plot_sampled_images(fig, axes, results):
     results_flat = flatten_results(results)
-    sampled_images = np.array([r['sampled_gen_images']['protected_images'] for r in results_flat])
+    try:
+        sampled_images = np.array([r['sampled_gen_images']['protected_images'] for r in results_flat])
+    except:
+        sampled_images = np.array([r['sampled_gen_images']['fake_images'] for r in results_flat])
     sampled_images *= .5
     sampled_images += .5
-    labels = [r['sampled_gen_images']['labels'] for r in results_flat]
+    try:
+        labels = [r['sampled_gen_images']['labels'] for r in results_flat]
+    except:
+        labels = None
     progress_bar = tqdm(total=len(sampled_images)+1)
     plots = []
     def get_frame(t):
@@ -70,9 +76,10 @@ def plot_sampled_images(fig, axes, results):
         for plot in plots:
             plot.remove()
         plots = []
-        for (ax, image, label) in zip(axes.flatten(), sampled_images[t], labels[t]):
+        for (ax, image, label) in zip(axes.flatten(), sampled_images[t], labels[t] if labels != None else len(axes.flatten())*[None]):
             plots.append(ax.imshow(np.transpose(image, (1, 2, 0)), cmap='binary', aspect='equal', interpolation='none'))
-            ax.set_title('Label: {}'.format(label))
+            if labels != None:
+                ax.set_title('Label: {}'.format(label))
         fig.suptitle('Epoch: {}'.format(t))
         progress_bar.update(1)
         return axes
@@ -112,3 +119,4 @@ def main(trial_dir):
     figure_save_fns = gen_figs_fn(results, settings)
     for figure_save_fn in figure_save_fns:
         figure_save_fn(os.path.join(trial_dir, 'figures'))
+    plt.close('all')

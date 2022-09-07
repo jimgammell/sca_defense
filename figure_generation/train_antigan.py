@@ -1,5 +1,6 @@
 import os
 from matplotlib import pyplot as plt
+import numpy as np
 
 from figure_generation.common import flatten_results, get_epochs, get_trial_boundaries, get_param_histograms, plot_sampled_images, plot_confusion_matrices
 

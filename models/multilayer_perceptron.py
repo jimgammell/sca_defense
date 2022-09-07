@@ -169,7 +169,7 @@ class StandardGanDiscriminator(MultilayerPerceptron):
                  conditions=[],
                  n_outputs=1,
                  output_transform=nn.Sigmoid,
-                 hidden_layers=[512, 256, 1],
+                 hidden_layers=[512, 256],
                  hidden_activation=lambda: nn.LeakyReLU(0.2)):
         
         self.image_shape = image_shape
@@ -227,7 +227,7 @@ class StandardAntiGanGenerator(MultilayerPerceptron):
                  latent_dims,
                  label_dims,
                  image_shape,
-                 output_transform=nn.Tanh,
+                 output_transform=nn.Hardtanh,
                  hidden_layers=[128, 256, 512, 1024],
                  hidden_activation=lambda: nn.LeakyReLU(0.2),
                  batch_norm=[False, False, True, True, True],

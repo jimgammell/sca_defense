@@ -5,7 +5,7 @@ from torch import nn
 
 from utils import get_print_to_log, get_filename
 print = get_print_to_log(get_filename(__file__))
-from trial_common import clamp_model_params, extract_rv_from_tensor, get_model_params_histogram
+from trials.trial_common import clamp_model_params, extract_rv_from_tensor, get_model_params_histogram
 
 class AntiGanExperiment:
     def __init__(self,
@@ -41,7 +41,9 @@ class AntiGanExperiment:
         self.disc_weight_clamp = disc_weight_clamp
     
     def get_one_hot_labels(self, labels):
-        oh_labels = nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+        oh_labels = torch.rand((labels.size(0), self.num_classes), dtype=torch.float, device=self.device)
+        oh_labels = .05 + .25*oh_labels
+        oh_labels += .65*nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
         return oh_labels
     
     def get_complement_labels(self, labels):
@@ -49,7 +51,7 @@ class AntiGanExperiment:
         comp_labels = 1. - oh_labels
         return comp_labels
     
-    def get_gen_loss(self, disc_logits, labels):
+    def get_gen_loss(self, disc_logits, labels, generated_image=None):
         if self.objective_formulation in ['Naive']:
             gen_loss = -self.gen_loss_fn(disc_logits, self.get_one_hot_labels(labels))
         elif self.objective_formulation in ['Complement']:
@@ -59,19 +61,36 @@ class AntiGanExperiment:
             gen_loss = -mean_incorrect_logits
         elif self.objective_formulation in ['SimReduction']:
             gen_loss = self.gen_loss_fn(disc_logits, torch.mean(disc_logits)*torch.ones_like(disc_logits))
+        elif self.objective_formulation in ['Misdirection_Max']:
+            logits_rng = torch.max(disc_logits, dim=1)[0] - torch.min(disc_logits, dim=1)[0]
+            logits_adj = disc_logits - logits_rng[:, None]*self.get_one_hot_labels(labels)
+            incorrect_labels = torch.argmax(logits_adj, dim=1)
+            incorrect_labels = nn.functional.one_hot(incorrect_labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+            gen_loss = self.gen_loss_fn(disc_logits, incorrect_labels)
+        elif self.objective_formulation in ['Misdirection_Min']:
+            logits_rng = torch.max(disc_logits, dim=1)[0] - torch.min(disc_logits, dim=1)[0]
+            logits_adj = disc_logits + logits_rng[:, None]*self.get_one_hot_labels(labels)
+            incorrect_labels = torch.argmin(logits_adj, dim=1)
+            incorrect_labels = nn.functional.one_hot(incorrect_labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+            gen_loss = self.gen_loss_fn(disc_logits, incorrect_labels)
+        elif self.objective_formulation in ['Randomize']:
+            random_labels = torch.randint(0, self.num_classes, labels.shape)
+            random_labels = nn.functional.one_hot(random_labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+            gen_loss = self.gen_loss_fn(disc_logits, random_labels)
+        elif self.objective_formulation in ['Cancellation']:
+            assert generated_image is not None
+            gen_loss = self.gen_loss_fn(generated_image, torch.zeros_like(generated_image))
         else:
             assert False
         return gen_loss
     
     def get_disc_loss(self, disc_logits, labels):
-        if self.objective_formulation in ['Naive', 'Complement', 'SimReduction']:
-            disc_loss = self.disc_loss_fn(disc_logits, self.get_one_hot_labels(labels))
-        elif self.objective_formulation in ['Wasserstein']:
+        if self.objective_formulation in ['Wasserstein']:
             mean_correct_logits = torch.mean(disc_logits*self.get_one_hot_labels(labels))
             mean_incorrect_logits = torch.mean(disc_logits*self.get_complement_labels(labels))
             disc_loss = mean_incorrect_logits - mean_correct_logits
         else:
-            assert False
+            disc_loss = self.disc_loss_fn(disc_logits, self.get_one_hot_labels(labels))
         return disc_loss
     
     def train_step(self, batch, train_disc=True, train_gen=True):
@@ -92,11 +111,11 @@ class AntiGanExperiment:
             protective_noise = self.gen(*gen_args)
             protected_images = .5*(raw_images + protective_noise)
             disc_logits = self.disc(protected_images)
-            return disc_logits
+            return disc_logits, protected_images
         
         if train_gen:
-            disc_logits = get_disc_logits()
-            gen_loss = self.get_gen_loss(disc_logits, raw_labels)
+            disc_logits, protected_images = get_disc_logits()
+            gen_loss = self.get_gen_loss(disc_logits, raw_labels, protected_images)
             self.gen_opt.zero_grad()
             gen_loss.backward()
             self.gen_opt.step()
@@ -104,7 +123,7 @@ class AntiGanExperiment:
                 clamp_model_params(self.gen, self.gen_weight_clamp)
             
         if train_disc:
-            disc_logits = get_disc_logits()
+            disc_logits, protected_images = get_disc_logits()
             disc_loss = self.get_disc_loss(disc_logits, raw_labels)
             self.disc_opt.zero_grad()
             disc_loss.backward()
@@ -130,12 +149,15 @@ class AntiGanExperiment:
         protective_noise = self.gen(*gen_args)
         protected_images = .5*(raw_images + protective_noise)
         disc_logits = self.disc(protected_images)
-        gen_loss = self.get_gen_loss(disc_logits, raw_labels)
+        gen_loss = self.get_gen_loss(disc_logits, raw_labels, protected_images)
         disc_loss = self.get_disc_loss(disc_logits, raw_labels)
         disc_preds = torch.argmax(disc_logits, dim=-1)
         disc_acc = torch.mean(torch.eq(disc_preds, raw_labels).to(torch.float))
         labels = raw_labels.cpu().numpy()
-        disc_confidences = nn.functional.softmax(disc_logits, dim=-1).cpu().numpy()
+        if isinstance(self.disc.output_transform, nn.Identity):
+            disc_confidences = nn.functional.softmax(disc_logits, dim=-1).cpu().numpy()
+        else:
+            disc_confidences = disc_logits.cpu().numpy()
         confusion_matrix = np.zeros((self.num_classes, self.num_classes))
         for label, conf_vec in zip(labels, disc_confidences):
             confusion_matrix[label] += conf_vec/np.count_nonzero(labels==label)
@@ -160,7 +182,7 @@ class AntiGanExperiment:
         if self.use_labels:
             gen_args.append(raw_labels)
         protective_noise = self.gen(*gen_args)
-        protected_images = .5*(raw_images + protective_noise)
+        protected_images = torch.tanh(raw_images + 2*protective_noise)
         
         return {'protected_images': extract_rv_from_tensor(protected_images),
                 'labels': extract_rv_from_tensor(raw_labels)}
@@ -186,7 +208,7 @@ class AntiGanExperiment:
                     disc_step = 0
                 progress_bar.update(1)
         elif gen_steps_per_disc_step != None:
-            assert gen_steps_per_disc_step == None
+            assert disc_steps_per_gen_step == None
             assert train_gen == True
             assert train_disc == True
             gen_step = 0

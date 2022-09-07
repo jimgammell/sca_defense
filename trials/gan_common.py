@@ -5,7 +5,7 @@ import torch
 
 from utils import get_print_to_log, get_filename
 print = get_print_to_log(get_filename(__file__))
-from trial_common import clamp_model_params, extract_rv_from_tensor, get_model_params_histogram
+from trials.trial_common import clamp_model_params, extract_rv_from_tensor, get_model_params_histogram
 
 
 class GanExperiment:
@@ -186,9 +186,15 @@ class GanExperiment:
             
         return {'fake_images': extract_rv_from_tensor(fake_images)}
     
-    def train_epoch(self, dataloader, train_gen=True, train_disc=True):
+    def train_epoch(self, dataloader, train_gen=True, train_disc=True, disc_steps_per_gen_step=1):
+        disc_steps = 0
         for batch in tqdm(dataloader):
-            self.train_step(batch, train_gen=train_gen, train_disc=train_disc)
+            if disc_steps < disc_steps_per_gen_step-1:
+                self.train_step(batch, train_gen=False, train_disc=train_disc)
+                disc_steps += 1
+            else:
+                self.train_step(batch, train_gen=train_gen, train_disc=train_disc)
+                disc_steps = 0
     
     def eval_epoch(self,
                    train_dataloader=None,
