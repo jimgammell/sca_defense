@@ -24,7 +24,12 @@ class LeNet5(nn.Module):
                                    nn.BatchNorm2d(16),
                                    nn.ReLU(),
                                    nn.MaxPool2d(kernel_size=2, stride=2),
-                                   nn.Flatten())
+                                   nn.Flatten(),
+                                   nn.Linear(16*5*5, 120),
+                                   nn.ReLU(),
+                                   nn.Linear(120, 84),
+                                   nn.ReLU(),
+                                   nn.Linear(84, output_classes))
         eg_input = torch.rand(input_shape)
         _ = self.model(eg_input)
         
@@ -33,11 +38,12 @@ class LeNet5(nn.Module):
         
     def forward(self, x):
         logits = self.model(x)
-        return logits
+        output = nn.functional.softmax(logits, dim=-1)
+        return output
     
     def __repr__(self):
         s = 'LeNet5 model:' +\
             '\n\tInput shape: {}'.format(self.input_shape) +\
             '\n\tOutput classes: {}'.format(self.output_classes) +\
-            '\nModel summary:\n' + super(nn.Module, self).__init__()
+            '\nModel summary:\n{}'.format(self.model)
         return s

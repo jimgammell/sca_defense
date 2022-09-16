@@ -42,7 +42,7 @@ def get_param_histograms(fig, axes, results):
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.set_yscale('symlog', linthresh=1.)
-    progress_bar = tqdm(total=len(results_flat)+1)
+    progress_bar = tqdm(desc='Plotting parameter histograms...', total=len(results_flat)+1, unit='frames')
     hists = []
     def get_frame(t):
         nonlocal hists
@@ -69,7 +69,7 @@ def plot_sampled_images(fig, axes, results):
         labels = [r['sampled_gen_images']['labels'] for r in results_flat]
     except:
         labels = None
-    progress_bar = tqdm(total=len(sampled_images)+1)
+    progress_bar = tqdm(desc='Plotting sampled images...', total=len(sampled_images)+1, unit='frames')
     plots = []
     def get_frame(t):
         nonlocal plots
@@ -86,11 +86,31 @@ def plot_sampled_images(fig, axes, results):
     anim = FuncAnimation(fig, get_frame, frames=len(sampled_images))
     return lambda folder: anim.save(os.path.join(folder, 'sampled_images.gif'), writer='ffmpeg', fps=10)
 
+def plot_saliency(fig, axes, results):
+    results_flat = flatten_results(results)
+    sampled_saliencies = np.array([r['sampled_saliency']['saliency'] for r in results_flat])
+    labels = np.array([r['sampled_saliency']['labels'] for r in results_flat])
+    progress_bar = tqdm(desc='Plotting saliency...', total=len(sampled_saliencies)+1, unit='frames')
+    plots = []
+    def get_frame(t):
+        nonlocal plots
+        for plot in plots:
+            plot.remove()
+        plots = []
+        for (ax, image, label) in zip(axes.flatten(), sampled_saliencies[t], labels[t]):
+            plots.append(ax.imshow(np.transpose(image, (1, 2, 0)), cmap='plasma', aspect='equal', interpolation='none'))
+            ax.set_title('Label: {}'.format(label))
+        fig.suptitle('Epoch: {}'.format(t))
+        progress_bar.update(1)
+        return axes
+    anim = FuncAnimation(fig, get_frame, frames=len(sampled_saliencies))
+    return lambda folder: anim.save(os.path.join(folder, 'sampled_saliencies.gif'), writer='ffmpeg', fps=10)
+
 def plot_confusion_matrices(fig, axes, results):
     results_flat = flatten_results(results)
     training_matrices = [r['training_metrics']['disc_conf_mtx'] for r in results_flat]
     testing_matrices = [r['test_metrics']['disc_conf_mtx'] for r in results_flat]
-    progress_bar = tqdm(total=len(results_flat)+1)
+    progress_bar = tqdm(desc='Plotting confusion matrices...', total=len(results_flat)+1, unit='frames')
     plots = []
     def get_frame(t):
         nonlocal plots

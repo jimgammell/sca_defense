@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.nn.utils import spectral_norm
 
 from utils import get_print_to_log, get_filename
 from models.common import get_param_count
@@ -287,7 +288,7 @@ class StandardAntiGanGenerator(MultilayerPerceptron):
         return s
                  
 
-class StandardAntiGanDiscriminator(MultilayerPerceptron):
+class StandardAntiGanDiscriminator(nn.Module):
     def __init__(self,
                  image_shape,
                  n_outputs=10,
@@ -295,25 +296,33 @@ class StandardAntiGanDiscriminator(MultilayerPerceptron):
                  output_transform_kwargs={'dim': -1},
                  hidden_layers=[512, 256],
                  hidden_activation=lambda: nn.LeakyReLU(0.2)):
+        super().__init__()
         
         self.image_shape = image_shape
         n_inputs = np.prod(image_shape[1:])
-        super().__init__(n_inputs=n_inputs,
-                         n_outputs=n_outputs,
-                         hidden_layers=hidden_layers,
-                         hidden_activation=hidden_activation)
+        
+        self.model = nn.Sequential(spectral_norm(nn.Linear(n_inputs, 512)),
+                                   nn.LeakyReLU(0.2),
+                                   spectral_norm(nn.Linear(512, 256)),
+                                   nn.LeakyReLU(0.2),
+                                   spectral_norm(nn.Linear(256, n_outputs)))
         self.input_transform = nn.Flatten(1, -1)
         if type(output_transform) == str:
             output_transform = getattr(nn, output_transform)
         self.output_transform = output_transform(**output_transform_kwargs)
         
-    def forward(self, x):
+    def logits(self, x):
         transformed_x = self.input_transform(x)
-        logits = super().forward(transformed_x)
+        logits = self.model(transformed_x)
+        return logits
+        
+    def forward(self, x):
+        logits = self.logits(x)
         output = self.output_transform(logits)
         return output
     
-    def __repr__(self):
+    
+    r"""def __repr__(self):
         s = 'Standard GAN Discriminator model.' +\
             '\n\tInput image shape: {}'.format(self.image_shape) +\
             '\n\tOutput activation: {}'.format(self.output_transform) +\
@@ -324,4 +333,4 @@ class StandardAntiGanDiscriminator(MultilayerPerceptron):
             '\n\tDropout: {}'.format(self.dropout) +\
             '\n\tParameter count: {}'.format(get_param_count(self)) +\
             '\nModel summary:\n{}'.format(self.model)
-        return s
+        return s"""

@@ -162,6 +162,7 @@ def main(debug=False, **config_kwargs):
         n_epochs = trial_kwargs['n_epochs']
     n_epochs[0][1] += 1
     observe_gen_period = trial_kwargs['observe_gen_period'] if 'observe_gen_period' in trial_kwargs.keys() else 1
+    train_ind_disc_period = trial_kwargs['train_ind_disc_period'] if 'train_ind_disc_period' in trial_kwargs.keys() else 10
     epoch_idx, sub_trial_idx = 0, 0
     def get_sub_trial_key(_sub_trial_idx=None):
         if _sub_trial_idx == None:
@@ -171,7 +172,10 @@ def main(debug=False, **config_kwargs):
                for _sub_trial_idx, sub_trial_epochs in enumerate(n_epochs)}
     def eval_models(update_indices=True):
         nonlocal epoch_idx, sub_trial_idx
-        results = antigan_trainer.eval_epoch(train_dataloader=train_dataloader, test_dataloader=test_dataloader)
+        results = antigan_trainer.eval_epoch(train_dataloader=train_dataloader, test_dataloader=test_dataloader,
+                                             sample_gen_images = epoch_idx%observe_gen_period == 0,
+                                             train_independent_discriminator = epoch_idx%train_ind_disc_period == 0,
+                                             ind_disc_epochs=1 if debug else 20)
         Results[get_sub_trial_key()][epoch_idx].update(results)
         if update_indices:
             epoch_idx += 1
