@@ -76,8 +76,7 @@ class DCDiscriminator(nn.Module):
             f(nn.Conv2d(2*feature_maps, 4*feature_maps, 4, stride=1, padding=2, bias=False)),
             nn.BatchNorm2d(4*feature_maps),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(4*feature_maps, output_classes, 4, stride=1, padding=1, bias=False),
-            nn.LeakyReLU(0.2)
+            f(nn.Conv2d(4*feature_maps, output_classes, 4, stride=1, padding=1, bias=False))
         )
         kernel_size = self.feature_extractor(eg_input).shape[2:]
         self.pooling_layer = nn.AvgPool2d(kernel_size)

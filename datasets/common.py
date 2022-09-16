@@ -95,7 +95,7 @@ class SavedNpzDataset(Dataset):
             plaintext = self.plaintext_transform(plaintext)
         if self.ap_transform != None:
             ap = self.ap_transform(ap)
-        return trace, plaintext, ap
+        return trace, ap #trace, plaintext, ap
     
     def __len__(self):
         return self.num_examples

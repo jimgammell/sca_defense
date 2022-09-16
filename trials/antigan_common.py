@@ -103,7 +103,7 @@ class AntiGanExperiment:
         if self.use_labels:
             gen_args.append(raw_labels)
         protective_noise = self.gen(*gen_args)
-        protected_images = torch.tanh(raw_images + 2*protective_noise)
+        protected_images = torch.tanh(raw_images + protective_noise)
         return protected_images
     
     def train_step(self, batch, disc_objects=None, train_disc=True, train_gen=True):
@@ -315,7 +315,7 @@ class AntiGanExperiment:
                    sample_saliency=True,
                    average_metrics=True,
                    train_independent_discriminator=True,
-                   ind_disc_epochs=20):
+                   ind_disc_epochs=10):
         Results = {}
         progress_bar = tqdm(total=(len(train_dataloader) if train_dataloader != None else 0) +\
                                   (len(test_dataloader) if test_dataloader != None else 0) +\
@@ -371,7 +371,7 @@ class AntiGanExperiment:
             sampled_saliency = self.compute_saliency(self.eval_batch)
             Results['sampled_saliency'] = sampled_saliency
             progress_bar.update(1)
-        if train_independent_discriminator:
+        if False:#train_independent_discriminator:
             assert train_dataloader != None
             assert test_dataloader != None
             results = self.train_independent_discriminator(train_dataloader, test_dataloader, progress_bar=progress_bar, n_epochs=ind_disc_epochs)

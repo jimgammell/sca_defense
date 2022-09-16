@@ -17,22 +17,12 @@
     "dataset_kwargs": {"transform": ["ToTensor", "Normalize"], "transform_kwargs": [{}, {"mean": [0.5], "std": [0.5]}]},
     "dataloader_kwargs": {"batch_size": 256, "shuffle": true},
     "device": "cuda",
-    "trial_kwargs": {"n_epochs": [["dg", 200]]},
+    "trial_kwargs": {"n_epochs": [["d", 50], ["dg", 200]], "disc_steps_per_gen_step": 5},
     "expand0": [
-        {"objective_formulation": "Naive",
-         "disc_loss_fn": "BCELoss",
-         "gen_loss_fn": "BCELoss"},
         {"objective_formulation": "Wasserstein",
          "disc_loss_fn": "MSELoss",
-         "gen_loss_fn": "MSELoss"},
-        {"objective_formulation": "SimReduction",
-         "disc_loss_fn": "BCELoss",
-         "gen_loss_fn": "BCELoss"},
-        {"objective_formulation": "Cancellation",
-         "disc_loss_fn": "BCELoss",
          "gen_loss_fn": "MSELoss"}],
     "expand1": [
-        {"disc_kwargs": {"apply_spectral_norm": true}},
-        {"disc_kwargs": {"apply_spectral_norm": false}}],
+        {"disc_kwargs": {"apply_spectral_norm": true}}],
     "seed": 0
 }
