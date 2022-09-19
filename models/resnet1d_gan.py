@@ -2,86 +2,273 @@ import numpy as np
 import torch
 from torch import nn
 
-# Batch norm with the default Tensorflow arguments.
-def BatchNorm1d(num_features):
-    return nn.BatchNorm1d(num_features=num_features,
-                          momentum=0.01,
-                          eps=1e-3)
+from models.common import get_param_count
 
-class ResNet1dDiscriminator(nn.Module):
-    class Block(nn.Module):
+# Batch norm with the default Tensorflow arguments.
+class BatchNorm1d(nn.BatchNorm1d):
+    def __init(self, *args, **kwargs):
+        if not 'momentum' in kwargs.keys():
+            kwargs['momentum'] = 0.01
+        if not 'eps' in kwargs.keys():
+            kwargs['eps'] = 1e-3
+        super().__init__(*args, **kwargs)
+
+class ResNet1dGenerator(nn.Module):        
+    class Stack(nn.Module):
+        class Block(nn.Module):
+            def __init__(self,
+                         eg_input,
+                         filters,
+                         kernel_size=3,
+                         strides=1,
+                         conv_shortcut=False,
+                         activation=nn.ReLU(),
+                         activation_kwargs={}):
+                super().__init__()
+            
+                self.input_shape = eg_input.shape
+                self.filters = filters
+                self.kernel_size = kernel_size
+                self.strides = strides
+                self.conv_shortcut = False
+                self.activation = nn.ReLU
+                self.activation_kwargs = activation_kwargs
+                def Activation():
+                    return self.activation(**self.activation_kwargs)
+
+                self.input_transform = nn.Sequential(
+                    BatchNorm1d(num_features=self.input_shape[1]),
+                    Activation())
+                eg_input = self.input_transform(eg_input)
+
+                self.shortcut = nn.Sequential(
+                    nn.ConvTranspose1d(in_channels=self.input_shape[1],
+                                       out_channels=self.filters,
+                                       kernel_size=1,
+                                       stride=self.strides),
+                    nn.ConstantPad1d((0, self.strides//2), 0))
+
+                self.residual = nn.Sequential(
+                    nn.ConvTranspose1d(in_channels=self.input_shape[1],
+                                       out_channels=4*self.filters,
+                                       kernel_size=1,
+                                       bias=False),
+                    BatchNorm1d(num_features=4*self.filters),
+                    Activation(),
+                    nn.ConvTranspose1d(in_channels=4*self.filters,
+                                       out_channels=4*self.filters,
+                                       kernel_size=self.kernel_size,
+                                       stride=self.strides,
+                                       bias=False),
+                    nn.ConstantPad1d((0, self.strides//2), 0),
+                    BatchNorm1d(num_features=4*self.filters),
+                    Activation(),
+                    nn.ConvTranspose1d(in_channels=4*self.filters,
+                                       out_channels=self.filters,
+                                       kernel_size=1))
+
+            def forward(self, x):
+                transformed_x = self.input_transform(x)
+                id_x = self.shortcut(transformed_x)
+                resid_x = self.residual(transformed_x)
+                resid_x = resid_x[:, :, self.kernel_size//2:-(self.kernel_size//2)] # transpose of 'same' padding
+                logits = id_x + resid_x
+                return logits
+        
         def __init__(self,
                      eg_input,
                      filters,
+                     blocks,
                      kernel_size=3,
-                     strides=1,
-                     conv_shortcut=False,
-                     activation=nn.LeakyReLU,
-                     activation_kwargs={'negative_slope': 0.2},
-                     spectral_norm=False):
+                     strides=2,
+                     activation=nn.ReLU,
+                     activation_kwargs={}):
             super().__init__()
             
             self.input_shape = eg_input.shape
             self.filters = filters
+            self.blocks = blocks
             self.kernel_size = kernel_size
             self.strides = strides
-            self.conv_shortcut = conv_shortcut
             self.activation = activation
             self.activation_kwargs = activation_kwargs
-            self.spectral_norm = spectral_norm
-            def Conv1d(*args, **kwargs):
-                if self.spectral_norm:
-                    return torch.nn.utils.spectral_norm(nn.Conv1d(*args, **kwargs))
-                else:
-                    return nn.Conv1d(*args, **kwargs)
-            def Activation():
-                return self.activation(**self.activation_kwargs)
+            def Block(eg_input, kernel_size=None, strides=None, conv_shortcut=None):
+                kwargs = {'filters': self.filters,
+                          'activation': self.activation,
+                          'activation_kwargs': self.activation_kwargs}
+                if kernel_size is not None:
+                    kwargs.update({'kernel_size': kernel_size})
+                if strides is not None:
+                    kwargs.update({'strides': strides})
+                if conv_shortcut is not None:
+                    kwargs.update({'conv_shortcut': conv_shortcut})
+                return self.Block(eg_input, **kwargs)
             
-            self.input_transform = nn.Sequential(
-                BatchNorm1d(num_features=eg_input.shape[1]),
-                Activation())
-            eg_input = self.input_transform(eg_input)
-            
-            if self.conv_shortcut:
-                self.shortcut = Conv1d(in_channels=eg_input.shape[1],
-                                       out_channels=4*filters,
-                                       kernel_size=1,
-                                       stride=strides)
-            else:
-                if strides > 1:
-                    self.shortcut = nn.MaxPool1d(kernel_size=1,
-                                                 stride=strides)
-                else:
-                    self.shortcut = nn.Identity()
-            
-            self.residual = nn.Sequential(
-                Conv1d(in_channels=eg_input.shape[1],
-                       out_channels=filters,
-                       kernel_size=1,
-                       bias=False),
-                BatchNorm1d(num_features=filters),
-                Activation(),
-                nn.ConstantPad1d(padding=(kernel_size//2, kernel_size//2),
-                                 value=0),
-                Conv1d(in_channels=filters,
-                       out_channels=filters,
-                       kernel_size=kernel_size,
-                       stride=strides,
-                       bias=False),
-                BatchNorm1d(num_features=filters),
-                Activation(),
-                Conv1d(in_channels=filters,
-                       out_channels=4*filters,
-                       kernel_size=1))
+            modules = [Block(eg_input,
+                             kernel_size=self.kernel_size,
+                             conv_shortcut=True)]
+            for _ in range(2, self.blocks):
+                eg_input = modules[-1](eg_input)
+                modules.append(Block(eg_input,
+                                     kernel_size=self.kernel_size))
+            eg_input = modules[-1](eg_input)
+            modules.append(Block(eg_input,
+                                 strides=strides))
+            self.model = nn.Sequential(*modules)
         
         def forward(self, x):
-            transformed_x = self.input_transform(x)
-            id_x = self.shortcut(transformed_x)
-            resid_x = self.residual(transformed_x)
-            logits = id_x + resid_x
+            logits = self.model(x)
             return logits
-    
+        
+    def __init__(self,
+                 latent_dims,
+                 label_dims,
+                 output_shape,
+                 output_transform=nn.Hardtanh,
+                 pool_size=4,
+                 filters=8,
+                 block_kernel_size=3,
+                 activation=nn.ReLU,
+                 activation_kwargs={},
+                 dense_dropout=0.1,
+                 stack_sizes=[3, 4, 4, 3]):
+        super().__init__()
+        
+        self.label_dims = label_dims
+        self.latent_dims = latent_dims
+        self.output_shape = output_shape
+        self.output_transform = output_transform()
+        self.pool_size = pool_size
+        self.filters = filters
+        self.block_kernel_size = block_kernel_size
+        self.activation = activation
+        self.activation_kwargs = activation_kwargs
+        self.dense_dropout = dense_dropout
+        self.stack_sizes = stack_sizes
+        
+        eg_label = torch.randint(0, self.label_dims, (2,))
+        eg_latent = torch.randn(2, self.latent_dims)
+        self.label_embedding = nn.Embedding(self.label_dims, self.label_dims)
+        eg_embedded_label = self.label_embedding(eg_label)
+        eg_embedded_label = eg_embedded_label.view(-1, self.label_dims)
+        eg_z = torch.cat((eg_embedded_label, eg_latent), dim=-1).view(-1, self.label_dims+self.latent_dims, 1)
+        
+        upscaling_modules = [
+            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims,
+                               out_channels=self.label_dims+self.latent_dims,
+                               kernel_size=1,
+                               bias=False),
+            BatchNorm1d(num_features=self.label_dims+self.latent_dims),
+            self.activation(**self.activation_kwargs),
+            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims,
+                               out_channels=self.label_dims+self.latent_dims,
+                               kernel_size=np.prod(self.output_shape[1:])//(125*2**len(self.stack_sizes))),
+            nn.Upsample(scale_factor=125),
+            nn.Dropout(self.dense_dropout)]
+        self.input_upscaling = nn.Sequential(*upscaling_modules)
+        eg_input = self.input_upscaling(eg_z)
+        
+        modules = []
+        filters *= 2**len(self.stack_sizes)
+        for stack_idx, stack_size in enumerate(self.stack_sizes):
+            filters = filters//2
+            modules.append(self.Stack(eg_input,
+                                      filters,
+                                      stack_size,
+                                      kernel_size=block_kernel_size,
+                                      activation=self.activation,
+                                      activation_kwargs=self.activation_kwargs))
+            eg_input = modules[-1](eg_input)
+        modules.append(nn.ConvTranspose1d(in_channels=filters,
+                                          out_channels=1,
+                                          kernel_size=1))
+        self.feature_creator = nn.Sequential(*modules)
+        
+    def forward(self, latent_vars, labels):
+        latent_vars = latent_vars[:labels.size(0), :]
+        labels = self.label_embedding(labels)
+        z = torch.cat((labels, latent_vars), dim=-1).view(-1, self.label_dims+self.latent_dims, 1)
+        upscaled_input = self.input_upscaling(z)
+        logits = self.feature_creator(upscaled_input)
+        if logits.shape[1:] != self.output_shape[1:]:
+            logits = nn.functional.interpolate(logits, size=self.output_shape[2:])
+        image = self.output_transform(logits)
+        return image
+
+class ResNet1dDiscriminator(nn.Module):
     class Stack(nn.Module):
+        class Block(nn.Module):
+            def __init__(self,
+                         eg_input,
+                         filters,
+                         kernel_size=3,
+                         strides=1,
+                         conv_shortcut=False,
+                         activation=nn.LeakyReLU,
+                         activation_kwargs={'negative_slope': 0.2},
+                         spectral_norm=False):
+                super().__init__()
+
+                self.input_shape = eg_input.shape
+                self.filters = filters
+                self.kernel_size = kernel_size
+                self.strides = strides
+                self.conv_shortcut = conv_shortcut
+                self.activation = activation
+                self.activation_kwargs = activation_kwargs
+                self.spectral_norm = spectral_norm
+                def Conv1d(*args, **kwargs):
+                    if self.spectral_norm:
+                        return torch.nn.utils.spectral_norm(nn.Conv1d(*args, **kwargs))
+                    else:
+                        return nn.Conv1d(*args, **kwargs)
+                def Activation():
+                    return self.activation(**self.activation_kwargs)
+
+                self.input_transform = nn.Sequential(
+                    BatchNorm1d(num_features=self.input_shape[1]),
+                    Activation())
+                eg_input = self.input_transform(eg_input)
+
+                if self.conv_shortcut:
+                    self.shortcut = Conv1d(in_channels=self.input_shape[1],
+                                           out_channels=4*self.filters,
+                                           kernel_size=1,
+                                           stride=self.strides)
+                else:
+                    if self.strides > 1:
+                        self.shortcut = nn.MaxPool1d(kernel_size=1,
+                                                     stride=self.strides)
+                    else:
+                        self.shortcut = nn.Identity()
+
+                self.residual = nn.Sequential(
+                    Conv1d(in_channels=self.input_shape[1],
+                           out_channels=self.filters,
+                           kernel_size=1,
+                           bias=False),
+                    BatchNorm1d(num_features=self.filters),
+                    Activation(),
+                    nn.ConstantPad1d(padding=(self.kernel_size//2, self.kernel_size//2),
+                                     value=0),
+                    Conv1d(in_channels=self.filters,
+                           out_channels=self.filters,
+                           kernel_size=self.kernel_size,
+                           stride=self.strides,
+                           bias=False),
+                    BatchNorm1d(num_features=self.filters),
+                    Activation(),
+                    Conv1d(in_channels=self.filters,
+                           out_channels=4*self.filters,
+                           kernel_size=1))
+
+            def forward(self, x):
+                transformed_x = self.input_transform(x)
+                id_x = self.shortcut(transformed_x)
+                resid_x = self.residual(transformed_x)
+                logits = id_x + resid_x
+                return logits
+        
         def __init__(self,
                      eg_input,
                      filters,
@@ -116,7 +303,7 @@ class ResNet1dDiscriminator(nn.Module):
             
             modules = [Block(eg_input,
                              kernel_size=self.kernel_size,
-                             conv_shortcut=self.conv_shortcut)]
+                             conv_shortcut=True)]
             for _ in range(2, self.blocks):
                 eg_input = modules[-1](eg_input)
                 modules.append(Block(eg_input,
@@ -137,7 +324,7 @@ class ResNet1dDiscriminator(nn.Module):
                  block_kernel_size=3,
                  activation=nn.LeakyReLU,
                  activation_kwargs={'negative_slope': 0.2},
-                 spectral_norm=False,
+                 apply_spectral_norm=False,
                  dense_dropout=0.1,
                  stack_sizes=[3, 4, 4, 3]):
         super().__init__()
@@ -148,9 +335,10 @@ class ResNet1dDiscriminator(nn.Module):
         self.block_kernel_size = block_kernel_size
         self.activation = activation
         self.activation_kwargs = activation_kwargs
-        self.spectral_norm = spectral_norm
+        self.spectral_norm = apply_spectral_norm
         self.dense_dropout = dense_dropout
         self.stack_sizes = stack_sizes
+        self.output_transform = nn.Identity()
         
         eg_input = torch.randn(self.input_shape)
         self.input_transform = nn.MaxPool1d(kernel_size=pool_size)
@@ -169,16 +357,21 @@ class ResNet1dDiscriminator(nn.Module):
             eg_input = modules[-1](eg_input)
         self.feature_extractor = nn.Sequential(*modules)
         
-        self.pooling_layer = nn.AvgPool1d(kernel_size=eg_input.shape[1])
+        self.pooling_layer = nn.AvgPool1d(kernel_size=eg_input.shape[-1])
         eg_input = self.pooling_layer(eg_input)
         eg_input = eg_input.view(-1, np.prod(eg_input.shape[1:]))
         
+        def Linear(*args, **kwargs):
+            if self.spectral_norm:
+                return nn.utils.spectral_norm(nn.Linear(*args, **kwargs))
+            else:
+                return nn.Linear(*args, **kwargs)
         self.dense_probe = nn.Sequential(
             nn.Dropout(self.dense_dropout),
-            nn.Linear(eg_input.shape[1], 256),
+            Linear(eg_input.shape[1], 256),
             BatchNorm1d(num_features=256),
             self.activation(**self.activation_kwargs),
-            nn.Linear(256, 256))
+            Linear(256, 256))
         eg_input = self.dense_probe(eg_input)
         
     def forward(self, x):

@@ -89,6 +89,14 @@ class SavedNpzDataset(Dataset):
         trace = shard['traces'][trace_idx]
         plaintext = shard['pts'][trace_idx]
         ap = shard[self.attack_point][trace_idx]
+        try:
+            plaintext = np.array(plaintext).astype(int)
+        except:
+            plaintext = plaintext.to(torch.long)
+        try:
+            ap = np.array(ap).astype(int)
+        except:
+            ap = ap.to(torch.long)
         if self.trace_transform != None:
             trace = self.trace_transform(trace)
         if self.plaintext_transform != None:
@@ -101,7 +109,8 @@ class SavedNpzDataset(Dataset):
         return self.num_examples
     
     def __repr__(self):
-        eg_trace, eg_pt, eg_ap = self.__getitem__(0)
+        #eg_trace, eg_pt, eg_ap = self.__getitem__(0)
+        eg_trace, eg_ap = self.__getitem__(0)
         s = 'Dataset from saved npz files:' +\
             '\n\tBase path: %s'%(self.base_path) +\
             '\n\tData storage device: {}'.format(self.data_storage_device) +\
@@ -114,6 +123,5 @@ class SavedNpzDataset(Dataset):
             '\n\tPlaintext transform: {}'.format(self.plaintext_transform) +\
             '\n\tAttack point transform: {}'.format(self.ap_transform) +\
             '\n\tTrace shape: {}'.format(eg_trace.shape) +\
-            '\n\tPlaintext shape: {}'.format(eg_pt.shape) +\
             '\n\tAttack point shape: {}'.format(eg_ap.shape)
         return s
