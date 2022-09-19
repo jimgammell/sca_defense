@@ -2,7 +2,7 @@
     "trial_description": "Run some antigan setups on the Google power trace dataset.",
     "trial": "train_antigan",
     "disc": "ResNet1dDiscriminator",
-    "gen": "ResNet1dGenerator",
+    "gen": "IdentityGenerator",
     "disc_opt": "RMSprop",
     "disc_opt_kwargs": {"lr": 0.00005},
     "gen_opt": "RMSprop",
