@@ -172,11 +172,11 @@ def main(debug=False, **config_kwargs):
                for _sub_trial_idx, sub_trial_epochs in enumerate(n_epochs)}
     def eval_models(update_indices=True):
         nonlocal epoch_idx, sub_trial_idx
-        #results = antigan_trainer.eval_epoch(train_dataloader=train_dataloader, test_dataloader=test_dataloader,
-        #                                     sample_gen_images = epoch_idx%observe_gen_period == 0,
-        #                                     train_independent_discriminator = epoch_idx%train_ind_disc_period == 0,
-        #                                     ind_disc_epochs=1 if debug else 20)
-        #Results[get_sub_trial_key()][epoch_idx].update(results)
+        results = antigan_trainer.eval_epoch(train_dataloader=train_dataloader, test_dataloader=test_dataloader,
+                                             sample_gen_images = epoch_idx%observe_gen_period == 0,
+                                             train_independent_discriminator = epoch_idx%train_ind_disc_period == 0,
+                                             ind_disc_epochs=1 if debug else 20)
+        Results[get_sub_trial_key()][epoch_idx].update(results)
         if update_indices:
             epoch_idx += 1
             if epoch_idx >= n_epochs[sub_trial_idx][1]:

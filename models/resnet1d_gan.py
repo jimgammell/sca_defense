@@ -380,3 +380,5 @@ class ResNet1dDiscriminator(nn.Module):
         pooled_features = self.pooling_layer(features)
         logits = self.dense_probe(pooled_features.view(-1, np.prod(pooled_features.shape[1:])))
         return logits
+    def logits(self, x):
+        return self.forward(x)

@@ -41,14 +41,17 @@ class AntiGanExperiment:
         self.gen_weight_clamp = gen_weight_clamp
         self.disc_weight_clamp = disc_weight_clamp
     
-    def get_one_hot_labels(self, labels):
-        oh_labels = torch.rand((labels.size(0), self.num_classes), dtype=torch.float, device=self.device)
-        oh_labels = .05 + .25*oh_labels
-        oh_labels += .65*nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+    def get_one_hot_labels(self, labels, noisy=True):
+        if noisy:
+            oh_labels = torch.rand((labels.size(0), self.num_classes), dtype=torch.float, device=self.device)
+            oh_labels = .05 + .25*oh_labels
+            oh_labels += .65*nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
+        else:
+            oh_labels = nn.functional.one_hot(labels, num_classes=self.num_classes).to(torch.float).to(self.device)
         return oh_labels
     
-    def get_complement_labels(self, labels):
-        oh_labels = self.get_one_hot_labels(labels)
+    def get_complement_labels(self, labels, noisy=True):
+        oh_labels = self.get_one_hot_labels(labels, noisy=noisy)
         comp_labels = 1. - oh_labels
         return comp_labels
     
@@ -58,8 +61,9 @@ class AntiGanExperiment:
         elif self.objective_formulation in ['Complement']:
             gen_loss = self.gen_loss_fn(nn.functional.softmax(disc_logits, dim=-1), self.get_complement_labels(labels))
         elif self.objective_formulation in ['Wasserstein']:
-            mean_incorrect_logits = torch.mean(disc_logits*self.get_complement_labels(labels))
-            gen_loss = -mean_incorrect_logits
+            mean_correct_logits = torch.mean(disc_logits*self.get_one_hot_labels(labels, noisy=False))
+            mean_incorrect_logits = torch.mean(disc_logits*self.get_complement_labels(labels, noisy=False))
+            gen_loss = mean_correct_logits - mean_incorrect_logits
         elif self.objective_formulation in ['SimReduction']:
             gen_loss = self.gen_loss_fn(nn.functional.softmax(disc_logits, dim=1),
                                         nn.functional.softmax(torch.zeros_like(disc_logits), dim=1))
@@ -88,8 +92,8 @@ class AntiGanExperiment:
     
     def get_disc_loss(self, disc_logits, labels):
         if self.objective_formulation in ['Wasserstein']:
-            mean_correct_logits = torch.mean(disc_logits*self.get_one_hot_labels(labels))
-            mean_incorrect_logits = torch.mean(disc_logits*self.get_complement_labels(labels))
+            mean_correct_logits = torch.mean(disc_logits*self.get_one_hot_labels(labels, noisy=False))
+            mean_incorrect_logits = torch.mean(disc_logits*self.get_complement_labels(labels, noisy=False))
             disc_loss = mean_incorrect_logits - mean_correct_logits
         else:
             disc_loss = self.disc_loss_fn(nn.functional.softmax(disc_logits, dim=-1), self.get_one_hot_labels(labels))
@@ -102,8 +106,10 @@ class AntiGanExperiment:
             gen_args.append(latent_variables)
         if self.use_labels:
             gen_args.append(raw_labels)
+        if self.gen.feature_dims > 0:
+            gen_args.append(raw_images)
         protective_noise = self.gen(*gen_args)
-        protected_images = torch.tanh(raw_images + protective_noise)
+        protected_images = torch.tanh(raw_images + nn.functional.hardtanh(protective_noise))
         return protected_images
     
     def train_step(self, batch, disc_objects=None, train_disc=True, train_gen=True):
@@ -136,7 +142,10 @@ class AntiGanExperiment:
                 clamp_model_params(self.gen, self.gen_weight_clamp)
         
         if train_disc:
-            protected_images = self.get_protected_images(raw_images, raw_labels)
+            if train_gen:
+                protected_images = protected_images.detach()
+            else:
+                protected_images = self.get_protected_images(raw_images, raw_labels)
             disc_logits = disc(protected_images)
             disc_loss = disc_loss_fn(disc_logits, raw_labels)
             disc_opt.zero_grad()

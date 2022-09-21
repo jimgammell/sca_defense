@@ -40,10 +40,3 @@ class LeNet5(nn.Module):
         logits = self.model(x)
         output = nn.functional.softmax(logits, dim=-1)
         return output
-    
-    def __repr__(self):
-        s = 'LeNet5 model:' +\
-            '\n\tInput shape: {}'.format(self.input_shape) +\
-            '\n\tOutput classes: {}'.format(self.output_classes) +\
-            '\nModel summary:\n{}'.format(self.model)
-        return s

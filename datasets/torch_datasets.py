@@ -15,3 +15,16 @@ class MNIST(torchvision.datasets.MNIST):
                          root=os.path.join('.', 'saved_datasets', 'MNIST'),
                          download=True,
                          **kwargs)
+
+class FashionMNIST(torchvision.datasets.FashionMNIST):
+    def __init__(self,
+                 *args,
+                 transform=None,
+                 transform_kwargs={},
+                 **kwargs):
+        transform = preprocess_transform(transform, transform_kwargs)
+        super().__init__(*args,
+                         transform=transform,
+                         root=os.path.join('.', 'saved_datasets', 'FashionMNIST'),
+                         download=True,
+                         **kwargs)
