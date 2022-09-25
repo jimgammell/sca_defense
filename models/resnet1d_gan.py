@@ -119,11 +119,72 @@ class ResNet1dGenerator(nn.Module):
         def forward(self, x):
             logits = self.model(x)
             return logits
+    
+    class FeatureEncoder(nn.Module):
+        def __init__(self,
+                     eg_input,
+                     feature_dims,
+                     kernel_size,
+                     pool_size):
+            super().__init__()
+            
+            self.input_downsampler = nn.MaxPool1d(kernel_size=pool_size)
+            feature_extractors = []
+            shortcuts = []
+            prev_features = 1
+            current_features = 8
+            while current_features <= 128:
+                feature_extractors.append(nn.Sequential(
+                    nn.Conv1d(in_channels=prev_features,
+                              out_channels=4*current_features,
+                              kernel_size=1,
+                              bias=False),
+                    nn.BatchNorm1d(num_features=4*current_features),
+                    nn.ReLU(),
+                    nn.ConstantPad1d(padding=(kernel_size//2, kernel_size//2), value=0),
+                    nn.Conv1d(in_channels=4*current_features,
+                              out_channels=4*current_features,
+                              kernel_size=kernel_size,
+                              stride=2,
+                              bias=False),
+                    nn.BatchNorm1d(num_features=4*current_features),
+                    nn.ReLU(),
+                    nn.Conv1d(in_channels=4*current_features,
+                              out_channels=current_features,
+                              kernel_size=1,
+                              bias=False),
+                    nn.BatchNorm1d(num_features=current_features),
+                    nn.ReLU()))
+                shortcuts.append(nn.Conv1d(in_channels=prev_features,
+                                           out_channels=current_features,
+                                           kernel_size=1,
+                                           stride=2))
+                prev_features = current_features
+                current_features *= 2
+            
+            self.feature_extractors = nn.ModuleList(feature_extractors)
+            self.shortcuts = nn.ModuleList(shortcuts)
+            
+            eg_input = self.input_downsampler(eg_input)
+            for feature_extractor, shortcut in zip(self.feature_extractors, self.shortcuts):
+                eg_input = feature_extractor(eg_input) + shortcut(eg_input)
+            self.output_transform = nn.Sequential(nn.Conv1d(in_channels=prev_features,
+                                                            out_channels=feature_dims,
+                                                            kernel_size=1),
+                                                  nn.AvgPool1d(kernel_size=eg_input.shape[-1]))
+            
+        def forward(self, x):
+            x = self.input_downsampler(x)
+            for feature_extractor, shortcut in zip(self.feature_extractors, self.shortcuts):
+                x = feature_extractor(x) + shortcut(x)
+            x = self.output_transform(x)
+            return x
         
     def __init__(self,
                  latent_dims,
                  label_dims,
                  output_shape,
+                 feature_dims=100,
                  output_transform=nn.Hardtanh,
                  pool_size=4,
                  filters=8,
@@ -136,6 +197,7 @@ class ResNet1dGenerator(nn.Module):
         
         self.label_dims = label_dims
         self.latent_dims = latent_dims
+        self.feature_dims = feature_dims
         self.output_shape = output_shape
         self.output_transform = output_transform()
         self.pool_size = pool_size
@@ -146,22 +208,26 @@ class ResNet1dGenerator(nn.Module):
         self.dense_dropout = dense_dropout
         self.stack_sizes = stack_sizes
         
+        self.feature_encoder = self.FeatureEncoder(torch.randn(output_shape), feature_dims, block_kernel_size, pool_size)
+        
         eg_label = torch.randint(0, self.label_dims, (2,))
         eg_latent = torch.randn(2, self.latent_dims)
+        eg_trace = torch.randn(2, *self.output_shape[1:])
         self.label_embedding = nn.Embedding(self.label_dims, self.label_dims)
         eg_embedded_label = self.label_embedding(eg_label)
         eg_embedded_label = eg_embedded_label.view(-1, self.label_dims)
-        eg_z = torch.cat((eg_embedded_label, eg_latent), dim=-1).view(-1, self.label_dims+self.latent_dims, 1)
+        eg_embedded_trace = self.feature_encoder(eg_trace).view(eg_trace.shape[0], -1)
+        eg_z = torch.cat((eg_embedded_label, eg_latent, eg_embedded_trace), dim=-1).view(-1, self.label_dims+self.latent_dims+self.feature_dims, 1)
         
         upscaling_modules = [
-            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims,
-                               out_channels=self.label_dims+self.latent_dims,
+            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims+self.feature_dims,
+                               out_channels=self.label_dims+self.latent_dims+self.feature_dims,
                                kernel_size=1,
                                bias=False),
-            BatchNorm1d(num_features=self.label_dims+self.latent_dims),
+            BatchNorm1d(num_features=self.label_dims+self.latent_dims+self.feature_dims),
             self.activation(**self.activation_kwargs),
-            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims,
-                               out_channels=self.label_dims+self.latent_dims,
+            nn.ConvTranspose1d(in_channels=self.label_dims+self.latent_dims+self.feature_dims,
+                               out_channels=self.label_dims+self.latent_dims+self.feature_dims,
                                kernel_size=np.prod(self.output_shape[1:])//(125*2**len(self.stack_sizes))),
             nn.Upsample(scale_factor=125),
             nn.Dropout(self.dense_dropout)]
@@ -184,10 +250,11 @@ class ResNet1dGenerator(nn.Module):
                                           kernel_size=1))
         self.feature_creator = nn.Sequential(*modules)
         
-    def forward(self, latent_vars, labels):
+    def forward(self, latent_vars, labels, traces):
         latent_vars = latent_vars[:labels.size(0), :]
         labels = self.label_embedding(labels)
-        z = torch.cat((labels, latent_vars), dim=-1).view(-1, self.label_dims+self.latent_dims, 1)
+        trace_features = self.feature_encoder(traces).view(traces.size(0), -1)
+        z = torch.cat((labels, latent_vars, trace_features), dim=-1).view(-1, self.label_dims+self.latent_dims+self.feature_dims, 1)
         upscaled_input = self.input_upscaling(z)
         logits = self.feature_creator(upscaled_input)
         if logits.shape[1:] != self.output_shape[1:]:
