@@ -23,6 +23,7 @@ def plot_training_traces(fig, axes, results, settings):
     axes[0].plot(epochs, gen_loss_test, color='blue', linestyle='-', label='Test')
     axes[1].plot(epochs, disc_loss_train, color='red', linestyle='--', label='Train')
     axes[1].plot(epochs, disc_loss_test, color='red', linestyle='-', label='Test')
+    axes[1].set_yscale('log')
     axes[1].plot(ind_epochs, disc_loss_train_ind,
                  color='black', linestyle='none', marker='o', label='Train-Independent', markersize=5)
     axes[1].plot(ind_epochs, disc_loss_test_ind,
@@ -41,7 +42,7 @@ def main(results, settings):
         ax.axis('off')
     fig.suptitle('Epoch: 0')
     plt.tight_layout()
-    saliency_anim_save_fn = plot_saliency(fig, axes, results)
+    #saliency_anim_save_fn = plot_saliency(fig, axes, results)
     
     traces_fig, axes = plt.subplots(3, 1, figsize=(8, 24))
     axes[0].set_ylabel('Loss')
@@ -66,7 +67,7 @@ def main(results, settings):
     axes[1].set_ylabel('Count')
     axes[0].set_title('Generator')
     axes[1].set_title('Discriminator')
-    hist_anim_save_fn = get_param_histograms(fig, axes, results)
+    #hist_anim_save_fn = get_param_histograms(fig, axes, results)
     
     n_images = 32#len(flatten_results(results)[0]['sampled_gen_images']['protected_images'])
     fig, axes = plt.subplots(4, n_images//4, figsize=(2*n_images//4, 2*4))
@@ -74,7 +75,7 @@ def main(results, settings):
         ax.axis('off')
     fig.suptitle('Epoch: 0')
     plt.tight_layout()
-    gen_img_anim_save_fn = plot_sampled_images(fig, axes, results)
+    #gen_img_anim_save_fn = plot_sampled_images(fig, axes, results)
     
     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
     axes[0].set_xlabel('Predicted value')
@@ -83,6 +84,6 @@ def main(results, settings):
     axes[1].set_ylabel('True value')
     axes[0].set_title('Training dataset')
     axes[1].set_title('Holdout dataset')
-    conf_mtx_anim_save_fn = plot_confusion_matrices(fig, axes, results)
+    #conf_mtx_anim_save_fn = plot_confusion_matrices(fig, axes, results)
     
-    return (trace_plot_save_fn, hist_anim_save_fn, gen_img_anim_save_fn, saliency_anim_save_fn, conf_mtx_anim_save_fn)
+    return (trace_plot_save_fn,)#(trace_plot_save_fn, hist_anim_save_fn, gen_img_anim_save_fn, saliency_anim_save_fn, conf_mtx_anim_save_fn)

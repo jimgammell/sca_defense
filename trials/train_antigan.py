@@ -125,7 +125,12 @@ def main(debug=False, **config_kwargs):
     eg_input = next(iter(train_dataloader))[0]
     discriminator = disc_constructor(eg_input.shape, **disc_kwargs)
     print('Discriminator:\n{}\n'.format(discriminator))
-    generator = gen_constructor(latent_var_shape[-1], num_classes if use_labels else 0, eg_input.shape, **gen_kwargs)
+    if 'label_dims' in gen_kwargs.keys():
+        label_dims = gen_kwargs['label_dims']
+        del gen_kwargs['label_dims']
+    else:
+        label_dims = num_classes
+    generator = gen_constructor(latent_var_shape[-1], label_dims, eg_input.shape, **gen_kwargs)
     print('Generator:\n{}\n'.format(generator))
     disc_loss_fn = disc_loss_fn_constructor(**disc_loss_fn_kwargs)
     print('Discriminator loss function:\n{}\n'.format(disc_loss_fn))
