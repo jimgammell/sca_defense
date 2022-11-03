@@ -2,13 +2,8 @@
     "trial_description": "Run some antigan setups on the Google power trace dataset.",
     "trial": "train_antigan",
     "disc": "LeNet5Discriminator1d",
-    "expand0": [
-        {"gen": "LeNet5Generator1d"},
-        {"gen": "IdentityGenerator"}],
-    "expand1": [
-        {"gen_kwargs": {"feature_dims": 16, "label_dims": 16}},
-        {"gen_kwargs": {"feature_dims": 64, "label_dims": 64}},
-        {"gen_kwargs": {"feature_dims": 256, "label_dims": 256}}],
+    "gen": "LeNet5Generator1d",
+    "gen_kwargs": {"feature_dims": 64, "label_dims": 64},
     "disc_opt": "Adam",
     "disc_opt_kwargs": {"lr": 0.0002, "betas": [0, 0.999]},
     "gen_opt": "Adam",
@@ -30,10 +25,8 @@
     },
     "dataloader_kwargs": {"batch_size": 256, "shuffle": true},
     "device": "cuda",
-    "expand2": [
-        {"trial_kwargs": {"n_epochs": [["dg", 100]], "disc_steps_per_gen_step": 20}},
-        {"trial_kwargs": {"n_epochs": [["d", 100], ["dg", 100]], "disc_steps_per_gen_step": 20}}],
-    "objective_formulation": "Naive",
+    "trial_kwargs": {"n_epochs": [["dg", 100]], "disc_steps_per_gen_step": 20},
+    "objective_formulation": "SimReduction",
     "disc_loss_fn": "BCELoss",
     "gen_loss_fn": "BCELoss",
     "disc_kwargs": {"apply_spectral_norm": true},

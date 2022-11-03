@@ -103,7 +103,7 @@ def main():
             expanded_config_file = trial.preprocess_config(expanded_config_file)
             if cl_args.cpu:
                 expanded_config_file['device'] = 'cpu'
-            results = trial.main(debug=cl_args.debug, **expanded_config_file)
+            results = trial.main(save_dir=trial_dir, debug=cl_args.debug, **expanded_config_file)
             trial.save_results(results, trial_dir)
             with open(os.path.join(trial_dir, 'config.json'), 'w') as F:
                 json.dump(expanded_config_file, F, indent=2)

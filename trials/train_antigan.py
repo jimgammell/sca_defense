@@ -70,7 +70,8 @@ def preprocess_config(config_kwargs):
     
     return config_kwargs
 
-def main(debug=False, **config_kwargs):
+def main(save_dir = None, debug=False, **config_kwargs):
+    assert save_dir is not None
     print('Parsing config arguments...')
     disc_name = config_kwargs['disc']
     gen_name = config_kwargs['gen']
@@ -181,7 +182,8 @@ def main(debug=False, **config_kwargs):
                                              sample_gen_images = epoch_idx%observe_gen_period == 0,
                                              train_independent_discriminator = epoch_idx%train_ind_disc_period == 0,
                                              ind_disc_epochs=1 if debug else 20)
-        Results[get_sub_trial_key()][epoch_idx].update(results)
+        with open(os.path.join(save_dir, 'results__epoch_%d__subtrial_%d.pickle'%(epoch_idx, sub_trial_idx)), 'wb') as F:
+            pickle.dump(results, F)
         if update_indices:
             epoch_idx += 1
             if epoch_idx >= n_epochs[sub_trial_idx][1]:
