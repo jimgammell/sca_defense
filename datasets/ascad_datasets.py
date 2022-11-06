@@ -10,6 +10,8 @@ class AscadDataset(Dataset):
                  target_transform=None,
                  train=True,
                  download=True,
+                 whiten_traces=True,
+                 subtract_mean_trace=True,
                  save_dir=os.path.join('.', 'saved_datasets', 'ascad'),
                  download_url=r'https://www.data.gouv.fr/s/resources/ascad/20180530-163000/ASCAD_data.zip'):
         def save_dir_valid():
@@ -57,10 +59,27 @@ class AscadDataset(Dataset):
         else:
             dataset = np.load(os.path.join(save_dir, 'test', 'data.npz'))
         self.traces = dataset['traces'].astype(float)
+        self.traces = np.expand_dims(self.traces, 1)
         self.labels = dataset['labels']
         self.num_examples = len(self.traces)
-        self.traces -= np.mean(self.traces)
-        self.traces /= np.std(self.traces)**2
+        
+        # Individually preprocess each trace to have mean 0 and variance 1
+        def whiten_traces_fn():
+            for idx, trace in enumerate(self.traces):
+                self.traces[idx] -= np.mean(trace)
+                self.traces[idx] /= np.std(trace)
+        if whiten_traces:
+            whiten_traces_fn()
+        
+        # Most of the variance is common across all traces. Subtract the mean trace from all individual traces.
+        if subtract_mean_trace:
+            mean_trace = np.zeros(self.traces[0].shape)
+            for idx, trace in enumerate(self.traces):
+                mean_trace = (idx/(idx+1))*mean_trace + (1/(idx+1))*trace
+            for idx in range(len(self.traces)):
+                self.traces[idx] -= mean_trace
+            whiten_traces_fn()
+        
         assert self.num_examples == len(self.labels)
         self.transform = transform
         self.target_transform = target_transform
@@ -71,7 +90,7 @@ class AscadDataset(Dataset):
         
     def __getitem__(self, idx):
         trace = torch.from_numpy(self.traces[idx]).to(torch.float)
-        label = torch.from_numpy(np.array(self.labels[idx])).to(torch.float)
+        label = torch.from_numpy(np.array(self.labels[idx])).to(torch.long)
         if self.transform != None:
             trace = self.transform(trace)
         if self.target_transform != None:
