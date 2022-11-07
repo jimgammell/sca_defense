@@ -14,6 +14,7 @@ class AscadDataset(Dataset):
                  subtract_mean_trace=True,
                  save_dir=os.path.join('.', 'saved_datasets', 'ascad'),
                  download_url=r'https://www.data.gouv.fr/s/resources/ascad/20180530-163000/ASCAD_data.zip'):
+        super().__init__()
         def save_dir_valid():
             if not os.path.exists(save_dir):
                 return False
@@ -27,6 +28,7 @@ class AscadDataset(Dataset):
             import requests
             import zipfile
             import h5py
+            import shutil
             temp_dir = os.path.join('.', 'saved_datasets', 'temp')
             if not os.path.exists(temp_dir):
                 os.mkdir(temp_dir)
@@ -53,6 +55,7 @@ class AscadDataset(Dataset):
                 os.mkdir(os.path.join(save_dir, 'test'))
             np.savez(os.path.join(save_dir, 'train', 'data.npz'), **training_dataset)
             np.savez(os.path.join(save_dir, 'test', 'data.npz'), **testing_dataset)
+            shutil.rmtree(temp_dir)
         
         if train:
             dataset = np.load(os.path.join(save_dir, 'train', 'data.npz'))
