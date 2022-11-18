@@ -18,6 +18,8 @@ def adversarial_train_step(batch, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn
     disc_loss = disc_loss_fn(disc_logits, label)
     disc_opt.zero_grad()
     disc_loss.backward()
+    if grad_clip is not None:
+        nn.utils.clip_grad_norm_(disc.parameters(), max_norm=grad_clip, norm_type=2)
     disc_opt.step()
     return {'gen_loss': to_np(gen_loss),
             'disc_loss': to_np(disc_loss),
