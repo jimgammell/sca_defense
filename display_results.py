@@ -11,7 +11,7 @@ def get_trace(results_path, files, criteria, key):
     for file in files:
         if not criteria(file):
             continue
-        epoch = int(file.split('.')[0].split('_')[-1])
+        epoch = int(file.split('.')[-2].split('_')[-1])
         epochs.append(epoch)
         with open(os.path.join(results_path, file), 'rb') as F:
             results = pickle.load(F)
@@ -75,13 +75,16 @@ def plot_traces(results_path, file_prefix, keys, plot_size=4):
     if len(keys) == 1:
         axes = np.array([axes])
     for key, ax in zip(keys, axes):
-        train_trace = get_trace(results_path, files,
-                                lambda f: 'train' in f.split('__')[1], key)
+        try:
+            train_trace = get_trace(results_path, files,
+                                    lambda f: 'train' in f.split('__')[1], key)
+            train_epochs = np.linspace(0, 1, len(train_trace))
+            ax.plot(train_epochs, train_trace, '.', color='blue', label='Train')
+        except:
+            pass
         eval_trace = get_trace(results_path, files,
                                lambda f: 'eval' in f.split('__')[1], key)
-        train_epochs = np.linspace(0, 1, len(train_trace))
         eval_epochs = np.linspace(0, 1, len(eval_trace))
-        ax.plot(train_epochs, train_trace, '.', color='blue', label='Train')
         ax.plot(eval_epochs, eval_trace, '.', color='red', label='Test')
         ax.set_xlabel('Epoch')
         ax.legend()
