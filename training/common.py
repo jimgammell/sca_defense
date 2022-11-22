@@ -25,10 +25,12 @@ def unpack_batch(batch, device):
     label = label.to(device)
     return trace, label
 
-def execute_epoch(execute_fn, dataloader, *args, **kwargs):
+def execute_epoch(execute_fn, dataloader, *args, callback=None, **kwargs):
     Results = {}
     for batch in dataloader:
         results = execute_fn(batch, *args, **kwargs)
+        if callback != None:
+            callback()
         for key in results.keys():
             if not key in Results.keys():
                 Results[key] = []

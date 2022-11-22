@@ -29,25 +29,32 @@ class RandomShift:
         self.center_idx = center_idx
         self.max_shift_size = max_shift_size
     def __call__(self, trace):
-        shift = np.random.randint(low=-self.max_shift_size, high=self.max_shift_size+1)
-        trace = trace[:, self.center_idx-350+shift:self.center_idx+350+shift]
-        return trace
+        traces = []
+        for channel in range(trace.shape[0]):
+            shift = np.random.randint(low=-self.max_shift_size, high=self.max_shift_size+1)
+            traces.append(trace[channel, self.center_idx-350+shift:self.center_idx+350+shift])
+        traces = torch.cat(traces)
+        return traces
 
 class RandomNoise:
     def __init__(self, max_convex_coef=0.05):
         self.max_convex_coef = max_convex_coef
     def __call__(self, trace):
-        convex_coef = np.random.uniform(self.max_convex_coef)
-        noise = torch.randn_like(trace)
-        trace = (1-convex_coef)*trace + convex_coef*noise
-        return trace
+        traces = []
+        for channel in range(trace.shape[0]):
+            convex_coef = np.random.uniform(self.max_convex_coef)
+            noise = torch.randn_like(trace[channel, :])
+            traces.append((1-convex_coef)*trace[channel, :] + convex_coef*noise)
+        traces = torch.cat(traces)
+        return traces
 
 class AscadDataset(Dataset):
     def __init__(self,
                  transform=None,
                  target_transform=None,
                  train=True,
-                 byte=3,
+                 byte=2,
+                 traces_per_sample=1,
                  mixup=False,
                  download=True,
                  whiten_traces=True,
@@ -55,6 +62,7 @@ class AscadDataset(Dataset):
                  save_dir=os.path.join('.', 'saved_datasets', 'ascad'),
                  download_url=r'https://www.data.gouv.fr/s/resources/ascad/20180530-163000/ASCAD_data.zip',
                  trace_padding=(300, 300),
+                 target_points=(45400, 46100),
                  test_split_idx=50000):
         super().__init__()
         def save_dir_valid():
@@ -86,27 +94,26 @@ class AscadDataset(Dataset):
                     zip_ref.extractall(extracted_dir)
             traces, plaintexts, ciphertexts, keys, masks = [], [], [], [], []
             with h5py.File(os.path.join(extracted_dir, 'ASCAD_data', 'ASCAD_databases', 'ATMega8515_raw_traces.h5'), 'r') as F:
-                for trace, metadata in zip(F['traces'], F['metadata']):
-                    plaintext, ciphertext, key, mask = metadata
-                    truncated_trace = trace[45400-trace_padding[0]:46100+trace_padding[1]]
-                    # trace_padding=(0, 0) gives the traces used in the original paper.
-                    # Padding is useful for allowing dataset augmentation through cropping.
-                    traces.append(truncated_trace)
-                    plaintexts.append(plaintext)
-                    ciphertexts.append(ciphertext)
-                    keys.append(key)
-                    masks.append(mask)
+                raw_traces = F['traces']
+                raw_data = F['metadata']
+                raw_plaintexts = raw_data['plaintext']
+                raw_keys = raw_data['key']
+                raw_masks = raw_data['masks']
+                raw_traces_pois = raw_traces[:, target_points[0]-trace_padding[0]:target_points[1]+trace_padding[1]+1]
+                raw_traces_profiling = raw_traces_pois[:test_split_idx]
+                raw_traces_attack = raw_traces_pois[test_split_idx:]
+                plaintexts_profiling = raw_plaintexts[:test_split_idx]
+                plaintexts_attack = raw_plaintexts[test_split_idx:]
+                keys_profiling = raw_keys[:test_split_idx]
+                keys_attack = raw_keys[test_split_idx:]
+                labels_profiling = np.uint8(AES_Sbox[plaintexts_profiling[:, byte]^keys_profiling[:, byte]])
+                labels_attack = np.uint8(AES_Sbox[plaintexts_attack[:, byte]^keys_attack[:, byte]])
             
-            training_dataset = dict(traces=np.array(traces[:test_split_idx]),
-                                    plaintexts=np.array(plaintexts[:test_split_idx]),
-                                    ciphertexts=np.array(ciphertexts[:test_split_idx]),
-                                    keys=np.array(keys[:test_split_idx]),
-                                    masks=np.array(masks[:test_split_idx]))
-            testing_dataset = dict(traces=np.array(traces[test_split_idx:]),
-                                   plaintexts=np.array(plaintexts[test_split_idx:]),
-                                   ciphertexts=np.array(ciphertexts[test_split_idx:]),
-                                   keys=np.array(keys[test_split_idx:]),
-                                   masks=np.array(masks[test_split_idx:]))
+            training_dataset = dict(traces=np.array(raw_traces_profiling),
+                                    labels=np.array(labels_profiling))
+            testing_dataset = dict(traces=np.array(raw_traces_attack),
+                                   labels=np.array(labels_attack))
+            
             if not os.path.exists(save_dir):
                 os.mkdir(save_dir)
             if not os.path.exists(os.path.join(save_dir, 'train')):
@@ -121,64 +128,43 @@ class AscadDataset(Dataset):
             dataset = np.load(os.path.join(save_dir, 'train', 'data.npz'))
         else:
             dataset = np.load(os.path.join(save_dir, 'test', 'data.npz'))
-        self.traces = dataset['traces'].astype(float)
-        self.traces = np.expand_dims(self.traces, 1)
-        self.labels = []
-        for plaintext, key in zip(dataset['plaintexts'], dataset['keys']):
-            sbox_idx = int(plaintext[byte])^int(key[byte])
-            label = np.uint8(AES_Sbox[sbox_idx])
-            self.labels.append(label)
-        self.labels = np.array(self.labels)
-        self.num_examples = len(self.traces)
-        self.mixup = mixup and train
         
-        # Individually preprocess each trace to have mean 0 and variance 1
-        def whiten_traces_fn():
-            for idx, trace in enumerate(self.traces):
-                self.traces[idx] -= np.mean(trace)
-                self.traces[idx] /= np.std(trace)
+        traces = dataset['traces'].astype(float)
+        labels = dataset['labels']
         if whiten_traces:
-            whiten_traces_fn()
+            mean = np.mean(traces[trace_padding[0]:-trace_padding[1]])
+            traces -= mean
+            std = np.std(traces[trace_padding[0]:-trace_padding[1]])
+            traces /= std
+        self.datapoints = dict()
+        for label_val in np.unique(labels):
+            self.datapoints[label_val] = traces[labels==label_val]
         
-        # Most of the variance is common across all traces. Subtract the mean trace from all individual traces.
-        if subtract_mean_trace:
-            mean_trace = np.zeros(self.traces[0].shape)
-            for idx, trace in enumerate(self.traces):
-                mean_trace = (idx/(idx+1))*mean_trace + (1/(idx+1))*trace
-            for idx in range(len(self.traces)):
-                self.traces[idx] -= mean_trace
-            whiten_traces_fn()
-        
-        assert self.num_examples == len(self.labels)
+        self.num_examples = len(traces)
+        assert self.num_examples == len(labels)
         self.transform = transform
         self.target_transform = target_transform
-        self.trace_shape = self.traces[0].shape
-        for trace in self.traces[1:]:
-            assert trace.shape == self.trace_shape
-        self.num_classes = len(np.unique(self.labels))
+        trace_shape = traces[0].shape
+        for trace in traces[1:]:
+            assert trace.shape == trace_shape
+        self.classes = np.array(list(self.datapoints.keys()))
+        self.num_classes = len(self.classes)
+        self.traces_per_sample = traces_per_sample
         
-    def getitem(self, idx):
-        trace = torch.from_numpy(self.traces[idx]).to(torch.float)
-        label = torch.from_numpy(np.array(self.labels[idx])).to(torch.long)
+    def get_traces_for_label(self, label):
+        return self.datapoints[label]
+    
+    def __getitem__(self, *_):
+        label = np.random.choice(self.classes)
+        trace_indices = np.random.choice(np.arange(len(self.datapoints[label])), size=self.traces_per_sample)
+        traces = self.datapoints[label][trace_indices]
+        label = torch.tensor(label).to(torch.long)
+        traces = torch.from_numpy(traces).to(torch.float)
         if self.transform != None:
-            trace = self.transform(trace)
+            traces = self.transform(traces)
         if self.target_transform != None:
             label = self.target_transform(label)
-        return trace, label
-    
-    def getitem_mixup(self, _):
-        items = [self.getitem(np.random.randint(self.__len__())) for _ in range(2)]
-        mixing_coefficient = np.random.beta(0.5, 0.5)
-        trace = mixing_coefficient*items[0][0] + (1-mixing_coefficient)*items[1][0]
-        label = mixing_coefficient*nn.functional.one_hot(items[0][1], num_classes=256).to(torch.float) +\
-               (1-mixing_coefficient)*nn.functional.one_hot(items[1][1], num_classes=256).to(torch.float)
-        return trace, label
-    
-    def __getitem__(self, idx):
-        if self.mixup:
-            return self.getitem_mixup(idx)
-        else:
-            return self.getitem(idx)
+        return traces, label
     
     def __len__(self):
         return self.num_examples
