@@ -3,33 +3,38 @@ import torch
 from torch import nn
 
 class EffNetDS50(nn.Module):
-    def __init__(self, input_shape, output_shape):
+    def __init__(self, input_shape, output_shape, width_multiplier=1, dropout=0., input_dropout=0.):
         super().__init__()
         
         self.feature_extractor = nn.Sequential(
-            nn.Conv1d(input_shape[0], 32, 1, padding=0),
+            nn.Dropout(input_dropout),
+            nn.Conv1d(input_shape[0], 32*width_multiplier, 1, padding=0),
             nn.SELU(),
-            nn.BatchNorm1d(32),
+            nn.BatchNorm1d(32*width_multiplier),
             nn.AvgPool1d(2),
-            nn.Conv1d(32, 64, 25, padding=12),
+            nn.Conv1d(32*width_multiplier, 64*width_multiplier, 25, padding=12),
             nn.SELU(),
-            nn.BatchNorm1d(64),
+            nn.BatchNorm1d(64*width_multiplier),
             nn.AvgPool1d(25),
-            nn.Conv1d(64, 128, 3, padding=1),
+            nn.Conv1d(64*width_multiplier, 128*width_multiplier, 3, padding=1),
             nn.SELU(),
-            nn.BatchNorm1d(128),
+            nn.BatchNorm1d(128*width_multiplier),
             nn.AvgPool1d(4))
         eg_input = torch.randn(1, *input_shape)
         eg_input = self.feature_extractor(eg_input)
         self.num_features = np.prod(eg_input.shape)
         self.fc = nn.Sequential(
-            nn.Linear(self.num_features, 15),
+            nn.Dropout(dropout),
+            nn.Linear(self.num_features, 15*width_multiplier),
             nn.SELU(),
-            nn.Linear(15, 15),
+            nn.Dropout(dropout),
+            nn.Linear(15*width_multiplier, 15*width_multiplier),
             nn.SELU(),
-            nn.Linear(15, 15),
+            nn.Dropout(dropout),
+            nn.Linear(15*width_multiplier, 15*width_multiplier),
             nn.SELU(),
-            nn.Linear(15, np.prod(output_shape)))
+            nn.Dropout(dropout),
+            nn.Linear(15*width_multiplier, np.prod(output_shape)))
         self.input_shape = input_shape
         self.output_shape = output_shape
     

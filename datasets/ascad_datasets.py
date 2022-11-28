@@ -25,7 +25,7 @@ AES_Sbox = np.array([
             ])
 
 class RandomShift:
-    def __init__(self, center_idx=650, max_shift_size=5):
+    def __init__(self, center_idx=650, max_shift_size=0):
         self.center_idx = center_idx
         self.max_shift_size = max_shift_size
     def __call__(self, trace):
@@ -33,7 +33,7 @@ class RandomShift:
         for channel in range(trace.shape[0]):
             shift = np.random.randint(low=-self.max_shift_size, high=self.max_shift_size+1)
             traces.append(trace[channel, self.center_idx-350+shift:self.center_idx+350+shift])
-        traces = torch.cat(traces)
+        traces = torch.cat(traces).view(trace.shape[0], -1)
         return traces
 
 class RandomNoise:
@@ -45,7 +45,7 @@ class RandomNoise:
             convex_coef = np.random.uniform(self.max_convex_coef)
             noise = torch.randn_like(trace[channel, :])
             traces.append((1-convex_coef)*trace[channel, :] + convex_coef*noise)
-        traces = torch.cat(traces)
+        traces = torch.cat(traces).view(*trace.shape)
         return traces
 
 class AscadDataset(Dataset):

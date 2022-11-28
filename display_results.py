@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pytorch_grad_cam import GradCAM as GC
 
-def get_trace(results_path, files, criteria, key):
+def get_trace(results_path, files, criteria, key, average_over_epoch=False):
     epochs = []
     trace = []
     for file in files:
@@ -18,7 +18,10 @@ def get_trace(results_path, files, criteria, key):
         trace.append(results[key])
     indices = np.argsort(epochs)
     trace = np.array(trace)[indices]
-    trace = np.concatenate(trace)
+    if average_over_epoch:
+        trace = np.array([np.mean(t) for t in trace])
+    else:
+        trace = np.concatenate(trace)
     return trace
 
 def show_dataset(dataset, indices=None, examples_per_class=10, classes=None, plot_width=4, plot_height=4):
@@ -68,7 +71,7 @@ def plot_gradcam(dataset, model, target_layers, indices, use_cuda=False):
         overlay = get_gc_overlay(trace)
         print(overlay.shape, np.min(overlay), np.max(overlay))
     
-def plot_traces(results_path, file_prefix, keys, plot_size=4):
+def plot_traces(results_path, file_prefix, keys, plot_size=4, average_over_epoch=False):
     files = [f for f in os.listdir(results_path) if f.split('__')[0] == file_prefix]
     assert len(files) != 0
     fig, axes = plt.subplots(1, len(keys), figsize=(len(keys)*plot_size, plot_size))
@@ -77,13 +80,13 @@ def plot_traces(results_path, file_prefix, keys, plot_size=4):
     for key, ax in zip(keys, axes):
         try:
             train_trace = get_trace(results_path, files,
-                                    lambda f: 'train' in f.split('__')[1], key)
+                                    lambda f: 'train' in f.split('__')[1], key, average_over_epoch=average_over_epoch)
             train_epochs = np.linspace(0, 1, len(train_trace))
             ax.plot(train_epochs, train_trace, '.', color='blue', label='Train')
         except:
             pass
         eval_trace = get_trace(results_path, files,
-                               lambda f: 'eval' in f.split('__')[1], key)
+                               lambda f: 'eval' in f.split('__')[1], key, average_over_epoch=average_over_epoch)
         eval_epochs = np.linspace(0, 1, len(eval_trace))
         ax.plot(eval_epochs, eval_trace, '.', color='red', label='Test')
         ax.set_xlabel('Epoch')
