@@ -1,6 +1,7 @@
 import os
 import torch
 from torch import nn
+from torchaudio.functional import lowpass_biquad, highpass_biquad
 from torch.utils.data import Dataset
 from datasets.common import download_file, extract_zip
 import numpy as np
@@ -23,6 +24,22 @@ AES_Sbox = np.array([
             0xE1, 0xF8, 0x98, 0x11, 0x69, 0xD9, 0x8E, 0x94, 0x9B, 0x1E, 0x87, 0xE9, 0xCE, 0x55, 0x28, 0xDF,
             0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16
             ])
+
+class LowPassFilter:
+    def __init__(self, cutoff_freq_range):
+        self.filter = lowpass_biquad
+        self.cutoff_freq_range = cutoff_freq_range
+    def __call__(self, trace):
+        cutoff_freq = np.random.uniform(*cutoff_freq_range)
+        return self.filter(trace, 1e-3, cutoff_freq)
+
+class HighPassFilter:
+    def __init__(self, cutoff_freq_range):
+        self.filter = highpass_biquad
+        self.cutoff_freq_range = cutoff_freq_range
+    def __call__(self, trace):
+        cutoff_freq = np.random.uniform(*cutoff_freq_range)
+        return self.filter(trace, 1e-3, cutoff_freq)
 
 class RandomShift:
     def __init__(self, center_idx=650, max_shift_size=0):
