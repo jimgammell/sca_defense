@@ -26,7 +26,7 @@ def get_trace(results_path, files, criteria, key, average_over_epoch=False):
 
 def show_dataset(dataset, indices=None, examples_per_class=10, classes=None, plot_width=4, plot_height=4):
     if classes is None:
-        unique_labels = np.unique([int(x) for x in dataset.labels])
+        unique_labels = np.unique([int(x) for x in dataset.classes])
         np.random.shuffle(unique_labels)
         classes = unique_labels[:examples_per_class]
     if indices is None:

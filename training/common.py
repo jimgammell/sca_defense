@@ -26,7 +26,7 @@ def unpack_batch(batch, device):
     label = label.to(device)
     return trace, label
 
-def execute_epoch(execute_fn, dataloader, *args, callback=None, **kwargs):
+def execute_epoch(execute_fn, dataloader, *args, callback=None, calc_accumulated_results=False, **kwargs):
     Results = {}
     for batch in dataloader:
         results = execute_fn(batch, *args, **kwargs)
@@ -36,21 +36,42 @@ def execute_epoch(execute_fn, dataloader, *args, callback=None, **kwargs):
             if not key in Results.keys():
                 Results[key] = []
             Results[key].append(results[key])
+    if calc_accumulated_results:
+        guessing_entropy, area_under_curve = calculate_accumulated_accuracy(dataloader.dataset,
+                                                                            [arg for arg in args if isinstance(arg, nn.Module)][0],
+                                                                            [arg for arg in args if isinstance(arg, str)][0],
+                                                                            batch_size=dataloader.batch_size)
+        Results['guessing_entropy'] = guessing_entropy
+        Results['area_under_curve'] = area_under_curve
     return Results
 
-def calculate_auc(dataset, model, device, batch_size=1):
-    rank_over_time = {}
-    for label in dataset.classes:
-        traces = dataset.get_traces_for_label(label)
-        indices = np.arange(len(traces))
-        np.random.shuffle(indices)
-        batches = [
-            torch.stack(traces[batch_size*i:batch_size*(i+1)]).to(device)
-            for i in range(int(np.ceil(len(traces)/batch_size)))]
-        output_dists = torch.cat([nn.functional.softmax(model(batch), dim=-1) for batch in batches])
-        mean_ranks = [
-            mean_rank(torch.sum(torch.log(output_dists[:i])), label)
-            for i in range(1, len(output_dists)+1)]
-        rank_over_time[label] = mean_ranks
-    auc = np.mean([np.sum(rot) for _, rot in rank_over_time.items()])
-    return auc
+def calculate_accumulated_accuracy(dataset, model, device, batch_size=256, repetitions=100):
+    guessing_entropy = np.zeros(len(dataset.classes), repetitions)
+    area_under_curve = np.zeros(len(dataset.classes), repetitions)
+    for repetition_idx in range(repetitions):
+        for label_idx, label in enumerate(dataset.classes):
+            traces = [torch.from_numpy(t).view(1, -1).to(device).to(torch.float) for t in dataset.get_traces_for_label(label)]
+            if dataset.transform is not None:
+                for idx, trace in enumerate(traces):
+                    traces[idx] = dataset.transform(trace)
+            indices = np.arange(len(traces))
+            np.random.shuffle(indices)
+            traces = [trace[idx] for idx in indices]
+            batches = [
+                torch.stack(traces[batch_size*i:batch_size*(i+1)])
+                for i in range(int(np.ceil(len(traces)/batch_size)))]
+            output_dists = torch.cat([nn.functional.softmax(model(batch), dim=-1) for batch in batches])
+            mean_ranks = []
+            accumulated_dists = torch.log(output_dists[0])
+            correct_answer_found = False
+            for output_dist in output_dists[1:]:
+                mean_ranks.append(np.count_nonzero(to_np(accumulated_dists) >= to_np(accumulated_dists)[label]))
+                if not(correct_answer_found) and (np.argmax(to_np(accumulated_dists)) != label):
+                    guessing_entropy[label_idx, repetition_idx] += 1
+                else:
+                    correct_answer_found = True
+                accumulated_dists += torch.log(output_dist)
+            mean_rank[label_idx, repetition_idx] = np.mean(mean_ranks)
+    guessing_entropy = np.mean(guessing_entropy, axis=0)
+    area_under_curve = np.mean(area_under_curve, axis=0)
+    return guessing_entropy, area_under_curve
