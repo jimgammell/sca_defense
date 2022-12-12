@@ -12,6 +12,13 @@ def execute_epoch(execute_fn, dataloader, model, *args, epoch_metric_fns={}, **k
     metrics.update({name: f(dataloader.dataset, model, dataloader.batch_size, **kwargs) for name, f in epoch_metric_fns.items()})
     return metrics
 
+def train_batch_gan(batch, disc, gen, disc_loss_fn, gen_loss_fn, disc_optimizer, gen_optimizer, device,
+                    disc_batch_metric_fns={}, gen_batch_metric_fns={}, disc_grad_clip_val=None, gen_grad_clip_val=None, **kwargs):
+    disc.train()
+    gen.train()
+    traces, labels, plaintexts = batch
+    traces, labels = traces.to(device), labels.to(device)
+
 def train_batch(batch, model, loss_fn, optimizer, device, batch_metric_fns={}, autoencoder=False, grad_clip_val=None, **kwargs):
     model.train()
     traces, labels, plaintexts = batch
