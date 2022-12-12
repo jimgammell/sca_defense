@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import h5py
 import torch
@@ -31,7 +32,7 @@ def accumulate_predictions(p):
 
 class AscadDataset(Dataset):
     def __init__(self,
-                 dataset_loc=os.path.join('..', 'raw_datasets', 'ascad'),
+                 dataset_loc=os.path.join('.', 'raw_datasets', 'ascad'),
                  transform=None,
                  target_transform=None,
                  download=True,
@@ -54,11 +55,11 @@ class AscadDataset(Dataset):
         if os.path.exists(extracted_loc):
             pass
         elif os.path.exists(zipped_loc):
-            download_dataset(zipped_loc, extracted_dest=extracted_loc)
+            download_dataset(zipped_loc, extract=True)
         elif download:
             download_dataset(zipped_loc,
                              zipped_url=r'https://www.data.gouv.fr/s/resources/ascad/20180530-163000/ASCAD_data.zip',
-                             extracted_dest=extracted_loc)
+                             extract=True)
         else:
             raise Exception('Cannot load dataset without downloading because no extracted dataset was found at {} and no zipped dataset was found at {}.'.format(extracted_loc, zipped_loc))
             
@@ -69,19 +70,20 @@ class AscadDataset(Dataset):
         else:
             start_idx, end_idx = 50000, 60000
         raw_traces = in_file['traces'][start_idx:end_idx]
-        self.traces = raw_traces[:, 45400-max_desync:46100+max_desync]
+        self.traces = raw_traces[:, 45400-max_desync:46100+max_desync].astype(float)
         if whiten_traces:
             self.traces -= np.mean(self.traces)
             self.traces /= np.std(self.traces)
         raw_data = in_file['metadata'][start_idx:end_idx]
-        raw_plaintexts = raw_data['plaintext']
+        raw_plaintexts = raw_data['plaintext'][:, byte]
         raw_keys = raw_data['key'][:, byte]
         raw_masks = raw_data['masks']
-        self.attack_points = np.uint8(AES_Sbox[raw_plaintexts[:, byte] ^ raw_keys[:, byte]])
-        self.key_locs = {np.asarray(raw_keys==key).nonzero()[0] for key in np.unique(raw_keys)}
-        self.keys = raw_keys
+        self.attack_points = np.uint8(AES_Sbox[raw_plaintexts ^ raw_keys])
+        self.key = np.unique(raw_keys)[0]
         self.plaintexts = raw_plaintexts
-        self.num_examples = len(self.keys)
+        self.num_examples = len(self.attack_points)
+        self.input_shape = (700, traces_per_sample)
+        self.output_shape = (256, traces_per_sample)
     
     def __len__(self):
         return self.num_examples
@@ -101,7 +103,6 @@ class AscadDataset(Dataset):
         return logits
         
     def __getitem__(self, idx):
-        key = self.keys[idx]
         traces = [self.traces[idx]]
         attack_points = [self.attack_points[idx]]
         plaintexts = [self.plaintexts[idx]]
@@ -114,11 +115,11 @@ class AscadDataset(Dataset):
             for idx, trace in enumerate(traces):
                 desync = np.random.randint(2*self.max_desync)
                 traces[idx] = trace[desync:desync+700]
-        traces = np.stack(traces)
-        attack_points = np.stack(attack_points)
-        plaintexts = np.stack(plaintexts)
+        traces = np.stack(traces, axis=-1)
+        attack_points = np.stack(attack_points, axis=-1)
+        plaintexts = np.stack(plaintexts, axis=-1)
         if self.transform is not None:
             traces = self.transform(traces)
         if self.target_transform is not None:
             attack_points = self.target_transform(attack_points)
-        return traces, attack_points, plaintexts, key
+        return traces, attack_points, plaintexts
