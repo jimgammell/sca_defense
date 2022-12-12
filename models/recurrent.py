@@ -17,6 +17,7 @@ class LstmModel(nn.Module):
         self.recurrent_layers.append(nn.Linear(layers[-1], io_dims))
         
     def forward(self, x):
+        x = x.clone()
         if self.delay != 0:
             delay_padding = torch.zeros_like(x[:, :self.delay, :])
             x = torch.cat((delay_padding, x[:, :-self.delay, :]), dim=1)
@@ -26,7 +27,7 @@ class LstmModel(nn.Module):
         for x_t in x.split(1, dim=1):
             x_t = x_t.squeeze(1)
             if self.realistic_hindsight and len(mask) > 0:
-                x_t += mask[-1]
+                x_t = x_t - mask[-1]
             h[0], c[0] = self.recurrent_layers[0](x_t, (h[0], c[0]))
             for idx in range(len(self.recurrent_layers[1:-1])):
                 h[idx+1], c[idx+1] = self.recurrent_layers[idx+1](h[idx], (h[idx+1], c[idx+1]))
