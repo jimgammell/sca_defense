@@ -24,4 +24,5 @@ def plot_autoencoder_traces(traces, model, device, fig=None, axes=None):
     for ax in axes[:, 1]:
         ax.set_ylabel('Reconstruction error')
     fig.suptitle('Example trace reconstruction with RNN')
+    plt.tight_layout()
     return fig, axes

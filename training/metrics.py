@@ -22,17 +22,17 @@ def get_mean_rank(labels, logits, **kwargs):
     return mean_rank
 
 @torch.no_grad()
-def get_rank_over_time(dataloader, model, repetitions=1):
-    rank_over_time = np.zeros(repetitions, len(dataloader.dataset.num_examples))
-    device = next(model.parameters().device)
+def get_rank_over_time(dataloader, model, repetitions=1, **kwargs):
+    rank_over_time = np.zeros((repetitions, dataloader.dataset.num_examples))
+    device = next(model.parameters()).device
     key = dataloader.dataset.key
     for repetition_idx in range(repetitions):
         logits = []
         for batch in dataloader:
             traces, _, plaintexts = batch
             traces = traces.to(device)
-            logits_for_batch = model(traces).cpu()
-            logits_for_batch = [dataloader.dataset.reorder_logits(l, pt) for l, pt in zip(logits_for_batch, plaintexts)]
+            logits_for_batch = model(traces).cpu()#.numpy()
+            logits_for_batch = [dataloader.dataset.reorder_logits(l.unsqueeze(0), pt).squeeze() for l, pt in zip(logits_for_batch, plaintexts)]
             logits.extend(logits_for_batch)
         predictions = [nn.functional.softmax(l, dim=-1) for l in logits]
         mean_ranks = []
@@ -48,4 +48,4 @@ def get_rank_over_time(dataloader, model, repetitions=1):
     area_under_curve = np.sum(rank_over_time, axis=1)
     auc_mean = np.mean(area_under_curve)
     auc_std = np.std(area_under_curve)
-    return rot_mean, rot_std, auc_mean, auc_std
+    return auc_mean, auc_std#rot_mean, rot_std, auc_mean, auc_std

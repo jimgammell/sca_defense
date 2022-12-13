@@ -7,6 +7,11 @@ class ToTensor(nn.Module):
         super().__init__()
     def forward(self, x):
         return torch.tensor(x).to(torch.float)
+class ToLabelTensor(nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, x):
+        return torch.tensor(x).to(torch.long)
     
 class RandomNoise(nn.Module):
     def __init__(self, max_convex_coef=0.05):

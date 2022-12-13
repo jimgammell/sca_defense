@@ -26,8 +26,8 @@ class EffNet_N100(nn.Module):
             nn.BatchNorm1d(128),
             nn.AvgPool1d(2)])
         self.feature_extractor = nn.Sequential(*fe_mods)
-        eg_input = torch.randn(1, *input_shape)
-        self.num_features = np.prod(eg_input.shape[1:])
+        eg_input = torch.randn(1, *input_shape).transpose(1, 2)
+        self.num_features = np.prod(self.feature_extractor(eg_input).shape[1:])
         self.fc = nn.Sequential(
             nn.Linear(self.num_features, 20),
             nn.SELU(),
@@ -66,8 +66,8 @@ class EffCnn_N50(nn.Module):
             nn.BatchNorm1d(128),
             nn.AvgPool1d(4)])
         self.feature_extractor = nn.Sequential(*fe_mods)
-        eg_input = torch.randn(1, *input_shape)
-        self.num_features = np.prod(eg_input.shape[1:])
+        eg_input = torch.randn(1, *input_shape).transpose(1, 2)
+        self.num_features = np.prod(self.feature_extractor(eg_input).shape[1:])
         self.fc = nn.Sequential(
             nn.Linear(self.num_features, 15),
             nn.SELU(),
@@ -90,7 +90,7 @@ class EffCnn_N0(nn.Module):
         self.simplified = simplified
         
         fe_mods = []
-        if simplified:
+        if not simplified:
             fe_mods.extend([
                 nn.Conv1d(1, 4, 1),
                 nn.SELU(),
@@ -98,8 +98,8 @@ class EffCnn_N0(nn.Module):
         fe_mods.extend([
             nn.AvgPool1d(2)])
         self.feature_extractor = nn.Sequential(*fe_mods)
-        eg_input = torch.randn(1, *input_shape)
-        self.num_features = np.prod(eg_input.shape[1:])
+        eg_input = torch.randn(1, *input_shape).transpose(1, 2)
+        self.num_features = np.prod(self.feature_extractor(eg_input).shape[1:])
         self.fc = nn.Sequential(
             nn.Linear(self.num_features, 10),
             nn.SELU(),
@@ -108,6 +108,7 @@ class EffCnn_N0(nn.Module):
             nn.Linear(10, 256))
         
     def forward(self, x):
+        x = x.transpose(1, 2)
         features = self.feature_extractor(x).view(x.size(0), -1)
         logits = self.fc(features)
         return logits

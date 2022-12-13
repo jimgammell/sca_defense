@@ -40,6 +40,7 @@ class AscadDataset(Dataset):
                  max_desync=0,
                  byte=2,
                  whiten_traces=True,
+                 residual_traces=True,
                  traces_per_sample=1):
         super().__init__()
         
@@ -71,6 +72,12 @@ class AscadDataset(Dataset):
             start_idx, end_idx = 50000, 60000
         raw_traces = in_file['traces'][start_idx:end_idx]
         self.traces = raw_traces[:, 45400-max_desync:46100+max_desync].astype(float)
+        if residual_traces:
+            mean_trace = np.zeros_like(self.traces[0])
+            for idx, trace in enumerate(self.traces):
+                mean_trace = (idx/(idx+1))*mean_trace + (1/(idx+1))*trace
+            for idx, trace in enumerate(self.traces):
+                self.traces[idx] = trace - mean_trace
         if whiten_traces:
             self.traces -= np.mean(self.traces)
             self.traces /= np.std(self.traces)
@@ -98,7 +105,7 @@ class AscadDataset(Dataset):
         return traces, plaintexts
     
     def reorder_logits(self, logits, plaintexts):
-        for idx, (pt, lg) in enumerate(zip(logits, plaintexts)):
+        for idx, (lg, pt) in enumerate(zip(logits, plaintexts)):
             logits[idx] = lg[ap_to_key_indices(pt)]
         return logits
         
