@@ -9,7 +9,7 @@ def execute_epoch(execute_fn, dataloader, model, *args, epoch_metric_fns={}, **k
             if not(key in metrics.keys()):
                 metrics[key] = []
             metrics[key].append(results[key])
-    metrics.update({name: f(dataloader, model, dataloader.batch_size, **kwargs) for name, f in epoch_metric_fns.items()})
+    metrics.update({name: f(dataloader, model, **kwargs) for name, f in epoch_metric_fns.items()})
     return metrics
 
 def train_batch_gan(batch, disc, gen, disc_loss_fn, gen_loss_fn, disc_optimizer, gen_optimizer, device,
@@ -39,10 +39,16 @@ def train_batch_gan(batch, disc, gen, disc_loss_fn, gen_loss_fn, disc_optimizer,
     gen_metrics = {name: f(**raw_gen_output) for name, f in gen_batch_metric_fns.items()}
     return disc_metrics, gen_metrics
 
-def train_batch(batch, model, loss_fn, optimizer, device, batch_metric_fns={}, autoencoder=False, grad_clip_val=None, **kwargs):
+def train_batch(batch, model, loss_fn, optimizer, device, batch_metric_fns={}, autoencoder=False, grad_clip_val=None, generator=None, lr_manager=None, **kwargs):
     model.train()
     traces, labels, plaintexts = batch
     traces, labels = traces.to(device), labels.to(device).squeeze()
+    if generator is not None:
+        with torch.no_grad():
+            reconstructed_traces = generator(traces)
+            traces = traces - reconstructed_traces
+            traces = traces - torch.mean(traces)
+            traces = traces / torch.std(traces)
     logits = model(traces)
     if autoencoder:
         loss = loss_fn(logits, traces)
@@ -53,15 +59,22 @@ def train_batch(batch, model, loss_fn, optimizer, device, batch_metric_fns={}, a
     if grad_clip_val is not None:
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_val, norm_type=2)
     optimizer.step()
+    if lr_manager is not None:
+        lr_manager.step()
     raw_output = {'traces': traces, 'labels': labels, 'plaintexts': plaintexts, 'logits': logits, 'loss': loss}
     metrics = {name: f(**raw_output) for name, f in batch_metric_fns.items()}
     return metrics
 
 @torch.no_grad()
-def eval_batch(batch, model, loss_fn, device, batch_metric_fns={}, autoencoder=False, **kwargs):
+def eval_batch(batch, model, loss_fn, device, batch_metric_fns={}, autoencoder=False, generator=None, **kwargs):
     model.eval()
     traces, labels, plaintexts = batch
     traces, labels = traces.to(device), labels.to(device).squeeze()
+    if generator is not None:
+        reconstructed_traces = generator(traces)
+        traces = traces - reconstructed_traces
+        traces = traces - torch.mean(traces)
+        traces = traces / torch.std(traces)
     logits = model(traces)
     if autoencoder:
         loss = loss_fn(logits, traces)
