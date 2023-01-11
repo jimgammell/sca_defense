@@ -1,7 +1,10 @@
 import time
 import random
+import os
+import pickle
 import numpy as np
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 from training.custom_loss_functions import BasicWrapper
 
@@ -23,16 +26,16 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
         test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, device)
         if not suppress_output:
             print('Finished epoch {}'.format(current_epoch))
-            print('Train results: {}'.format(train_results))
-            print('Test results: {}'.format(test_results))
-            print('\n')
+            #print('Train results: {}'.format(train_results))
+            #print('Test results: {}'.format(test_results))
+            #print('\n')
         if save_dir is not None:
-            with open(os.path.join(save_dir, 'train_res_{}.pickle'.format(current_epoch)), 'wb') as F:
+            with open(os.path.join('.', 'results', save_dir, 'train_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(train_results, F)
-            with open(os.path.join(save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
+            with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(test_results, F)
-            torch.save(disc.state_dict(), os.path.join(save_dir, 'disc_params_{}.pth'.format(current_epoch)))
-            torch.save(disc_opt.state_dict(), os.path.join(save_dir, 'disc_opt_params_{}.pth'.format(current_epoch)))
+            torch.save(disc.state_dict(), os.path.join('.', 'results', save_dir, 'disc_params_{}.pth'.format(current_epoch)))
+            torch.save(disc_opt.state_dict(), os.path.join('.', 'results', save_dir, 'disc_opt_params_{}.pth'.format(current_epoch)))
         current_epoch += 1
     while current_epoch <= n_epochs:
         run_epoch()
@@ -67,6 +70,8 @@ def run_trial(
     ): # Device on which to place the models and samples
     
     assert protection_method in ['none', 'randnoise', 'autoencoder', 'gan']
+    if save_dir is not None:
+        os.makedirs(os.path.join('.', 'results', save_dir), exist_ok=True)
     
     if 'seed' in trial_kwargs.keys():
         seed = trial_kwargs['seed']
@@ -84,8 +89,22 @@ def run_trial(
     if device is None:
         if torch.cuda.is_available():
             device = 'cuda'
+            device_count = torch.cuda.device_count()
         else:
             device = 'cpu'
+            device_count = 1
+    else:
+        if device == 'cpu':
+            device_count = 1
+        elif device == 'cuda':
+            assert torch.cuda.is_available()
+            device_count = torch.cuda.device_count()
+        else:
+            assert False
+    if 'batch_size' in dataloader_kwargs:
+        dataloader_kwargs['batch_size'] *= device_count
+    else:
+        dataloader_kwargs['batch_size'] = device_count
     
     train_dataset    = construct(dataset_constructor, train=True, **train_dataset_kwargs)
     test_dataset     = construct(dataset_constructor, train=False, **test_dataset_kwargs)
@@ -109,6 +128,14 @@ def run_trial(
             _ = gen_loss_fn(gen(eg_trace), eg_trace, eg_label)
         except TypeError:
             gen_loss_fn = BasicWrapper(gen_loss_fn)
+    if disc is not None:
+        if device_count > 1:
+            disc = nn.DataParallel(disc, device_ids=list(range(device_count)))
+        disc.to(device)
+    if gen is not None:
+        if device_count > 1:
+            gen = nn.DataParallel(gen, device_ids=list(range(device_count)))
+        gen.to(device)
     
     assert train_dataset is not None
     assert test_dataset is not None
@@ -141,7 +168,7 @@ def run_trial(
         print('Protection method: {}'.format(protection_method))
         print('Random seed: {}'.format(seed))
         print('Number of epochs: {}'.format(n_epochs))
-        print('Device: {}'.format(device))
+        print('Device: {} (count: {})'.format(device, device_count))
         print('Save directory: {}'.format(save_dir))
         print('Disc: {}'.format(disc))
         print('Disc opt: {}'.format(disc_opt))

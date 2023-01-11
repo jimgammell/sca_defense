@@ -2,8 +2,8 @@ from tqdm import tqdm
 
 def unpack_batch(batch, device):
     x, y, _ = batch
-    x.to(device, non_blocking=True)
-    y.to(device, non_blocking=True)
+    x = x.to(device, non_blocking=True)
+    y = y.to(device, non_blocking=True)
     return x, y
 
 def detach_result(result):

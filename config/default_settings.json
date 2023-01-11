@@ -14,7 +14,7 @@
             "n_epochs": 30
         },
         "dataloader_kwargs": {
-            "batch_size": 32
+            "batch_size": 16
         }
     },
     "common": {
@@ -39,7 +39,8 @@
         },
         "device": "cuda",
         "dataloader_kwargs": {
-            "num_workers": 8
+            "num_workers": 20,
+            "pin_memory": true
         }
     }
 }

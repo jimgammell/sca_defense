@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from training.common import unpack_batch, detach_result, run_epoch
 
 def get_results(lambdas, losses, x, y, logits, metric_fns):
