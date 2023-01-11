@@ -51,8 +51,8 @@ class Stack(nn.Module):
         
         self.stack = nn.Sequential(
             Block(in_channels, filters, kernel_size=kernel_size, activation=activation, conv_shortcut=True),
-            *[Block(filters, filters, kernel_size=kernel_size, activation=activation) for _ in range(2, blocks)],
-            Block(filters, filters, strides=strides, activation=activation)
+            *[Block(4*filters, filters, kernel_size=kernel_size, activation=activation) for _ in range(2, blocks)],
+            Block(4*filters, filters, strides=strides, activation=activation)
         )
         
     def forward(self, x):
@@ -67,25 +67,26 @@ class ResNet1D(nn.Module):
                  block_kernel_size=3,
                  activation=nn.ReLU,
                  dense_dropout=0.1,
-                 num_blocks[3, 4, 4, 3]):
+                 num_blocks=[3, 4, 4, 3]):
         super().__init__()
         
         self.preprocess = nn.Sequential(
             nn.MaxPool1d(pool_size)
         )
         self.trunk = nn.Sequential(
-          *[Stack(1 if l == 0 else filters*2**l,
+          *[Stack(1 if l == 0 else 4*filters*2**l,
                   filters*2**(l+1),
                   num_blocks[l],
                   kernel_size=block_kernel_size,
                   activation=activation)
             for l in range(4)]
         )
-        num_features = np.prod(self.trunk(self.preprocess(torch.randn(1, *input_shape))).shape)
+        features_shape = self.trunk(self.preprocess(torch.randn(1, *input_shape))).shape
         self.head = nn.Sequential(
-            nn.AvgPool1d(num_features),
+            nn.AvgPool1d(features_shape[-1]),
+            nn.Flatten(),
             nn.Dropout(dense_dropout),
-            nn.Linear(filters*2**4, 256),
+            nn.Linear(features_shape[-2], 256),
             nn.BatchNorm1d(256),
             activation(),
             nn.Linear(256, 256)

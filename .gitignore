@@ -6,3 +6,4 @@ google_pretrained_models
 *.pickle
 results
 raw_datasets
+downloads

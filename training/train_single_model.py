@@ -1,3 +1,4 @@
+import torch
 from training.common import unpack_batch, detach_result, run_epoch
 
 def get_results(lambdas, losses, x, y, logits, metric_fns):
@@ -44,8 +45,7 @@ def eval_step(batch, model, loss_fns, device,
     losses = []
     for lbd, loss_fn in zip(lambdas, loss_fns):
         loss = lbd*loss_fn(logits, x, y)
-        loss.backward()
-        losses.append(detach_results(loss))
+        losses.append(detach_result(loss))
     results = get_results(lambdas, losses, x, y, logits, metric_fns)
     return results
 

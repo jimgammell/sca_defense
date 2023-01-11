@@ -2,7 +2,7 @@ import os
 import json
 import torch
 from torch.utils.data import Dataset
-from torch.import nn
+from torch import nn
 import numpy as np
 import requests
 import zipfile
@@ -37,8 +37,8 @@ class GoogleScaamlDataset(Dataset):
             else:
                 up_to_date = False
             if not up_to_date:
-                os.mkdirs(os.path.join(save_dir, 'compressed'), exist_ok=True)
-                os.mkdirs(os.path.join(save_dir, 'extracted'), exist_ok=True)
+                os.makedirs(os.path.join(save_dir, 'compressed'), exist_ok=True)
+                os.makedirs(os.path.join(save_dir, 'extracted'), exist_ok=True)
                 if not os.path.exists(os.path.join(save_dir, 'compressed', 'compressed_dataset.zip')):
                     r = requests.get(download_url, allow_redirects=True, timeout=10)
                     with open(os.path.join(save_dir, 'compressed', 'compressed_dataset.zip'), 'wb') as F:
@@ -47,12 +47,12 @@ class GoogleScaamlDataset(Dataset):
                     zip_ref.extractall(os.path.join(save_dir, 'extracted'))
                 for phase in ['train', 'test']:
                     for f in os.listdir(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', phase)):
-                        shard = np.load(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', phase, f))
+                        shard = dict(np.load(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', phase, f)))
                         traces = torch.from_numpy(shard['traces']).to(torch.float)
                         if whiten_traces:
                             traces -= torch.mean(traces)
                             traces /= torch.std(traces)
-                        traces = traces[:, interval_to_use[0]:interval_to_use[1]]
+                        traces = traces[:, interval_to_use[0]:interval_to_use[1]].transpose(-1, -2)
                         traces = nn.functional.max_pool1d(traces, kernel_size=downsample_ratio, stride=downsample_ratio)
                         shard['traces'] = traces.numpy()
                         np.savez(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', phase, f), **shard)
@@ -62,13 +62,16 @@ class GoogleScaamlDataset(Dataset):
         self.phase = 'train' if train else 'test'
         self.shard_filenames = os.listdir(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', self.phase))
         if store_in_ram:
-            self.shards = {idx: np.load(f) for idx, f in enumerate(self.shard_filenames)}
+            self.shards = {idx: np.load(os.path.join(
+                save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, f))
+                           for idx, f in enumerate(self.shard_filenames)}
             self.get_shard = lambda idx: self.shards[idx]
         else:
-            self.get_shard = lambda idx: np.load(self.shard_filenames[idx])
+            self.get_shard = lambda idx: np.load(os.path.join(
+                save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, self.shard_filenames[idx]))
             
         self.num_shards = len(self.shard_filenames)
-        self.samples_per_shard = len(self.get_shard[0]['traces'])
+        self.samples_per_shard = len(self.get_shard(0)['traces'])
         self.transform = transform
         self.target_transform = target_transform
         self.byte = byte
@@ -76,6 +79,9 @@ class GoogleScaamlDataset(Dataset):
         self.interval_to_use = interval_to_use
         self.downsample_ratio = downsample_ratio
         self.whiten_traces = whiten_traces
+        eg_trace, eg_label, _ = self.__getitem__(0)
+        self.trace_shape = eg_trace.shape
+        self.label_shape = eg_label.shape
         
     def __getitem__(self, idx):
         shard_idx = idx // self.samples_per_shard
@@ -97,6 +103,9 @@ class GoogleScaamlDataset(Dataset):
     
     def __repr__(self):
         s = 'Google SCAAML TinyAES power trace dataset'
+        s += '\n\tTraining phase: {}'.format(self.phase)
+        s += '\n\tTrace shape: {}'.format(self.trace_shape)
+        s += '\n\tLabel shape: {}'.format(self.label_shape)
         s += '\n\tNumber of shards: {}'.format(self.num_shards)
         s += '\n\tSamples per shard: {}'.format(self.samples_per_shard)
         s += '\n\tTransform: {}'.format(self.transform)
