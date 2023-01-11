@@ -104,4 +104,6 @@ def main():
         assert False
 
 if __name__ == '__main__':
+    os.environ['MASTER_ADDR'] = 'localhost' # to use DistributedDataParallel, as described here:
+    os.environ['MASTER_PORT'] = '29500'     #   https://pytorch.org/docs/stable/notes/ddp.html
     main()

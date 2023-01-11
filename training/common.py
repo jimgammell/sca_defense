@@ -1,5 +1,3 @@
-from tqdm import tqdm
-
 def unpack_batch(batch, device):
     x, y, _ = batch
     x = x.to(device, non_blocking=True)
@@ -11,7 +9,7 @@ def detach_result(result):
 
 def run_epoch(step_fn, dataloader, *args, **kwargs):
     results = {}
-    for batch in tqdm(dataloader):
+    for batch in dataloader:
         rv = step_fn(batch, *args, **kwargs)
         for key, item in rv.items():
             if not key in results.keys():

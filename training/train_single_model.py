@@ -51,13 +51,13 @@ def eval_step(batch, model, loss_fns, device,
     return results
 
 def train_epoch(dataloader, model, loss_fns, optimizer, device,
-                lambdas=None, grad_clip=False, metric_fns=None):
+                lambdas=None, grad_clip=False, metric_fns=None, **kwargs):
     results = run_epoch(train_step, dataloader, model, loss_fns, optimizer, device,
-                        lambdas=lambdas, grad_clip=grad_clip, metric_fns=metric_fns)
+                        lambdas=lambdas, grad_clip=grad_clip, metric_fns=metric_fns, **kwargs)
     return results
 
 def eval_epoch(dataloader, model, loss_fns, device,
-               lambdas=None, metric_fns=None):
+               lambdas=None, metric_fns=None, **kwargs):
     results = run_epoch(eval_step, dataloader, model, loss_fns, device,
-                        lambdas=lambdas, metric_fns=metric_fns)
+                        lambdas=lambdas, metric_fns=metric_fns, **kwargs)
     return results

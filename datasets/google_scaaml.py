@@ -61,14 +61,12 @@ class GoogleScaamlDataset(Dataset):
         
         self.phase = 'train' if train else 'test'
         self.shard_filenames = os.listdir(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', self.phase))
+        self.store_in_ram = store_in_ram
+        self.save_dir = save_dir
         if store_in_ram:
             self.shards = {idx: np.load(os.path.join(
                 save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, f))
                            for idx, f in enumerate(self.shard_filenames)}
-            self.get_shard = lambda idx: self.shards[idx]
-        else:
-            self.get_shard = lambda idx: np.load(os.path.join(
-                save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, self.shard_filenames[idx]))
             
         self.num_shards = len(self.shard_filenames)
         self.samples_per_shard = len(self.get_shard(0)['traces'])
@@ -82,6 +80,13 @@ class GoogleScaamlDataset(Dataset):
         eg_trace, eg_label, _ = self.__getitem__(0)
         self.trace_shape = eg_trace.shape
         self.label_shape = eg_label.shape
+        
+    def get_shard(self, idx):
+        if self.store_in_ram:
+            return self.shards[idx]
+        else:
+            return np.load(os.path.join(
+                self.save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, self.shard_filenames[idx]))
         
     def __getitem__(self, idx):
         shard_idx = idx // self.samples_per_shard
