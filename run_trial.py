@@ -9,6 +9,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch import distributed as dist
+from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch import multiprocessing as mp
 from training.custom_loss_functions import BasicWrapper
 
@@ -18,29 +19,38 @@ def construct(constructor, *args, **kwargs):
     else:
         return constructor(*args, **kwargs)
 
-def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir):
+def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None):
     from training.train_single_model import train_epoch, eval_epoch
     current_epoch = 0
     def run_epoch():
         nonlocal current_epoch
         t0 = time.time()
         if current_epoch == 0:
-            train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, device)
+            train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, device, metric_fns=metric_fns)
         else:
-            train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, device)
-        test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, device)
+            train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, device, metric_fns=metric_fns)
+        test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, device, metric_fns=metric_fns)
         if not suppress_output:
             print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
             #print('Train results: {}'.format(train_results))
             #print('Test results: {}'.format(test_results))
             #print('\n')
+        for key, item in train_results.items():
+            train_results[key] = np.mean(item, axis=0)
+        for key, item in test_results.items():
+            test_results[key] = np.mean(item, axis=0)
         if save_dir is not None:
             with open(os.path.join('.', 'results', save_dir, 'train_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(train_results, F)
             with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(test_results, F)
-            torch.save(disc.state_dict(), os.path.join('.', 'results', save_dir, 'disc_params_{}.pth'.format(current_epoch)))
-            torch.save(disc_opt.state_dict(), os.path.join('.', 'results', save_dir, 'disc_opt_params_{}.pth'.format(current_epoch)))
+            if save_model_period is not None and (current_epoch%save_model_period==0 or current_epoch == n_epochs):
+                torch.save(disc.state_dict(),
+                           os.path.join('.', 'results', save_dir, 'disc_params_{}.pth'.format(current_epoch)))
+                if hasattr(disc_opt, 'consolidate_state_dict'):
+                    disc_opt.consolidate_state_dict()
+                torch.save(disc_opt.state_dict(),
+                           os.path.join('.', 'results', save_dir, 'disc_opt_params_{}.pth'.format(current_epoch)))
         current_epoch += 1
     while current_epoch <= n_epochs:
         run_epoch()
@@ -132,7 +142,9 @@ def run_trial_process(
     save_dir=None
     ): # Device on which to place the models and samples
     
-    print('Process of rank {} created.'.format(rank))
+    if not suppress_output:
+        print('Process of rank {} created.'.format(rank))
+    suppress_output = suppress_output or rank!=0
     
     if world_size != 0:
         dist.init_process_group('nccl', init_method='env://', rank=rank, world_size=world_size)
@@ -167,11 +179,31 @@ def run_trial_process(
                                  shuffle=False, **dataloader_kwargs)
     
     disc         = construct(disc_constructor, train_dataset.trace_shape, **disc_kwargs)
+    if disc is not None:
+        if world_size != 0:
+            disc.cuda(device)
+            disc = nn.parallel.DistributedDataParallel(disc, device_ids=[device])
     disc_loss_fn = construct(disc_loss_constructor, **disc_loss_kwargs)
-    disc_opt     = construct(disc_opt_constructor, disc.parameters() if disc is not None else None, **disc_opt_kwargs)
+    if disc is not None and trial_kwargs['use_zero_redundancy_optimizer']:
+        disc_opt = ZeroRedundancyOptimizer(
+            disc.parameters(),
+            disc_opt_constructor,
+            **disc_opt_kwargs)
+    else:
+        disc_opt = construct(disc_opt_constructor, disc.parameters() if disc is not None else None, **disc_opt_kwargs)
     gen          = construct(gen_constructor, train_dataset.trace_shape, **gen_kwargs)
+    if gen is not None:
+        if world_size != 0:
+            gen.cuda(device)
+            gen = nn.parallel.DistributedDataParallel(gen, device_ids=[device])
     gen_loss_fn  = construct(gen_loss_constructor, **gen_loss_kwargs)
-    gen_opt      = construct(gen_opt_constructor, gen.parameters() if gen is not None else None, **gen_opt_kwargs)
+    if gen is not None and trial_kwargs['use_zero_redundancy_optimizer']:
+        gen_opt = ZeroRedundancyOptimizer(
+            gen.parameters(),
+            gen_opt_constructor,
+            **gen_opt_kwargs)
+    else:
+        gen_opt = construct(gen_opt_constructor, gen.parameters() if gen is not None else None, **gen_opt_kwargs)
     eg_trace, eg_label, _ = next(iter(train_dataloader))
     if disc_loss_fn is not None:
         try:
@@ -183,14 +215,6 @@ def run_trial_process(
             _ = gen_loss_fn(gen(eg_trace), eg_trace, eg_label)
         except TypeError:
             gen_loss_fn = BasicWrapper(gen_loss_fn)
-    if disc is not None:
-        if world_size != 0:
-            disc.cuda(device)
-            disc = nn.parallel.DistributedDataParallel(disc, device_ids=[device])
-    if gen is not None:
-        if world_size != 0:
-            gen.cuda(device)
-            gen = nn.parallel.DistributedDataParallel(gen, device_ids=[device])
     
     assert train_dataset is not None
     assert test_dataset is not None
@@ -218,7 +242,7 @@ def run_trial_process(
         assert gen_loss_fn is not None
         assert gen_opt is not None
     
-    if rank == 0 and not suppress_output:
+    if not suppress_output:
         print('Beginning training.')
         print('Protection method: {}'.format(protection_method))
         print('Random seed: {}'.format(trial_kwargs['seed']))
@@ -239,4 +263,5 @@ def run_trial_process(
     
     if protection_method == 'none':
         train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs,
-                   suppress_output if rank==0 else True, save_dir if rank==0 else None)
+                   suppress_output, save_dir if rank==0 else None, metric_fns=trial_kwargs['metric_fns'],
+                   save_model_period=trial_kwargs['save_model_period'])

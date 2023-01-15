@@ -11,7 +11,7 @@
         "disc_opt_kwargs": {"lr": 1e-3},
         "disc_step_kwargs": {},
         "trial_kwargs": {
-            "n_epochs": 30
+            "n_epochs": 5
         },
         "dataloader_kwargs": {
             "batch_size": 16
@@ -35,7 +35,9 @@
             "store_in_ram": false
         },
         "trial_kwargs": {
-            "seed": 0
+            "seed": 0,
+            "save_model_period": 10,
+            "use_zero_redundancy_optimizer": false
         },
         "device": "cuda",
         "dataloader_kwargs": {
