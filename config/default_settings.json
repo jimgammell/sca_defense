@@ -26,7 +26,7 @@
             "disc_opt_kwargs": {
                 "lr": ["loguniform", [1e-5, 1e-1]],
                 "beta1": ["uniform", [0.0, 0.9]],
-                "weight_decay": ["loguniform", [1e-6, 0.1]]
+                "weight_decay": ["uniform", [0, 0.1]]
             },
             "disc_kwargs": {
                 "dense_dropout": ["uniform", [0.0, 0.2]]

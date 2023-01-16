@@ -51,7 +51,7 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
             with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(test_results, F)
             if save_model_period is not None and (current_epoch%save_model_period==0 or current_epoch == n_epochs):
-                current_save_dir = os.path.join('.', 'results', 'save_dir', 'checkpoint_{}'.format(current_epoch))
+                current_save_dir = os.path.join('.', 'results', save_dir, 'checkpoint_{}'.format(current_epoch))
                 os.makedirs(current_save_dir, exist_ok=True)
                 torch.save(disc.state_dict(),
                            os.path.join(current_save_dir, 'disc_state.pth'))

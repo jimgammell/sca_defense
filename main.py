@@ -6,6 +6,7 @@ import importlib
 import torch
 from run_trial import run_trial
 from tune_hyperparameters import tune_hyperparameters
+from generate_figures import generate_figures
 
 def get_json_args(json_filename):
     def getattr_from_file(attr_name):
@@ -66,11 +67,15 @@ def get_clargs():
     parser.add_argument(
         'trial_type', metavar='trial-type',
         choices=['hsweep', 'eval'],
+        nargs='?',
+        default=None,
         help='What type of trial to run -- a hyperparameter sweep, or an evaluation using a fixed set of hyperparameters.'
     )
     parser.add_argument(
         'protection_method', metavar='protection-method',
         choices=['none', 'randnoise', 'autoencoder', 'gan'],
+        nargs='?',
+        default=None,
         help='How the power traces should be protected from the discriminator.'
     )
     parser.add_argument(
@@ -78,7 +83,21 @@ def get_clargs():
         default=None,
         help='Filename of a json file in the \'./config\' folder containing trial parameters. If none is provided, the trial will use default parameters. \'.json\' suffix should be excluded -- e.g. passing \'test\' will tell the trial to use parameter settings specified in \'./config/test.json\'.'
     )
+    parser.add_argument(
+        '--cpu',
+        action='store_true',
+        default=False,
+        help='Force the model to run on the CPU in a single process, regardless of configuration settings or GPU availability. Intended for debugging.'
+    )
+    parser.add_argument(
+        '--generate-figures',
+        nargs='*',
+        default=None,
+        help='Directories for which figures should be generated. May refer to directories containing results generated during previous trials. If no argument is passed, then figures will be generated for all results produced during this program execution.'
+    )
     args = parser.parse_args()
+    if args.trial_type is None:
+        assert args.protection_method is None
     return args
 
 def get_trial_params(clargs):
@@ -97,12 +116,25 @@ def get_trial_params(clargs):
 def main():
     clargs = get_clargs()
     trial_params = get_trial_params(clargs)
-    if clargs.trial_type == 'eval':
+    if clargs.cpu:
+        trial_params['device'] = 'cpu'
+    if clargs.trial_type is None:
+        pass
+    elif clargs.trial_type == 'eval':
         run_trial(clargs.protection_method, **trial_params)
     elif clargs.trial_type == 'hsweep':
         tune_hyperparameters(clargs.protection_method, **trial_params)
     else:
         assert False
+    if clargs.generate_figures is not None:
+        if len(clargs.generate_figures) == 0:
+            assert clargs.trial_type is not None
+            assert 'save_dir' in trial_params.keys()
+            directories = [trial_params['save_dir']]
+        else:
+            directories = clargs.generate_figures
+        for directory in directories:
+            generate_figures(os.path.join('.', 'results', directory))
 
 if __name__ == '__main__':
     os.environ['MASTER_ADDR'] = 'localhost' # to use DistributedDataParallel, as described here:

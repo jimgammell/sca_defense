@@ -47,8 +47,8 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
         search_space = search_space_constructor(*search_space_args)
         tune_config[key] = search_space
     scheduler = ASHAScheduler(
-        max_t = 20,
-        grace_period=1,
+        max_t = 50,
+        grace_period=5,
         reduction_factor=2)
     search_algorithm = BayesOptSearch(metric='mean_rank', mode='min')
     
@@ -59,14 +59,14 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(run_trial_with_raytune, args=args, kwargs=kwargs, working_dir=os.getcwd()),
-            resources={'gpu': 1}
+            resources={'gpu': 0.2}
         ),
         tune_config=tune.TuneConfig(
             metric='mean_rank',
             mode='min',
             scheduler=scheduler,
             search_alg=search_algorithm,
-            num_samples=28
+            num_samples=100
         ),
         param_space=tune_config,
         run_config=air.RunConfig(local_dir=None if 'save_dir' not in kwargs.keys()
