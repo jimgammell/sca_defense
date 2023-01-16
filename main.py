@@ -5,6 +5,7 @@ from copy import deepcopy
 import importlib
 import torch
 from run_trial import run_trial
+from tune_hyperparameters import tune_hyperparameters
 
 def get_json_args(json_filename):
     def getattr_from_file(attr_name):
@@ -99,7 +100,7 @@ def main():
     if clargs.trial_type == 'eval':
         run_trial(clargs.protection_method, **trial_params)
     elif clargs.trial_type == 'hsweep':
-        raise NotImplementedError
+        tune_hyperparameters(clargs.protection_method, **trial_params)
     else:
         assert False
 

@@ -1,0 +1,11 @@
+{
+    "save_dir": "unprotected_hsweep",
+    "trial_kwargs": {
+        "metric_fns": {
+            "getattr": {
+                "accuracy": "get_accuracy",
+                "mean_rank": "get_mean_rank"
+            }
+        }
+    }
+}

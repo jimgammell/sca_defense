@@ -29,6 +29,7 @@ def train_step(batch, model, loss_fns, optimizer, device,
         losses.append(detach_result(loss))
     if grad_clip is not None:
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip, norm_type=2)
+    orig_params = model.head[-1].weight.clone()
     optimizer.step()
     results = get_results(lambdas, losses, x, y, logits, metric_fns)
     return results

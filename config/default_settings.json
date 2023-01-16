@@ -3,8 +3,7 @@
         "getattr": {
             "disc_constructor": "ResNet1D",
             "disc_loss_constructor": "CrossEntropyLoss",
-            "disc_opt_constructor": "Adam",
-            "dataset_constructor": "GoogleScaamlDataset"
+            "disc_opt_constructor": "Adam"
         },
         "disc_kwargs": {},
         "disc_loss_kwargs": {},
@@ -17,7 +16,27 @@
             "batch_size": 16
         }
     },
+    "hsweep_none": {
+        "getattr": {
+            "disc_constructor": "ResNet1D",
+            "disc_loss_constructor": "CrossEntropyLoss",
+            "disc_opt_constructor": "Adam"
+        },
+        "params_to_tune": {
+            "disc_opt_kwargs": {
+                "lr": ["loguniform", [1e-5, 1e-1]],
+                "beta1": ["uniform", [0.0, 0.9]],
+                "weight_decay": ["loguniform", [1e-6, 0.1]]
+            },
+            "disc_kwargs": {
+                "dense_dropout": ["uniform", [0.0, 0.2]]
+            }
+        }
+    },
     "common": {
+        "getattr": {
+            "dataset_constructor": "GoogleScaamlDataset"
+        },
         "train_dataset_kwargs": {
             "whiten_traces": true,
             "interval_to_use": [0, 20000],
@@ -42,7 +61,8 @@
         "device": "cuda",
         "dataloader_kwargs": {
             "num_workers": 20,
-            "pin_memory": true
+            "pin_memory": true,
+            "batch_size": 32
         }
     }
 }
