@@ -27,7 +27,7 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
     def run_epoch():
         nonlocal current_epoch
         t0 = time.time()
-        if current_epoch == 0 and not using_raytune:
+        if False:#current_epoch == 0 and not using_raytune:
             train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, device, metric_fns=metric_fns)
         else:
             train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, device, metric_fns=metric_fns)
@@ -42,7 +42,8 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
         for key, item in test_results.items():
             test_results[key] = np.mean(item, axis=0)
         if using_raytune:
-            results = dict(**{'train_'+key: item for key, item in train_results.items()}, **test_results)
+            results = dict(**{'train_'+key: item for key, item in train_results.items()},
+                           **test_results)
             #print('Results: {}'.format(results))
             session.report(results)
         if save_dir is not None:
@@ -51,7 +52,7 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
             with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(test_results, F)
             if save_model_period is not None and (current_epoch%save_model_period==0 or current_epoch == n_epochs):
-                current_save_dir = os.path.join('.', 'results', save_dir, 'checkpoint_{}'.format(current_epoch))
+                current_save_dir = os.path.join('.', 'results', 'save_dir', 'checkpoint_{}'.format(current_epoch))
                 os.makedirs(current_save_dir, exist_ok=True)
                 torch.save(disc.state_dict(),
                            os.path.join(current_save_dir, 'disc_state.pth'))
@@ -62,7 +63,7 @@ def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, 
                 if using_raytune:
                     checkpoint = Checkpoint.from_directory(current_save_dir)
         current_epoch += 1
-    while current_epoch <= n_epochs:
+    while True if using_raytune else current_epoch <= n_epochs:
         run_epoch()
 
 def train_randn():

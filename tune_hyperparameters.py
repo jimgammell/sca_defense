@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+import torch
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from ray import air
@@ -47,26 +48,35 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
         search_space = search_space_constructor(*search_space_args)
         tune_config[key] = search_space
     scheduler = ASHAScheduler(
+        metric='mean_rank',
+        mode='min',
         max_t = 50,
         grace_period=5,
         reduction_factor=2)
-    search_algorithm = BayesOptSearch(metric='mean_rank', mode='min')
+    search_algorithm = BayesOptSearch(
+        metric='mean_rank',
+        mode='min',
+        points_to_evaluate=[{
+            'disc_opt_kwargs&lr': 1e-3,
+            'disc_opt_kwargs&beta1': 0.9,
+            'disc_opt_kwargs&weight_decay': 0.0,
+            'disc_kwargs&dense_dropout': 0.1}])
     
     class ExperimentTerminationReporter(CLIReporter):
         def should_report(self, trials, done=False):
             return done
         
+    trials_per_gpu = 3 #maximum number of trials which can fit simultaneously in GPU memory
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(run_trial_with_raytune, args=args, kwargs=kwargs, working_dir=os.getcwd()),
-            resources={'gpu': 0.2}
+            resources={'gpu': 1.0/trials_per_gpu}
         ),
         tune_config=tune.TuneConfig(
-            metric='mean_rank',
-            mode='min',
             scheduler=scheduler,
-            search_alg=search_algorithm,
-            num_samples=100
+            #search_alg=search_algorithm,
+            num_samples=96,
+            max_concurrent_trials=torch.cuda.device_count()*trials_per_gpu
         ),
         param_space=tune_config,
         run_config=air.RunConfig(local_dir=None if 'save_dir' not in kwargs.keys()
