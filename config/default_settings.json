@@ -7,13 +7,39 @@
         },
         "disc_kwargs": {},
         "disc_loss_kwargs": {},
-        "disc_opt_kwargs": {"lr": 1e-3},
+        "disc_opt_kwargs": {
+            "lr": 2e-4,
+            "betas": [0.3, 0.999],
+            "weight_decay": 2e-3
+        },
         "disc_step_kwargs": {},
         "trial_kwargs": {
             "n_epochs": 5
         },
         "dataloader_kwargs": {
-            "batch_size": 16
+            "batch_size": 32
+        }
+    },
+    "eval_autoencoder": {
+        "getattr": {
+            "gen_constructor": "LstmModel",
+            "gen_loss_constructor": "AutoencoderMSELoss",
+            "gen_opt_constructor": "Adam"
+        },
+        "gen_kwargs": {
+            "layers": [32],
+            "delay": 1,
+            "samples_per_timestep": 50,
+            "realistic_hindsight": true
+        },
+        "gen_loss_kwargs": {},
+        "gen_opt_kwargs": {},
+        "gen_step_kwargs": {},
+        "trial_kwargs": {
+            "n_epochs": 5
+        },
+        "dataloader_kwargs": {
+            "batch_size": 32
         }
     },
     "hsweep_none": {

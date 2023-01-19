@@ -3,24 +3,25 @@ import torch
 from torch import nn
 
 class LstmModel(nn.Module):
-    def __init__(self, layers=[64, 64, 64], delay=1, samples_per_timestep=1, realistic_hindsight=True):
+    def __init__(self, input_shape, layers=[64, 64, 64], delay=1, samples_per_timestep=1, realistic_hindsight=True):
         super().__init__()
         
         if len(layers) > 0:
-            self.recurrent_layers = nn.ModuleList([nn.LTSMCell(samples_per_timestep, layers[0])])
+            self.recurrent_layers = nn.ModuleList([nn.LSTMCell(samples_per_timestep, layers[0])])
             for li, lo in zip(layers[:-1], layers[1:]):
                 self.recurrent_layers.append(nn.LSTMCell(li, lo))
             self.recurrent_layers.append(nn.LSTMCell(layers[-1], samples_per_timestep))
         else:
             self.recurrent_layers = nn.ModuleList([nn.LSTMCell(samples_per_timestep, samples_per_timestep)])
         
+        self.input_shape = input_shape
         self.layers = layers
         self.delay = delay
         self.samples_per_timestep = samples_per_timestep
         self.realistic_hindsight = realistic_hindsight
     
     def forward(self, x):
-        x = x.clone()
+        x = x.clone().transpose(-1, -2)
         if self.delay != 0:
             delay_padding = torch.zeros_like(x[:, :self.delay, :])
             x = torch.cat((delay_padding, x[:, :-self.delay, :]), dim=1)
@@ -36,4 +37,5 @@ class LstmModel(nn.Module):
             for idx in range(len(self.recurrent_layers[1:])):
                 h[idx+1], c[idx+1] = self.recurrent_layers[idx+1](h[idx], (h[idx+1], c[idx+1]))
             mask[:, t, :] = h[-1]
+        mask = mask.reshape(mask.size(0), -1, 1).transpose(-1, -2)
         return mask
