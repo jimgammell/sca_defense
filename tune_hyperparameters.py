@@ -54,8 +54,6 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
         grace_period=5,
         reduction_factor=2)
     search_algorithm = BayesOptSearch(
-        metric='mean_rank',
-        mode='min',
         points_to_evaluate=[{
             'disc_opt_kwargs&lr': 1e-3,
             'disc_opt_kwargs&beta1': 0.9,
@@ -73,6 +71,8 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
             resources={'gpu': 1.0/trials_per_gpu}
         ),
         tune_config=tune.TuneConfig(
+            metric='mean_rank',
+            mode='min',
             scheduler=scheduler,
             #search_alg=search_algorithm,
             num_samples=96,
