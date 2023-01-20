@@ -7,6 +7,7 @@ import numpy as np
 import requests
 import zipfile
 import shutil
+from tqdm import tqdm
 
 class GoogleScaamlDataset(Dataset):
     def __init__(self,
@@ -40,9 +41,11 @@ class GoogleScaamlDataset(Dataset):
                 os.makedirs(os.path.join(save_dir, 'compressed'), exist_ok=True)
                 os.makedirs(os.path.join(save_dir, 'extracted'), exist_ok=True)
                 if not os.path.exists(os.path.join(save_dir, 'compressed', 'compressed_dataset.zip')):
+                    print('Downloading GoogleScaamlDataset files.')
                     r = requests.get(download_url, allow_redirects=True, timeout=10)
                     with open(os.path.join(save_dir, 'compressed', 'compressed_dataset.zip'), 'wb') as F:
                         F.write(r.content)
+                    print('\tDone.')
                 with zipfile.ZipFile(os.path.join(save_dir, 'compressed', 'compressed_dataset.zip'), 'r') as zip_ref:
                     zip_ref.extractall(os.path.join(save_dir, 'extracted'))
                 for phase in ['train', 'test']:

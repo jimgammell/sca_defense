@@ -115,7 +115,7 @@
         },
         "device": "cuda",
         "dataloader_kwargs": {
-            "num_workers": 20,
+            "num_workers": 8,
             "pin_memory": true,
             "batch_size": 32
         }

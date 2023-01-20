@@ -163,7 +163,7 @@ def run_trial_process(
         print('Process of rank {} created.'.format(rank))
         
     suppress_output = suppress_output or rank!=0 or using_raytune
-    
+
     if world_size != 0:
         dist.init_process_group('nccl', init_method='env://', rank=rank, world_size=world_size)
         device = rank

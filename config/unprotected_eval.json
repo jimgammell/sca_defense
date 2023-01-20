@@ -1,6 +1,7 @@
 {
     "save_dir": "unprotected_eval",
     "trial_kwargs": {
+        "n_epochs": 100,
         "metric_fns": {
             "getattr": {
                 "accuracy": "get_accuracy",
