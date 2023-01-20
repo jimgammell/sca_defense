@@ -7,11 +7,7 @@
         },
         "disc_kwargs": {},
         "disc_loss_kwargs": {},
-        "disc_opt_kwargs": {
-            "lr": 2e-4,
-            "betas": [0.3, 0.999],
-            "weight_decay": 2e-3
-        },
+        "disc_opt_kwargs": {},
         "disc_step_kwargs": {},
         "trial_kwargs": {
             "n_epochs": 5

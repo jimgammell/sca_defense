@@ -5,6 +5,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import patches as mpatches
 from ray import tune
+import torch
+from tqdm import tqdm
 
 def get_figsize(rows, cols):
     W = H = 4
@@ -37,19 +39,18 @@ def load_traces(base_dir, keys=None, epochs=None, phases=None):
     test_results_files = [f for f in results_files if 'test' in f]
     if epochs is None:
         epochs = [int(s.split('.')[0].split('_')[-1]) for s in train_results_files]
-        assert epochs == [int(s.split('.')[0].split('_')[-1]) for s in test_results_files]
+        test_epochs = [int(s.split('.')[0].split('_')[-1]) for s in test_results_files]
+    train_indices = np.argsort(epochs)
+    test_indices = np.argsort(test_epochs)
     if keys is None:
         keys = [k for k in load_results_file(train_results_files[0]).keys()]
         for f in train_results_files[1:]+test_results_files:
             assert keys == [k for k in load_results_file(f).keys()]
     traces = {
-        'epochs': np.array(epochs),
-        **{'train_'+str(key): np.array([load_results_file(f)[key] for f in train_results_files]) for key in keys},
-        **{'test_'+str(key): np.array([load_results_file(f)[key] for f in test_results_files]) for key in keys}
+        'epochs': np.array(epochs)[train_indices],
+        **{'train_'+str(key): np.array([load_results_file(f)[key] for f in train_results_files])[train_indices] for key in keys},
+        **{'test_'+str(key): np.array([load_results_file(f)[key] for f in test_results_files])[test_indices] for key in keys}
     }
-    indices = np.argsort(traces['epochs'])
-    for key, trace in traces.items():
-        traces[key] = trace[indices]
     return traces
 
 def get_metrics_from_results_grid(results_grid):
@@ -128,7 +129,7 @@ def visualize_gaussian_dataset(num_samples=4):
     from datasets.toy_datasets import GaussianDataset
     (fig, axes) = plt.subplots(1, num_samples, figsize=get_figsize(1, num_samples), sharex=True, sharey=True)
     for idx, ax in enumerate(axes):
-        dataset = GaussianDataset()
+        dataset = GaussianDataset(use_existing_distribution=False)
         class0_samples = dataset.x[dataset.y==0]
         class1_samples = dataset.x[dataset.y==1]
         class0_useful_features = class0_samples[:, :2]
@@ -144,6 +145,52 @@ def visualize_gaussian_dataset(num_samples=4):
     fig.suptitle('Projection of samples onto dimensions of useful features')
     figs_to_save = {'dataset_visualization': fig}
     return figs_to_save
+
+def plot_gaussian_decision_boundary(results_dir):
+    from datasets.toy_datasets import GaussianDataset
+    from models.toy_models import LinearModel
+    train_dataset = GaussianDataset()
+    test_dataset = GaussianDataset()
+    checkpoint_files = [f for f in os.listdir(results_dir) if 'checkpoint' in f]
+    checkpoint_timesteps = [int(f.split('_')[-1]) for f in checkpoint_files]
+    final_model_dir = 'checkpoint_'+str(np.max(checkpoint_timesteps))
+    final_model_state = torch.load(os.path.join(results_dir, final_model_dir, 'disc_state.pth'))
+    final_model = LinearModel(2, 2)
+    final_model.load_state_dict(final_model_state)
+    (fig, axes) = plt.subplots(1, 2, figsize=get_figsize(1, 2), sharex=True, sharey=True)
+    for dataset, ax in zip([train_dataset, test_dataset], axes):
+        class0_samples = dataset.x[dataset.y==0]
+        class1_samples = dataset.x[dataset.y==1]
+        class0_useful_features = class0_samples[:, :2]
+        class1_useful_features = class1_samples[:, :2]
+        ax.plot(class0_useful_features[:, 0], class0_useful_features[:, 1],
+                '.', color='blue', label='Class 0')
+        ax.plot(class1_useful_features[:, 0], class1_useful_features[:, 1],
+                '.', color='red', label='Class 1')
+        ax.legend()
+        ax.set_xlabel('Useful feature 1')
+        ax.set_ylabel('Useful feature 2')
+        
+    xlims = axes[0].get_xlim()
+    ylims = axes[0].get_ylim()
+    samples_per_axis = 1000
+    pred = np.zeros((samples_per_axis, samples_per_axis))
+    xx = np.linspace(xlims[0], xlims[1], pred.shape[0])
+    yy = np.linspace(ylims[0], ylims[1], pred.shape[1])
+    pbar = tqdm(total=np.prod(pred.shape))
+    for ridx, x in enumerate(xx):
+        for cidx, y in enumerate(yy):
+            logits = final_model(torch.tensor([x, y]).to(torch.float))
+            pred[ridx, cidx] = 1.0 if logits[0]>=logits[1] else -1.0
+            pbar.update(1)
+    xx, yy = np.meshgrid(xx, yy)
+    axes[0].contourf(xx, yy, pred, colors=['red', 'blue'], alpha=0.1)
+    axes[1].contourf(xx, yy, pred, colors=['red', 'blue'], alpha=0.1)
+    
+    axes[0].set_title('Training dataset')
+    axes[1].set_title('Testing dataset')
+    fig.suptitle('Model decision boundary')
+    return {'decision_boundary': fig}
 
 def basic_eval(results_dir):
     figs_to_save = {}       
@@ -187,6 +234,9 @@ def generate_figures(results_dir):
     os.makedirs(results_dir, exist_ok=True)
     if 'eval' in results_dir:
         figs_to_save = basic_eval(results_dir)
+    elif 'toy_gaussian_classification' in results_dir:
+        figs_to_save = basic_eval(results_dir)
+        figs_to_save.update(plot_gaussian_decision_boundary(results_dir))
     elif 'hsweep' in results_dir:
         figs_to_save = basic_hsweep(results_dir)
     elif 'visualize' in results_dir:

@@ -34,12 +34,14 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
         else:
             train_results = train_epoch(train_dataloader, model, loss_fn, optimizer, device, metric_fns=metric_fns, **step_kwargs)
         test_results = eval_epoch(test_dataloader, model, loss_fn, device, metric_fns=metric_fns)
-        if not suppress_output:
-            print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
         for key, item in train_results.items():
             train_results[key] = np.mean(item, axis=0)
         for key, item in test_results.items():
             test_results[key] = np.mean(item, axis=0)
+        if not suppress_output:
+            print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
+            print('Train results:', train_results)
+            print('Test results:', test_results)
         checkpoint = None
         if save_dir is not None:
             with open(os.path.join('.', 'results', save_dir, 'train_res_{}.pickle'.format(current_epoch)), 'wb') as F:
@@ -196,7 +198,7 @@ def run_trial_process(
                                  sampler=None if world_size==0 else test_sampler,
                                  shuffle=False, **dataloader_kwargs)
     
-    disc         = construct(disc_constructor, train_dataset.trace_shape, **disc_kwargs)
+    disc         = construct(disc_constructor, train_dataset.x_shape, **disc_kwargs)
     if disc is not None:
         if world_size != 0:
             disc.cuda(device)
@@ -212,7 +214,7 @@ def run_trial_process(
     else:
         disc_opt = construct(disc_opt_constructor, disc.parameters() if disc is not None else None, **disc_opt_kwargs)
         
-    gen          = construct(gen_constructor, train_dataset.trace_shape, **gen_kwargs)
+    gen          = construct(gen_constructor, train_dataset.x_shape, **gen_kwargs)
     if gen is not None:
         if world_size != 0:
             gen.cuda(device)

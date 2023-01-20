@@ -1,5 +1,10 @@
 {
     "save_dir": "unprotected_eval",
+    "disc_opt_kwargs": {
+            "lr": 2e-4,
+            "betas": [0.3, 0.999],
+            "weight_decay": 2e-3
+    },
     "trial_kwargs": {
         "n_epochs": 100,
         "metric_fns": {
