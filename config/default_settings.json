@@ -59,6 +59,35 @@
             }
         }
     },
+    "hsweep_autoencoder": {
+        "getattr": {
+            "gen_constructor": "LstmModel",
+            "gen_loss_constructor": "AutoencoderMSELoss",
+            "gen_opt_constructor": "Adam"
+        },
+        "params_to_tune": {
+            "gen_opt_kwargs": {
+                "lr": ["loguniform", [1e-5, 1e-2]],
+                "beta1": ["uniform", [0.0, 0.9]],
+                "weight_decay": ["loguniform", [1e-6, 0.1]]
+            },
+            "gen_step_kwargs": {
+                "grad_clip": ["loguniform", [1e-2, 1e2]]
+            }
+        },
+        "gen_kwargs": {
+            "layers": [256],
+            "delay": 1,
+            "samples_per_timestep": 50,
+            "realistic_hindsight": true
+        },
+        "gen_loss_kwargs": {},
+        "gen_opt_kwargs": {},
+        "gen_step_kwargs": {},
+        "dataloader_kwargs": {
+            "batch_size": 32
+        }
+    },
     "common": {
         "getattr": {
             "dataset_constructor": "GoogleScaamlDataset"

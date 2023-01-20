@@ -21,7 +21,7 @@ class LstmModel(nn.Module):
         self.realistic_hindsight = realistic_hindsight
     
     def forward(self, x):
-        x = x.clone().transpose(-1, -2)
+        x = x.transpose(-1, -2)
         if self.delay != 0:
             delay_padding = torch.zeros_like(x[:, :self.delay, :])
             x = torch.cat((delay_padding, x[:, :-self.delay, :]), dim=1)
