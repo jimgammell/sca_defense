@@ -10,9 +10,8 @@ def init_gan(save_dir):
     global animate_decision_boundary_object
     animate_decision_boundary_object = AnimateDecisionBoundaryOverTime(save_dir)
 
-def get_decision_boundary_frame(*args, disc=None, gen=None, dataset=None):
-    if disc is None or gen is None or dataset is None:
-        return False
+def get_decision_boundary_frame(disc, gen, dataset):
+    global animate_decision_boundary_object
     animate_decision_boundary_object.save_plot(disc, gen, dataset)
     return True
 
@@ -42,6 +41,13 @@ def get_confusion_matrix(_, labels, logits, **kwargs):
     confusion_matrix /= logits.shape[0]/logits.shape[-1]
     return confusion_matrix
 
+@torch.no_grad()
+def get_generator_oracle_loss(disc, gen, dataset):
+    logits = gen(torch.tensor(dataset.__class__.useful_means).to(torch.float)).numpy()
+    obscured_samples = dataset.__class__.useful_means + logits
+    oracle_loss = np.linalg.norm(obscured_samples[0, :]-obscured_samples[1, :], ord=2)
+    return oracle_loss
+
 class AnimateDecisionBoundaryOverTime:
     def __init__(self, save_dir, xlims=[-5, 5], ylims=[-5, 5]):
         self.save_dir = save_dir
@@ -56,6 +62,12 @@ class AnimateDecisionBoundaryOverTime:
             obscured_datapoints[idx, :] = x+gen(x)
         return obscured_datapoints
     
+    @torch.no_grad()
+    def get_class_means(self, dataset, gen):
+        logits = gen(torch.tensor(dataset.__class__.useful_means).to(torch.float)).numpy()
+        obscured_samples = dataset.__class__.useful_means + logits
+        return obscured_samples
+    
     def get_decision_boundary(self, model):
         w = next(model.children()).weight.data.clone().detach().numpy()
         b = next(model.children()).bias.data.clone().detach().numpy()
@@ -69,17 +81,23 @@ class AnimateDecisionBoundaryOverTime:
         obfuscated_datapoints = self.get_obfuscated_datapoints(dataset, gen)
         decision_boundary, direction = self.get_decision_boundary(disc)
         ax.plot(obfuscated_datapoints[dataset.y==0][:, 0], obfuscated_datapoints[dataset.y==0][:, 1],
-                '.', color='blue', label='Class 1')
+                '.', color='blue', label='Class 1', alpha=0.9)
         ax.plot(obfuscated_datapoints[dataset.y==1][:, 0], obfuscated_datapoints[dataset.y==1][:, 1],
-                '.', color='red', label='Class 2')
+                '.', color='red', label='Class 2', alpha=0.9)
+        class_means = self.get_class_means(dataset, gen)
         xx = np.array(self.xlims)
-        ax.plot(xx, decision_boundary(xx), '--', color='black', label='Decision boundary')
+        ax.plot(xx, decision_boundary(xx), '--', color='purple', label='Decision boundary')
         if direction == 0:
             ax.fill_between(xx, self.ylims[0], decision_boundary(xx), color='blue', alpha=0.5)
             ax.fill_between(xx, decision_boundary(xx), self.ylims[1], color='red', alpha=0.5)
         elif direction == 1:
             ax.fill_between(xx, self.ylims[0], decision_boundary(xx), color='red', alpha=0.5)
             ax.fill_between(xx, decision_boundary(xx), self.ylims[1], color='blue', alpha=0.5)
+        ax.plot(class_means[0, 0], class_means[0, 1],
+                marker='$1$', markersize=10, linestyle='none', color='black', markerfacecolor='none', label='Class 1 mean')
+        ax.plot(class_means[1, 0], class_means[1, 1],
+                marker='$2$', markersize=10, linestyle='none', color='black', markerfacecolor='none', label='Class 2 mean')
+        ax.plot(class_means[:, 0], class_means[:, 1], '--', color='black')
         ax.set_xlabel('Feature 1')
         ax.set_ylabel('Feature 2')
         ax.set_title('Epoch %d'%(self.t))

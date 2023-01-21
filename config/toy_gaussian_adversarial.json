@@ -16,7 +16,8 @@
         "lr": 1e-2
     },
     "gen_kwargs": {
-        "n_outputs": 2
+        "n_outputs": 2,
+        "bias": false
     },
     "gen_opt_kwargs": {
         "lr": 1e-2
@@ -25,10 +26,15 @@
         "disc_steps_per_gen_step": 10.0
     },
     "trial_kwargs": {
-        "n_epochs": 100,
+        "n_epochs": 250,
         "disc_metric_fns": {
             "getattr": {
-                "accuracy": "get_accuracy",
+                "accuracy": "get_accuracy"
+            }
+        },
+        "epoch_metric_fns": {
+            "getattr": {
+                "gen_oracle_loss": "get_generator_oracle_loss",
                 "decision_boundary_frame": "get_decision_boundary_frame"
             }
         }
@@ -38,14 +44,16 @@
         "useful_features": 2,
         "spurious_features": 0,
         "samples": 1000,
-        "use_existing_distribution": true
+        "use_existing_distribution": true,
+        "unit_std": true
     },
     "test_dataset_kwargs": {
         "classes": 2,
         "useful_features": 2,
         "spurious_features": 0,
         "samples": 1000,
-        "use_existing_distribution": true
+        "use_existing_distribution": true,
+        "unit_std": true
     },
     "device": "cpu"
 }

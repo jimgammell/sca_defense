@@ -24,7 +24,7 @@ def construct(constructor, *args, **kwargs):
     else:
         return constructor(*args, **kwargs)
     
-def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, step_kwargs={}, model_name=None):
+def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, epoch_metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, step_kwargs={}, model_name=None):
     from training.train_single_model import train_epoch, eval_epoch
     if model_name is None:
         model_name = 'model'
@@ -35,14 +35,16 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
         nonlocal current_epoch, keys_to_report
         t0 = time.time()
         if current_epoch == 0 and not using_raytune:
-            train_results = eval_epoch(train_dataloader, model, loss_fn, device, metric_fns=metric_fns)
+            train_results = eval_epoch(train_dataloader, model, loss_fn, device, metric_fns=metric_fns, epoch_metric_fns=epoch_metric_fns)
         else:
-            train_results = train_epoch(train_dataloader, model, loss_fn, optimizer, device, metric_fns=metric_fns, **step_kwargs)
-        test_results = eval_epoch(test_dataloader, model, loss_fn, device, metric_fns=metric_fns)
+            train_results = train_epoch(train_dataloader, model, loss_fn, optimizer, device, metric_fns=metric_fns, epoch_metric_fns=epoch_metric_fns, **step_kwargs)
+        test_results = eval_epoch(test_dataloader, model, loss_fn, device, metric_fns=metric_fns, epoch_metric_fns=epoch_metric_fns)
         for key, item in train_results.items():
-            train_results[key] = np.mean(item, axis=0)
+            if hasattr(item, '__len__') and len(item) == len(train_dataloader):
+                train_results[key] = np.mean(item, axis=0)
         for key, item in test_results.items():
-            test_results[key] = np.mean(item, axis=0)
+            if hasattr(item, '__len__') and len(item) == len(test_dataloader):
+                test_results[key] = np.mean(item, axis=0)
         if not suppress_output:
             print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
             print('Train results:', train_results)
@@ -79,7 +81,7 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
     while using_raytune or current_epoch <= n_epochs:
         run_epoch()
 
-def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs=1, suppress_output=False, save_dir=None, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False, disc_step_kwargs={}, gen_step_kwargs={}, keys_to_report=None):
+def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs=1, suppress_output=False, save_dir=None, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False, disc_step_kwargs={}, gen_step_kwargs={}, epoch_metric_fns={}, keys_to_report=None):
     from training.adversarially_train_models import train_epoch, eval_epoch
     current_epoch = 0
     global trial_number
@@ -88,14 +90,16 @@ def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, g
         nonlocal current_epoch, keys_to_report
         t0 = time.time()
         if current_epoch == 0 and not using_raytune:
-            train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns)
+            train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns, epoch_metric_fns=epoch_metric_fns)
         else:
-            train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, device, disc_metric_fns=disc_metric_fns, gen_metric_fns=gen_metric_fns, **disc_step_kwargs, **gen_step_kwargs)
-        test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns)
+            train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, device, disc_metric_fns=disc_metric_fns, gen_metric_fns=gen_metric_fns, epoch_metric_fns=epoch_metric_fns, **disc_step_kwargs, **gen_step_kwargs)
+        test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns, epoch_metric_fns=epoch_metric_fns)
         for key, item in train_results.items():
-            train_results[key] = np.mean(item, axis=0)
+            if hasattr(item, '__len__') and len(item) == len(train_dataloader):
+                train_results[key] = np.mean(item, axis=0)
         for key, item in test_results.items():
-            test_results[key] = np.mean(item, axis=0)
+            if hasattr(item, '__len__') and len(item) == len(test_dataloader):
+                test_results[key] = np.mean(item, axis=0)
         if not suppress_output:
             print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
             print('Train results:', train_results)
@@ -138,16 +142,16 @@ def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, g
     while using_raytune or current_epoch <= n_epochs:
         run_epoch()
     
-def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, disc_step_kwargs={}):
-    train_single_model(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, disc_step_kwargs, model_name='disc')
-def train_autoencoder(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, gen_step_kwargs={}):
-    train_single_model(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, gen_step_kwargs, model_name='gen')
+def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, disc_step_kwargs={}, epoch_metric_fns={}):
+    train_single_model(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, disc_step_kwargs, epoch_metric_fns=epoch_metric_fns, model_name='disc')
+def train_autoencoder(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, gen_step_kwargs={}, epoch_metric_fns={}):
+    train_single_model(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, gen_step_kwargs, epoch_metric_fns=epoch_metric_fns, model_name='gen')
 def train_randn():
     raise NotImplementedError
 def train_gan(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs,
               suppress_output, save_dir, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False,
-              disc_step_kwargs={}, gen_step_kwargs={}):
-    train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, disc_metric_fns, gen_metric_fns, save_model_period, using_raytune, disc_step_kwargs, gen_step_kwargs)
+              disc_step_kwargs={}, gen_step_kwargs={}, epoch_metric_fns={}):
+    train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, disc_metric_fns, gen_metric_fns, save_model_period, using_raytune, disc_step_kwargs, gen_step_kwargs, epoch_metric_fns=epoch_metric_fns)
 
 def run_trial(
     protection_method,
@@ -377,20 +381,23 @@ def run_trial_process(
         train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs,
                    suppress_output, save_dir if rank==0 else None, 
                    metric_fns=None if 'metric_fns' not in trial_kwargs.keys() else trial_kwargs['metric_fns'],
+                   epoch_metric_fns=None if 'epoch_metric_fns' not in trial_kwargs.keys() else trial_kwargs['epoch_metric_fns'],
                    save_model_period=trial_kwargs['save_model_period'], using_raytune=using_raytune, disc_step_kwargs=disc_step_kwargs)
     elif protection_method == 'autoencoder':
         train_autoencoder(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs,
                           suppress_output, save_dir if rank==0 else None,
                           metric_fns=None if 'metric_fns' not in trial_kwargs.keys() else trial_kwargs['metric_fns'],
+                          epoch_metric_fns=None if 'epoch_metric_fns' not in trial_kwargs.keys() else trial_kwargs['epoch_metric_fns'],
                           save_model_period=trial_kwargs['save_model_period'], using_raytune=using_raytune, gen_step_kwargs=gen_step_kwargs)
     elif protection_method == 'gan':
-        if 'disc_metric_fns' in trial_kwargs and 'decision_boundary_frame' in trial_kwargs['disc_metric_fns']:
+        if 'epoch_metric_fns' in trial_kwargs and 'decision_boundary_frame' in trial_kwargs['epoch_metric_fns']:
             os.makedirs(os.path.join('.', 'results', save_dir, 'decision_boundary_frames'), exist_ok=True)
             init_gan(os.path.join(save_dir, 'decision_boundary_frames'))
         train_gan(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs,
                   suppress_output, save_dir if rank==0 else None,
                   disc_metric_fns=None if 'disc_metric_fns' not in trial_kwargs.keys() else trial_kwargs['disc_metric_fns'],
                   gen_metric_fns=None if 'gen_metric_fns' not in trial_kwargs.keys() else trial_kwargs['gen_metric_fns'],
+                  epoch_metric_fns=None if 'epoch_metric_fns' not in trial_kwargs.keys() else trial_kwargs['epoch_metric_fns'],
                   save_model_period=trial_kwargs['save_model_period'], using_raytune=using_raytune,
                   disc_step_kwargs=disc_step_kwargs, gen_step_kwargs=gen_step_kwargs)
     else:

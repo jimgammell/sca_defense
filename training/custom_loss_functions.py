@@ -10,7 +10,7 @@ class BasicWrapper(nn.Module):
         return self.loss_fn.forward(logits, y)
     
     def __repr__(self):
-        return 'BasicWrapper({})'.format(self.loss_fn)
+        return self.__class__.__name__+'({})'.format(self.loss_fn)
 
 class AutoencoderMSELoss(nn.Module):
     def __init__(self):
@@ -21,7 +21,7 @@ class AutoencoderMSELoss(nn.Module):
         return self.mse_loss_fn.forward(logits, x)
     
     def __repr__(self):
-        return 'AutoencoderMSELoss()'
+        return self.__class__.name__+'()'
 
 class AdversarialEntropyMaximizationLoss(nn.Module):
     def __init__(self):

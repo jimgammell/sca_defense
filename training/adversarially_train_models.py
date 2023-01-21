@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from training.common import unpack_batch, detach_result, run_epoch
 
-def get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns):
+def get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns, disc=None, gen=None):
     if disc_metric_fns is None:
         disc_metric_fns = {}
     if gen_metric_fns is None:
@@ -10,8 +10,10 @@ def get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_
     results = {
         'disc_loss': detach_result(disc_loss),
         'gen_loss': detach_result(gen_loss),
-        **{'disc_'+metric_name: metric_fn(x, y, disc_logits) for metric_name, metric_fn in disc_metric_fns.items()},
-        **{'gen_'+metric_name: metric_fn(x, y, gen_logits) for metric_name, metric_fn in gen_metric_fns.items()}
+        **{'disc_'+metric_name: metric_fn(x, y, disc_logits, disc=disc, gen=gen)
+           for metric_name, metric_fn in disc_metric_fns.items()},
+        **{'gen_'+metric_name: metric_fn(x, y, gen_logits, disc=disc, gen=gen)
+           for metric_name, metric_fn in gen_metric_fns.items()}
     }
     return results
 
@@ -41,7 +43,8 @@ def train_step(batch, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, d
         if type(gen_grad_clip) == float:
             nn.utils.clip_grad_norm_(gen.parameters(), max_norm=gen_grad_clip, norm_type=2)
         gen_opt.step()
-    results = get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns)
+    results = get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns,
+                          disc=disc, gen=gen)
     return results
 
 @torch.no_grad()
@@ -53,11 +56,12 @@ def eval_step(batch, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_f
     disc_logits = disc(x+gen_logits)
     disc_loss = disc_loss_fn(disc_logits, x, y)
     gen_loss = gen_loss_fn(disc_logits, gen_logits, x, y)
-    results = get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns)
+    results = get_results(disc_loss, gen_loss, disc_logits, gen_logits, x, y, disc_metric_fns, gen_metric_fns,
+                          disc=disc, gen=gen)
     return results
 
 def train_epoch(dataloader, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, device,
-                disc_grad_clip=None, gen_grad_clip=None, disc_metric_fns=None, gen_metric_fns=None,
+                disc_grad_clip=None, gen_grad_clip=None, disc_metric_fns=None, gen_metric_fns=None, epoch_metric_fns=None,
                 disc_steps_per_gen_step=1.0, **kwargs):
     results = {}
     disc_steps, gen_steps = 1.0, 1.0
@@ -76,12 +80,16 @@ def train_epoch(dataloader, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_
             if not key in results.keys():
                 results[key] = []
             results[key].append(item)
+    #if epoch_metric_fns is not None:
+    #    results.update({metric_name: metric_fn(disc, gen, dataloader.dataset)
+    #                    for metric_name, metric_fn in epoch_metric_fns.items()})
     return results
 
 def eval_epoch(dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device,
-               disc_metric_fns=None, gen_metric_fns=None, **kwargs):
+               disc_metric_fns=None, gen_metric_fns=None, epoch_metric_fns=None, **kwargs):
     results = run_epoch(eval_step, dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device,
                         disc_metric_fns=disc_metric_fns, gen_metric_fns=gen_metric_fns, **kwargs)
-    if 'decision_boundary_frame' in disc_metric_fns.keys():
-        disc_metric_fns['decision_boundary_frame'](disc=disc, gen=gen, dataset=dataloader.dataset)
+    if epoch_metric_fns is not None:
+        results.update({metric_name: metric_fn(disc, gen, dataloader.dataset)
+                        for metric_name, metric_fn in epoch_metric_fns.items()})
     return results

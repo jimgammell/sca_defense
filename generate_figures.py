@@ -29,7 +29,7 @@ def plot_scalar_trace(x, y, fig=None, ax=None, **kwargs):
         ax.set_ylabel(kwargs['ylabel'])
     return fig, ax
 
-def load_traces(base_dir, keys=None, epochs=None, phases=None):
+def load_traces(base_dir, epochs=None, phases=None):
     def load_results_file(f):
         with open(os.path.join(base_dir, f), 'rb') as F:
             results = pickle.load(F)
@@ -43,18 +43,12 @@ def load_traces(base_dir, keys=None, epochs=None, phases=None):
         test_epochs = [int(s.split('.')[0].split('_')[-1]) for s in test_results_files]
     train_indices = np.argsort(epochs)
     test_indices = np.argsort(test_epochs)
-    if keys is None:
-        keys = [k for k in load_results_file(train_results_files[0]).keys()]
-        for f in train_results_files[1:]+test_results_files:
-            if not keys == [k for k in load_results_file(f).keys()]:
-                print(keys)
-                print([k for k in load_results_file(f).keys()])
-                assert False
-            assert keys == [k for k in load_results_file(f).keys()]
+    train_keys = [k for k in load_results_file(train_results_files[0]).keys()]
+    test_keys = [k for k in load_results_file(test_results_files[0]).keys()]
     traces = {
         'epochs': np.array(epochs)[train_indices],
-        **{'train_'+str(key): np.array([load_results_file(f)[key] for f in train_results_files])[train_indices] for key in keys},
-        **{'test_'+str(key): np.array([load_results_file(f)[key] for f in test_results_files])[test_indices] for key in keys}
+        **{'train_'+str(key): np.array([load_results_file(f)[key] for f in train_results_files])[train_indices] for key in train_keys},
+        **{'test_'+str(key): np.array([load_results_file(f)[key] for f in test_results_files])[test_indices] for key in test_keys}
     }
     return traces
 
@@ -215,7 +209,7 @@ def basic_eval(results_dir):
     epochs = traces['epochs']
     metrics = set([('_'.join(k.split('_')[1:]) if 'train' in k or 'test' in k else k)
                    for k in traces.keys() if k != 'epoch'])
-    scalar_metrics = [m for m in ['loss', 'accuracy', 'mean_rank', 'disc_loss', 'disc_accuracy', 'gen_loss'] if m in metrics]
+    scalar_metrics = [m for m in ['loss', 'accuracy', 'mean_rank', 'disc_loss', 'disc_accuracy', 'gen_loss', 'gen_oracle_loss'] if m in metrics]
     sc_fig, sc_axes = plt.subplots(
         1, len(scalar_metrics), figsize=get_figsize(1, len(scalar_metrics)), sharex=True)
     if not hasattr(sc_axes, '__iter__'):

@@ -24,6 +24,7 @@ class GaussianDataset(Dataset):
                  use_existing_distribution=True,
                  seed=0,
                  std_rescale=1.0,
+                 unit_std=False,
                  **kwargs
                  ):
         super().__init__()
@@ -51,9 +52,13 @@ class GaussianDataset(Dataset):
             for c in range(GaussianDataset.classes):
                 GaussianDataset.useful_means[c, :] += c
             GaussianDataset.useful_stds = std_rescale*GaussianDataset.rng.gamma(2, 2, (classes, useful_features))/4
+            if unit_std:
+                GaussianDataset.useful_stds = np.ones_like(GaussianDataset.useful_stds)
             if GaussianDataset.spurious_features > 0:
                 GaussianDataset.spurious_means = GaussianDataset.rng.standard_normal((GaussianDataset.spurious_features,))
                 GaussianDataset.spurious_stds = std_rescale*GaussianDataset.rng.gamma(2, 2, (GaussianDataset.spurious_features,))/4
+                if unit_std:
+                    GaussianDataset.spurious_stds = np.ones_like(GaussianDataset.spurious_stds)
         
         self.x, self.y = [], []
         for c in range(GaussianDataset.classes):
