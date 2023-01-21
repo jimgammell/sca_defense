@@ -7,6 +7,7 @@ from matplotlib import patches as mpatches
 from ray import tune
 import torch
 from tqdm import tqdm
+from copy import deepcopy
 
 def get_figsize(rows, cols):
     W = H = 4
@@ -45,6 +46,10 @@ def load_traces(base_dir, keys=None, epochs=None, phases=None):
     if keys is None:
         keys = [k for k in load_results_file(train_results_files[0]).keys()]
         for f in train_results_files[1:]+test_results_files:
+            if not keys == [k for k in load_results_file(f).keys()]:
+                print(keys)
+                print([k for k in load_results_file(f).keys()])
+                assert False
             assert keys == [k for k in load_results_file(f).keys()]
     traces = {
         'epochs': np.array(epochs)[train_indices],
@@ -192,13 +197,25 @@ def plot_gaussian_decision_boundary(results_dir):
     fig.suptitle('Model decision boundary')
     return {'decision_boundary': fig}
 
+def animate_decision_boundary(results_dir):
+    frames_path = os.path.join(results_dir, 'decision_boundary_frames')
+    if not os.path.exists(frames_path):
+        return
+    from PIL import Image
+    image_files = [f for f in os.listdir(frames_path) if '.png' in f]
+    sorted_indices = np.argsort([int(f.split('.')[0].split('_')[1]) for f in image_files])
+    image_files = [image_files[idx] for idx in sorted_indices]
+    images = [Image.open(os.path.join(frames_path, f)) for f in image_files]
+    images[0].save(os.path.join(results_dir, 'decision_boundary_over_time.gif'),
+                   format='GIF', append_images=images[1:], save_all=True, duration=100, loop=0)
+
 def basic_eval(results_dir):
     figs_to_save = {}       
     traces = load_traces(results_dir)
     epochs = traces['epochs']
     metrics = set([('_'.join(k.split('_')[1:]) if 'train' in k or 'test' in k else k)
                    for k in traces.keys() if k != 'epoch'])
-    scalar_metrics = [m for m in ['loss', 'accuracy', 'mean_rank'] if m in metrics]
+    scalar_metrics = [m for m in ['loss', 'accuracy', 'mean_rank', 'disc_loss', 'disc_accuracy', 'gen_loss'] if m in metrics]
     sc_fig, sc_axes = plt.subplots(
         1, len(scalar_metrics), figsize=get_figsize(1, len(scalar_metrics)), sharex=True)
     if not hasattr(sc_axes, '__iter__'):
@@ -237,6 +254,9 @@ def generate_figures(results_dir):
     elif 'toy_gaussian_classification' in results_dir:
         figs_to_save = basic_eval(results_dir)
         figs_to_save.update(plot_gaussian_decision_boundary(results_dir))
+    elif 'toy_gaussian_adversarial' in results_dir:
+        figs_to_save = basic_eval(results_dir)
+        animate_decision_boundary(results_dir)
     elif 'hsweep' in results_dir:
         figs_to_save = basic_hsweep(results_dir)
     elif 'visualize' in results_dir:
@@ -248,4 +268,5 @@ def generate_figures(results_dir):
         assert False
     for fig_name, fig in figs_to_save.items():
         fig.savefig(os.path.join(results_dir, fig_name+'.pdf'))
+        fig.savefig(os.path.join(results_dir, fig_name+'.jpg'))
     

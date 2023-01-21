@@ -1,0 +1,51 @@
+{
+    "save_dir": "toy_gaussian_adversarial",
+    "getattr": {
+        "disc_constructor": "LinearModel",
+        "disc_loss_constructor": "CrossEntropyLoss",
+        "disc_opt_constructor": "SGD",
+        "gen_constructor": "LinearModel",
+        "gen_loss_constructor": "AdversarialEntropyMaximizationLoss",
+        "gen_opt_constructor": "SGD",
+        "dataset_constructor": "GaussianDataset"
+    },
+    "disc_kwargs": {
+        "n_outputs": 2
+    },
+    "disc_opt_kwargs": {
+        "lr": 1e-2
+    },
+    "gen_kwargs": {
+        "n_outputs": 2
+    },
+    "gen_opt_kwargs": {
+        "lr": 1e-2
+    },
+    "disc_step_kwargs": {
+        "disc_steps_per_gen_step": 10.0
+    },
+    "trial_kwargs": {
+        "n_epochs": 100,
+        "disc_metric_fns": {
+            "getattr": {
+                "accuracy": "get_accuracy",
+                "decision_boundary_frame": "get_decision_boundary_frame"
+            }
+        }
+    },
+    "train_dataset_kwargs": {
+        "classes": 2,
+        "useful_features": 2,
+        "spurious_features": 0,
+        "samples": 1000,
+        "use_existing_distribution": true
+    },
+    "test_dataset_kwargs": {
+        "classes": 2,
+        "useful_features": 2,
+        "spurious_features": 0,
+        "samples": 1000,
+        "use_existing_distribution": true
+    },
+    "device": "cpu"
+}

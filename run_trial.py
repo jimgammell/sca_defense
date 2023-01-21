@@ -14,6 +14,9 @@ from torch import multiprocessing as mp
 from training.custom_loss_functions import BasicWrapper
 from ray.air.checkpoint import Checkpoint
 from ray.air import session
+from training.training_metrics import init_gan
+
+trial_number = -1
 
 def construct(constructor, *args, **kwargs):
     if constructor is None:
@@ -26,6 +29,8 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
     if model_name is None:
         model_name = 'model'
     current_epoch = 0
+    global trial_number
+    trial_number += 1
     def run_epoch():
         nonlocal current_epoch, keys_to_report
         t0 = time.time()
@@ -49,7 +54,10 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
             with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
                 pickle.dump(test_results, F)
             if save_model_period is not None and (current_epoch%save_model_period==0 or current_epoch==n_epochs):
-                current_save_dir = os.path.join('.', 'results', save_dir, 'checkpoint_{}'.format(current_epoch))
+                checkpoint_dir_name = 'checkpoint_{}'.format(current_epoch)
+                if using_raytune:
+                    checkpoint_dir_name += '_trial_{}'.format(trial_number)
+                current_save_dir = os.path.join('.', 'results', save_dir, checkpoint_dir_name)
                 os.makedirs(current_save_dir, exist_ok=True)
                 torch.save(model.state_dict(),
                            os.path.join(current_save_dir, model_name+'_state.pth'))
@@ -70,17 +78,76 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
         current_epoch += 1
     while using_raytune or current_epoch <= n_epochs:
         run_epoch()
+
+def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs=1, suppress_output=False, save_dir=None, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False, disc_step_kwargs={}, gen_step_kwargs={}, keys_to_report=None):
+    from training.adversarially_train_models import train_epoch, eval_epoch
+    current_epoch = 0
+    global trial_number
+    trial_number += 1
+    def run_epoch():
+        nonlocal current_epoch, keys_to_report
+        t0 = time.time()
+        if current_epoch == 0 and not using_raytune:
+            train_results = eval_epoch(train_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns)
+        else:
+            train_results = train_epoch(train_dataloader, disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, device, disc_metric_fns=disc_metric_fns, gen_metric_fns=gen_metric_fns, **disc_step_kwargs, **gen_step_kwargs)
+        test_results = eval_epoch(test_dataloader, disc, disc_loss_fn, gen, gen_loss_fn, device, disc_metric_fns, gen_metric_fns)
+        for key, item in train_results.items():
+            train_results[key] = np.mean(item, axis=0)
+        for key, item in test_results.items():
+            test_results[key] = np.mean(item, axis=0)
+        if not suppress_output:
+            print('Finished epoch {} in {} seconds.'.format(current_epoch, time.time()-t0))
+            print('Train results:', train_results)
+            print('Test results:', test_results)
+        checkpoint = None
+        if save_dir is not None:
+            with open(os.path.join('.', 'results', save_dir, 'train_res_{}.pickle'.format(current_epoch)), 'wb') as F:
+                pickle.dump(train_results, F)
+            with open(os.path.join('.', 'results', save_dir, 'test_res_{}.pickle'.format(current_epoch)), 'wb') as F:
+                pickle.dump(test_results, F)
+            if save_model_period is not None and (current_epoch%save_model_period==0 or current_epoch==n_epochs):
+                checkpoint_dir_name = 'checkpoint_{}'.format(current_epoch)
+                if using_raytune:
+                    checkpoint_dir_name += '_trial_{}'.format(trial_number)
+                current_save_dir = os.path.join('.', 'results', save_dir, checkpoint_dir_name)
+                os.makedirs(current_save_dir, exist_ok=True)
+                torch.save(disc.state_dict(),
+                           os.path.join(current_save_dir, 'disc_state.pth'))
+                if hasattr(disc_opt, 'consolidate_state_dict'):
+                    disc_opt.consolidate_state_dict()
+                torch.save(disc_opt.state_dict(),
+                           os.path.join(current_save_dir, 'disc_opt_state.pth'))
+                torch.save(gen.state_dict(),
+                           os.path.join(current_save_dir, 'gen_state.pth'))
+                if hasattr(gen_opt, 'consolidate_state_dict'):
+                    gen_opt.consolidate_state_dict()
+                torch.save(gen_opt.state_dict(),
+                           os.path.join(current_save_dir, 'gen_opt_state.pth'))
+                if using_raytune:
+                    checkpoint = Checkpoint.from_directory(current_save_dir)
+        if using_raytune:
+            if keys_to_report is None:
+                keys_to_report = list(train_results.keys())
+                assert all(k in test_results.keys() for k in keys_to_report)
+                assert all(k in keys_to_report for k in test_results.keys())
+            results = dict(**{'train_'+key: item for key, item in train_results.items() if key in keys_to_report},
+                           **{'test_'+key: item for key, item in test_results.items() if key in keys_to_report})
+            session.report(results, checkpoint=checkpoint if checkpoint is not None else None)
+        current_epoch += 1
+    while using_raytune or current_epoch <= n_epochs:
+        run_epoch()
     
 def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, disc_step_kwargs={}):
     train_single_model(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, disc_step_kwargs, model_name='disc')
 def train_autoencoder(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, gen_step_kwargs={}):
     train_single_model(gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns, save_model_period, using_raytune, keys_to_report, gen_step_kwargs, model_name='gen')
-
 def train_randn():
-    pass
-
-def train_gan():
-    pass
+    raise NotImplementedError
+def train_gan(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs,
+              suppress_output, save_dir, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False,
+              disc_step_kwargs={}, gen_step_kwargs={}):
+    train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, disc_metric_fns, gen_metric_fns, save_model_period, using_raytune, disc_step_kwargs, gen_step_kwargs)
 
 def run_trial(
     protection_method,
@@ -238,7 +305,7 @@ def run_trial_process(
             _ = disc_loss_fn(disc(eg_trace), eg_trace, eg_label)
         except TypeError:
             disc_loss_fn = BasicWrapper(disc_loss_fn)
-    if gen_loss_fn is not None:
+    if gen_loss_fn is not None and disc is None:
         try:
             _ = gen_loss_fn(gen(eg_trace), eg_trace, eg_label)
         except TypeError:
@@ -316,5 +383,15 @@ def run_trial_process(
                           suppress_output, save_dir if rank==0 else None,
                           metric_fns=None if 'metric_fns' not in trial_kwargs.keys() else trial_kwargs['metric_fns'],
                           save_model_period=trial_kwargs['save_model_period'], using_raytune=using_raytune, gen_step_kwargs=gen_step_kwargs)
+    elif protection_method == 'gan':
+        if 'disc_metric_fns' in trial_kwargs and 'decision_boundary_frame' in trial_kwargs['disc_metric_fns']:
+            os.makedirs(os.path.join('.', 'results', save_dir, 'decision_boundary_frames'), exist_ok=True)
+            init_gan(os.path.join(save_dir, 'decision_boundary_frames'))
+        train_gan(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs,
+                  suppress_output, save_dir if rank==0 else None,
+                  disc_metric_fns=None if 'disc_metric_fns' not in trial_kwargs.keys() else trial_kwargs['disc_metric_fns'],
+                  gen_metric_fns=None if 'gen_metric_fns' not in trial_kwargs.keys() else trial_kwargs['gen_metric_fns'],
+                  save_model_period=trial_kwargs['save_model_period'], using_raytune=using_raytune,
+                  disc_step_kwargs=disc_step_kwargs, gen_step_kwargs=gen_step_kwargs)
     else:
         assert False
