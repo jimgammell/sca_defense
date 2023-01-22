@@ -1,29 +1,19 @@
 {
-    "save_dir": "toy_gaussian_adversarial",
+    "save_dir": "toy_gaussian_hsweep",
     "getattr": {
         "disc_constructor": "LinearModel",
         "disc_loss_constructor": "CrossEntropyLoss",
         "disc_opt_constructor": "SGD",
         "gen_constructor": "LinearModel",
-        "gen_loss_constructor": "AdversarialMinimaxLoss",
         "gen_opt_constructor": "SGD",
         "dataset_constructor": "GaussianDataset"
     },
     "disc_kwargs": {
         "n_outputs": 2
     },
-    "disc_opt_kwargs": {
-        "lr": 1e-2
-    },
     "gen_kwargs": {
         "n_outputs": 2,
         "bias": false
-    },
-    "gen_opt_kwargs": {
-        "lr": 5e-2
-    },
-    "disc_step_kwargs": {
-        "disc_steps_per_gen_step": 10.0
     },
     "trial_kwargs": {
         "n_epochs": 250,
@@ -34,8 +24,7 @@
         },
         "epoch_metric_fns": {
             "getattr": {
-                "gen_oracle_loss": "get_generator_oracle_loss",
-                "decision_boundary_frame": "get_decision_boundary_frame"
+                "gen_oracle_loss": "get_generator_oracle_loss"
             }
         }
     },
@@ -55,5 +44,24 @@
         "use_existing_distribution": true,
         "unit_std": true
     },
-    "device": "cpu"
+    "device": "cpu",
+    "params_to_tune": {
+        "disc_opt_kwargs": {
+            "lr": ["loguniform", [1e-5, 1e-1]],
+            "momentum": ["uniform", [0.0, 0.9]]
+        },
+        "gen_opt_kwargs": {
+            "lr": ["loguniform", [1e-5, 1e-1]],
+            "momentum": ["uniform", [0.0, 0.9]]
+        },
+        "disc_step_kwargs": {
+            "disc_steps_per_gen_step": ["loguniform", [0.1, 10.0]]
+        },
+        "gen_loss_constructor": ["choice", [["AdversarialMinimaxLoss", "AdversarialEntropyMaximizationLoss"]]]
+    },
+    "hsweep_kwargs": {
+        "num_samples": 1000,
+        "metric": "test_gen_oracle_loss",
+        "metric_mode": "min"
+    }
 }

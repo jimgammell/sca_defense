@@ -106,7 +106,10 @@ def main():
     elif clargs.trial_type == 'eval':
         run_trial(clargs.protection_method, **trial_params)
     elif clargs.trial_type == 'hsweep':
-        tune_hyperparameters(clargs.protection_method, **trial_params)
+        assert 'hsweep_kwargs' in trial_params
+        hparam_kwargs = trial_params['hsweep_kwargs']
+        del trial_params['hsweep_kwargs']
+        tune_hyperparameters(clargs.protection_method, **hparam_kwargs, **trial_params)
     else:
         assert False
     if clargs.generate_figures is not None:

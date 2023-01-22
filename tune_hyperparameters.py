@@ -38,8 +38,19 @@ def unflatten_config(config):
     else:
         return unflatten_config(config)
 
-    # Todo: 25 samples, 20 epochs/sample
-def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
+def tune_hyperparameters(
+    *args,
+    params_to_tune={},
+    scheduler=None,
+    scheduler_kwargs={},
+    search_alg=None,
+    search_alg_kwargs={},
+    trial_resources={},
+    num_samples=100,
+    metric='test_loss',
+    metric_mode='min',
+    concurrent_trials=1,
+    **kwargs):
     params_to_tune = flatten_config(params_to_tune)
     tune_config = {}
     for key, item in params_to_tune.items():
@@ -47,27 +58,27 @@ def tune_hyperparameters(*args, params_to_tune={}, **kwargs):
         search_space_constructor = getattr(tune, search_space_name)
         search_space = search_space_constructor(*search_space_args)
         tune_config[key] = search_space
-    scheduler = ASHAScheduler(
-        max_t=5,
-        grace_period=1,
-        reduction_factor=4)
+    if scheduler is not None:
+        scheduler = getattr(ray.tune.schedulers)(**scheduler_kwargs)
+    if search_alg is not None:
+        search_alg = getattr(ray.tune.search)(**search_alg_kwargs)
     
     class ExperimentTerminationReporter(CLIReporter): # otherwise the tuner is excessively-verbose
         def should_report(self, trials, done=False):
             return done
         
-    trials_per_gpu = 2
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(run_trial_with_raytune, args=args, kwargs=kwargs, working_dir=os.getcwd()),
-            resources={'gpu': 1.0/trials_per_gpu}
+            resources=trial_resources
         ),
         tune_config=tune.TuneConfig(
-            metric='test_loss',
-            mode='min',
+            metric=metric,
+            mode=metric_mode,
             scheduler=scheduler,
-            num_samples=80,
-            max_concurrent_trials=torch.cuda.device_count()*trials_per_gpu
+            search_alg=search_alg,
+            num_samples=num_samples,
+            max_concurrent_trials=concurrent_trials
         ),
         param_space=tune_config,
         run_config=air.RunConfig(local_dir=None if 'save_dir' not in kwargs.keys()

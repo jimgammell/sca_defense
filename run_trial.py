@@ -11,6 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch import distributed as dist
 from torch.distributed.optim import ZeroRedundancyOptimizer
 from torch import multiprocessing as mp
+import training
 from training.custom_loss_functions import BasicWrapper
 from ray.air.checkpoint import Checkpoint
 from ray.air import session
@@ -131,12 +132,8 @@ def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, g
                 if using_raytune:
                     checkpoint = Checkpoint.from_directory(current_save_dir)
         if using_raytune:
-            if keys_to_report is None:
-                keys_to_report = list(train_results.keys())
-                assert all(k in test_results.keys() for k in keys_to_report)
-                assert all(k in keys_to_report for k in test_results.keys())
-            results = dict(**{'train_'+key: item for key, item in train_results.items() if key in keys_to_report},
-                           **{'test_'+key: item for key, item in test_results.items() if key in keys_to_report})
+            results = dict(**{'train_'+key: item for key, item in train_results.items()},
+                           **{'test_'+key: item for key, item in test_results.items()})
             session.report(results, checkpoint=checkpoint if checkpoint is not None else None)
         current_epoch += 1
     while using_raytune or current_epoch <= n_epochs:
@@ -276,6 +273,8 @@ def run_trial_process(
             disc = nn.parallel.DistributedDataParallel(disc, device_ids=[device])
         else:
             disc = disc.to(device)
+    if type(disc_loss_constructor) == str:
+        disc_loss_constructor = getattr(training.custom_loss_functions, disc_loss_constructor)
     disc_loss_fn = construct(disc_loss_constructor, **disc_loss_kwargs)
     if disc is not None and trial_kwargs['use_zero_redundancy_optimizer']:
         disc_opt = ZeroRedundancyOptimizer(
@@ -292,6 +291,8 @@ def run_trial_process(
             gen = nn.parallel.DistributedDataParallel(gen, device_ids=[device])
         else:
             gen = gen.to(device)
+    if type(gen_loss_constructor) == str:
+        gen_loss_constructor = getattr(training.custom_loss_functions, gen_loss_constructor)
     gen_loss_fn  = construct(gen_loss_constructor, **gen_loss_kwargs)
     if gen is not None and trial_kwargs['use_zero_redundancy_optimizer']:
         gen_opt = ZeroRedundancyOptimizer(
