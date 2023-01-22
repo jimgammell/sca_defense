@@ -79,7 +79,7 @@ def train_single_model(model, loss_fn, optimizer, train_dataloader, test_dataloa
                            **{'test_'+key: item for key, item in test_results.items() if key in keys_to_report})
             session.report(results, checkpoint=checkpoint if checkpoint is not None else None)
         current_epoch += 1
-    while using_raytune or current_epoch <= n_epochs:
+    while current_epoch <= n_epochs:
         run_epoch()
 
 def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, gen_opt, train_dataloader, test_dataloader, device, n_epochs=1, suppress_output=False, save_dir=None, disc_metric_fns={}, gen_metric_fns={}, save_model_period=None, using_raytune=False, disc_step_kwargs={}, gen_step_kwargs={}, epoch_metric_fns={}, keys_to_report=None):
@@ -136,7 +136,7 @@ def train_models_adversarially(disc, disc_loss_fn, disc_opt, gen, gen_loss_fn, g
                            **{'test_'+key: item for key, item in test_results.items()})
             session.report(results, checkpoint=checkpoint if checkpoint is not None else None)
         current_epoch += 1
-    while using_raytune or current_epoch <= n_epochs:
+    while current_epoch <= n_epochs:
         run_epoch()
     
 def train_none(disc, disc_loss_fn, disc_opt, train_dataloader, test_dataloader, device, n_epochs, suppress_output, save_dir, metric_fns={}, save_model_period=None, using_raytune=False, keys_to_report=None, disc_step_kwargs={}, epoch_metric_fns={}):
