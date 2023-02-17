@@ -1,13 +1,15 @@
 {
     "save_dir": "toy_gaussian_classification",
     "getattr": {
-        "disc_constructor": "LinearModel",
+        "disc_constructor": "MlpModel",
         "disc_loss_constructor": "CrossEntropyLoss",
         "disc_opt_constructor": "SGD",
-        "dataset_constructor": "GaussianDataset"
+        "dataset_constructor": "XorDataset"
     },
     "disc_kwargs": {
-        "n_outputs": 2
+        "n_outputs": 2,
+        "hidden_width": 8,
+        "hidden_depth": 1
     },
     "disc_opt_kwargs": {
         "lr": 2e-4,
@@ -21,20 +23,6 @@
                 "accuracy": "get_accuracy"
             }
         }
-    },
-    "train_dataset_kwargs": {
-        "classes": 2,
-        "useful_features": 2,
-        "spurious_features": 0,
-        "samples": 1000,
-        "use_existing_distribution": true
-    },
-    "test_dataset_kwargs": {
-        "classes": 2,
-        "useful_features": 2,
-        "spurious_features": 0,
-        "samples": 1000,
-        "use_existing_distribution": true
     },
     "dataloader_kwargs": {
         "batch_size": 1

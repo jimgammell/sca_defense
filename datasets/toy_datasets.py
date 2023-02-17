@@ -3,6 +3,84 @@ from numpy.random import default_rng
 import torch
 from torch.utils.data import Dataset
 
+class XorDataset(Dataset):
+    can_replicate = True
+    def __init__(self,
+                 samples=1000,
+                 spurious_features=0,
+                 transform=None,
+                 target_transform=None,
+                 seed=0,
+                 dataset_to_replicate=None,
+                 **kwargs):
+        
+        super().__init__()
+        
+        self.samples = samples
+        self.transform = transform
+        self.target_transform = target_transform
+        self.seed = seed
+        self.spurious_features = spurious_features
+        
+        if dataset_to_replicate is None:
+            self.rng = default_rng(self.seed)
+            self.feature_means = self.rng.standard_normal((2, 2))
+            self.feature_stds = self.rng.gamma(2, 2, (2, 2))
+            if self.spurious_features != 0:
+                self.spurious_means = self.rng.standard_normal((spurious_features,))
+                self.spurious_stds = self.rng.gamma(2, 2, (spurious_features,))
+            else:
+                self.spurious_means = self.spurious_stds = None
+        else:
+            self.rng = dataset_to_replicate.rng
+            self.feature_means = dataset_to_replicate.feature_means
+            self.feature_stds = dataset_to_replicate.feature_stds
+            self.spurious_means = dataset_to_replicate.spurious_means
+            self.spurious_stds = dataset_to_replicate.spurious_stds
+        
+        self.x, self.y = [], []
+        for f0_idx in [0, 1]:
+            for f1_idx in [0, 1]:
+                for _ in range(self.samples//4):
+                    #x = self.rng.normal(
+                    #    (self.feature_means[0, f0_idx], self.feature_means[1, f1_idx]),
+                    #    (self.feature_stds[0, f0_idx],  self.feature_stds[1, f1_idx]))
+                    x = self.rng.normal(
+                        (6.0*f0_idx-3.0, 6.0*f1_idx-3.0),
+                        (1, 1))
+                    if (self.spurious_means is not None) and (self.spurious_stds is not None):
+                        spurious_features = self.rng.normal(self.spurious_means, self.spurious_stds)
+                        x = np.concatenate((x, spurious_features))
+                    y = f0_idx^f1_idx
+                    self.x.append(x)
+                    self.y.append(y)
+        self.x = np.stack(self.x)
+        self.y = np.stack(self.y)
+        self.x_shape = self.x[0].shape
+        self.y_shape = self.y[0].shape
+        assert len(self.x) == len(self.y)
+        
+    def __getitem__(self, idx):
+        x = torch.from_numpy(self.x[idx]).to(torch.float)
+        y = torch.tensor(self.y[idx]).to(torch.long)
+        if self.transform is not None:
+            x = self.transform(x)
+        if self.target_transform is not None:
+            y = self.target_transform(y)
+        return x, y, {}
+    
+    def __len__(self):
+        return len(self.x)
+    
+    def __repr__(self):
+        s = 'Toy XOR dataset:'
+        s += '\n\tFeature means: {}'.format(self.feature_means)
+        s += '\n\tFeature stds: {}'.format(self.feature_stds)
+        s += '\n\tSpurious features: {}'.format(self.spurious_features)
+        s += '\n\tTransform: {}'.format(self.transform)
+        s += '\n\tTarget transform: {}'.format(self.target_transform)
+        return s
+
 class GaussianDataset(Dataset):
     
     rng = None

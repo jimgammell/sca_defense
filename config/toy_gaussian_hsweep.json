@@ -1,22 +1,29 @@
 {
-    "save_dir": "toy_gaussian_hsweep",
+    "save_dir": "toy_xor_hsweep__spurious_features",
     "getattr": {
-        "disc_constructor": "LinearModel",
+        "disc_constructor": "MlpModel",
         "disc_loss_constructor": "CrossEntropyLoss",
         "disc_opt_constructor": "SGD",
         "gen_constructor": "LinearModel",
+        "gen_loss_constructor": "AdversarialEntropyMaximizationLoss",
         "gen_opt_constructor": "SGD",
-        "dataset_constructor": "GaussianDataset"
+        "dataset_constructor": "XorDataset"
     },
     "disc_kwargs": {
+        "hidden_width": 8,
+        "hidden_depth": 1,
         "n_outputs": 2
     },
     "gen_kwargs": {
-        "n_outputs": 2,
-        "bias": false
+        "bottleneck_width": 2,
+        "bias": false,
+        "sn": true
+    },
+    "train_dataset_kwargs": {
+        "spurious_features": 8
     },
     "trial_kwargs": {
-        "n_epochs": 250,
+        "n_epochs": 1000,
         "disc_metric_fns": {
             "getattr": {
                 "accuracy": "get_accuracy"
@@ -26,42 +33,27 @@
             "getattr": {
                 "gen_oracle_loss": "get_generator_oracle_loss"
             }
-        }
-    },
-    "train_dataset_kwargs": {
-        "classes": 2,
-        "useful_features": 2,
-        "spurious_features": 0,
-        "samples": 1000,
-        "use_existing_distribution": true,
-        "unit_std": true
-    },
-    "test_dataset_kwargs": {
-        "classes": 2,
-        "useful_features": 2,
-        "spurious_features": 0,
-        "samples": 1000,
-        "use_existing_distribution": true,
-        "unit_std": true
+        },
+        "seed": 0
     },
     "device": "cpu",
     "params_to_tune": {
         "disc_opt_kwargs": {
-            "lr": ["loguniform", [1e-5, 1e-1]],
-            "momentum": ["uniform", [0.0, 0.9]]
+            "lr": ["loguniform", [1e-4, 1e-2]],
+            "momentum": ["uniform", [0.0, 1.0]]
         },
         "gen_opt_kwargs": {
-            "lr": ["loguniform", [1e-5, 1e-1]],
-            "momentum": ["uniform", [0.0, 0.9]]
+            "lr": ["loguniform", [1e-4, 1e-2]],
+            "momentum": ["uniform", [0.0, 1.0]]
         },
         "disc_step_kwargs": {
             "disc_steps_per_gen_step": ["loguniform", [0.1, 10.0]]
-        },
-        "gen_loss_constructor": ["choice", [["AdversarialMinimaxLoss", "AdversarialEntropyMaximizationLoss"]]]
+        }
     },
     "hsweep_kwargs": {
-        "num_samples": 1000,
+        "num_samples": 250,
         "metric": "test_gen_oracle_loss",
-        "metric_mode": "min"
+        "metric_mode": "min",
+        "concurrent_trials": 4
     }
 }

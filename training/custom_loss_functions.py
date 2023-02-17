@@ -23,6 +23,22 @@ class AutoencoderMSELoss(nn.Module):
     def __repr__(self):
         return self.__class__.name__+'()'
 
+class AdversarialMIMinimizationLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, disc_logits, gen_logits, x, y):
+        disc_dist = nn.functional.softmax(disc_logits, dim=-1)
+        log_disc_dist = nn.functional.log_softmax(disc_logits, dim=-1)
+        emp_dist = nn.functional.one_hot(y, num_classes=disc_logits.shape[-1])
+        disc_entropy = torch.sum(-disc_dist*log_disc_dist, dim=-1)
+        disc_ce = torch.sum(-emp_dist*log_disc_dist, dim=-1)
+        loss = torch.mean(disc_entropy - disc_ce)
+        return loss
+    
+    def __repr__(self):
+        return self.__class__.__name__+'()'
+    
 class AdversarialEntropyMaximizationLoss(nn.Module):
     def __init__(self):
         super().__init__()
