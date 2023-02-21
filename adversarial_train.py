@@ -1,0 +1,277 @@
+import numpy as np
+import torch
+from torch import nn, optim
+
+class ModelConfusion(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, logits):
+        return nn.functional.binary_cross_entropy(
+            nn.functional.softmax(logits, dim=-1),
+            nn.functional.softmax(torch.zeros_like(logits), dim=-1))
+
+def compute_confusing_example(example, disc, gen,
+                              eps=1e-5,
+                              warmup_iter=100,
+                              max_iter=10000,
+                              opt_const=optim.Adam,
+                              opt_kwargs={'lr': 1e-2}):
+    adv_example = gen(example).detach()
+    adv_example.requires_grad = True
+    opt = opt_const([adv_example], **opt_kwargs)
+    criterion = ModelConfusion()
+    orig_loss = np.inf
+    for i in range(max_iter):
+        logits = disc(adv_example)
+        loss = criterion(logits)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+        if i>=warmup_iter and np.abs(orig_loss-loss.cpu().detach().numpy()) < eps:
+            break
+        orig_loss = loss.detach().cpu().numpy()
+    return adv_example.detach(), loss.detach().cpu().numpy()
+
+def pretrain_gen_step(batch, gen, gen_opt, gen_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    
+    gen.train()
+    gen_logits = gen(x)
+    gen_loss = gen_loss_fn(gen_logits, x)
+    gen_opt.zero_grad()
+    gen_loss.backward()
+    gen_opt.step()
+    
+    return {
+        'gen_loss': gen_loss.detach().cpu().numpy()
+    }
+
+def eval_gen_step(batch, gen, gen_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    
+    gen.eval()
+    gen_logits = gen(x)
+    gen_loss = gen_loss_fn(gen_logits, x)
+    
+    return {
+        'gen_loss': gen_loss.detach().cpu().numpy()
+    }
+
+def pretrain_disc_step(batch, disc, disc_opt, disc_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    
+    disc.train()
+    disc_logits = disc(x)
+    disc_loss = disc_loss_fn(disc_logits, y)
+    disc_opt.zero_grad()
+    disc_loss.backward()
+    disc_opt.step()
+    disc_acc = np.mean(
+        np.equal(
+            np.argmax(disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    return {
+        'disc_loss': disc_loss.detach().cpu().numpy(),
+        'disc_acc': disc_acc
+    }
+
+def eval_disc_step(batch, disc, disc_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    
+    disc.eval()
+    disc_logits = disc(x)
+    disc_loss = disc_loss_fn(disc_logits, y)
+    disc_acc = np.mean(
+        np.equal(
+            np.argmax(disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    return {
+        'disc_loss': disc_loss.detach().cpu().numpy(),
+        'disc_acc': disc_acc
+    }
+
+def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
+               return_example=False,
+               project_rec_updates=True,
+               ce_kwargs={},
+               loss_mixture_coefficient=0.5):
+    if return_example:
+        raise NotImplementedError
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    disc.eval()
+    confusing_example, confusing_example_loss = compute_confusing_example(x, disc, gen)
+    
+    disc.train()
+    disc_logits = disc(confusing_example)
+    disc_loss = disc_loss_fn(disc_logits, y)
+    disc_opt.zero_grad()
+    disc_loss.backward()
+    disc_opt.step()
+    disc_acc = np.mean(
+        np.equal(
+            np.argmax(disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    rv = {}
+    if project_rec_updates:
+        gen.train()
+        gen_logits = gen(x)
+        gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
+        gen_opt.zero_grad()
+        gen_adv_loss.backward(retain_graph=True)
+        gen_adv_gradients = [param.grad.clone() for param in gen.parameters()]
+    
+        gen_rec_loss = gen_loss_fn(gen_logits, x)
+        gen_opt.zero_grad()
+        gen_rec_loss.backward()
+        gen_rec_gradients = [param.grad.clone() for param in gen.parameters()]
+        
+        gen_proj_gradients = []
+        for adv_grad, rec_grad in zip(gen_adv_gradients, gen_rec_gradients):
+            dot = lambda x, y: (x*y).sum()
+            proj_rec_grad = rec_grad - adv_grad*dot(adv_grad, rec_grad)/dot(adv_grad, adv_grad)
+            # project onto space orthogonal to the gradient of the adversarial loss, i.e. move in
+            #  a direction which keeps this loss constant (to the extent that it is well-approximated
+            #  by a hyperplane)
+            proj_grad = loss_mixture_coefficient*adv_grad + (1-loss_mixture_coefficient)*proj_rec_grad
+            gen_proj_gradients.append(proj_grad)
+        for param, grad in zip(gen.parameters(), gen_proj_gradients):
+            param.grad = grad
+        gen_opt.step()
+        
+        rv.update({
+            'gen_adv_loss': gen_adv_loss.detach().cpu().numpy(),
+            'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()
+        })
+        
+    else:
+        gen.train()
+        gen_logits = gen(x)
+        gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
+        gen_rec_loss = gen_loss_fn(gen_logits, x)
+        gen_loss = loss_mixture_coefficient*gen_adv_loss + (1-loss_mixture_coefficient)*gen_rec_loss
+        gen_opt.zero_grad()
+        gen_loss.backward()
+        gen_opt.step()
+        rv.update({
+            'gen_adv_loss': gen_adv_loss.detach().cpu().numpy(),
+            'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()})
+    
+    rv.update({
+        'confusing_example_loss': confusing_example_loss,
+        'disc_loss': disc_loss.detach().cpu().numpy(),
+        'disc_acc': disc_acc
+    })
+    return rv
+
+def eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
+              return_example=False,
+              ce_kwargs={},
+              loss_mixture_coefficient=0.5):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    disc.eval()
+    confusing_example, confusing_example_loss = compute_confusing_example(x, disc, gen, **ce_kwargs)
+    
+    disc_logits = disc(confusing_example)
+    disc_loss = disc_loss_fn(disc_logits, y)
+    disc_acc = np.mean(
+        np.equal(
+            np.argmax(disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    gen.eval()
+    gen_logits = gen(x)
+    gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
+    gen_rec_loss = gen_loss_fn(gen_logits, x)
+    
+    rv = {
+        'confusing_example_loss': confusing_example_loss,
+        'disc_loss': disc_loss.detach().cpu().numpy(),
+        'disc_acc': disc_acc,
+        'gen_adv_loss': gen_adv_loss.detach().cpu().numpy(),
+        'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()
+    }
+    if return_example:
+        rv.update({
+            'confusing_example': confusing_example.cpu().numpy(),
+            'generated_example': gen_logits.detach().cpu().numpy()})
+    return rv
+
+def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
+                pretrain_disc_phase=False,
+                pretrain_gen_phase=False,
+                progress_bar=None,
+                project_rec_updates=False,
+                ce_kwargs={},
+                loss_mixture_coefficient=0.5):
+    results = {}
+    for batch in dataloader:
+        if pretrain_disc_phase:
+            rv = pretrain_disc_step(batch, disc, disc_opt, disc_loss_fn, device)
+        elif pretrain_gen_phase:
+            rv = pretrain_gen_step(batch, gen, gen_opt, gen_loss_fn, device)
+        else:
+            rv = train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
+                            project_rec_updates=project_rec_updates,
+                            ce_kwargs=ce_kwargs,
+                            loss_mixture_coefficient=loss_mixture_coefficient)
+        for key, item in rv.items():
+            if not key in results.keys():
+                results[key] = []
+            results[key].append(item)
+        if progress_bar is not None:
+            progress_bar.update(1)
+    for key, item in results.items():
+        results[key] = np.mean(item)
+    return results
+
+def eval_epoch(dataloader, disc, gen, disc_loss_fn, gen_loss_fn, device,
+               return_example=False,
+               pretrain_disc_phase=False,
+               pretrain_gen_phase=False,
+               progress_bar=None,
+               ce_kwargs={},
+               loss_mixture_coefficient=0.5):
+    results = {}
+    for idx, batch in enumerate(dataloader):
+        if pretrain_disc_phase:
+            rv = eval_disc_step(batch, disc, disc_loss_fn, device)
+        elif pretrain_gen_phase:
+            rv = eval_gen_step(batch, gen, gen_loss_fn, device)
+        else:
+            rv = eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
+                           return_example=return_example and idx==len(dataloader)-1,
+                           ce_kwargs=ce_kwargs,
+                           loss_mixture_coefficient=loss_mixture_coefficient)
+        if not (pretrain_disc_phase or pretrain_gen_phase) and idx==len(dataloader)-1:
+            results['confusing_example'] = rv['confusing_example']
+            results['generated_example'] = rv['generated_example']
+            del rv['confusing_example']
+            del rv['generated_example']
+        for key, item in rv.items():
+            if not key in results.keys():
+                results[key] = []
+            results[key].append(item)
+        if progress_bar is not None:
+            progress_bar.update(1)
+    for key, item in results.items():
+        if key not in ['confusing_example', 'generated_example']:
+            results[key] = np.mean(item)
+    return results
