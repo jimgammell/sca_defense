@@ -23,7 +23,7 @@ def compute_confusing_example(example, disc, gen,
     criterion = ModelConfusion()
     orig_loss = np.inf
     for i in range(max_iter):
-        logits = disc(adv_example)
+        logits = disc(nn.functional.hardtanh(adv_example))
         loss = criterion(logits)
         opt.zero_grad()
         loss.backward()
@@ -31,7 +31,14 @@ def compute_confusing_example(example, disc, gen,
         if i>=warmup_iter and np.abs(orig_loss-loss.cpu().detach().numpy()) < eps:
             break
         orig_loss = loss.detach().cpu().numpy()
-    return adv_example.detach(), loss.detach().cpu().numpy()
+    return nn.functional.hardtanh(adv_example.detach()), loss.detach().cpu().numpy()
+
+def to_uint8(x):
+    x = 255.0*(0.5*x+0.5) # range of [-1, 1) to [0, 256)
+    x = x.to(torch.uint8) # quantize to {0, ..., 255}
+    x = x.to(torch.float) # convert quantized tensor back to float for compatibility w/ nns
+    x = 2.0*(x/255.0)-1.0 # back to range of [-1, 1)
+    return x
 
 def pretrain_gen_step(batch, gen, gen_opt, gen_loss_fn, device):
     x, y, _ = batch
@@ -107,6 +114,7 @@ def train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn,
     gen.eval()
     eval_disc.train()
     confusing_example = gen(x)
+    confusing_example = to_uint8(confusing_example)
     eval_disc_logits = eval_disc(confusing_example)
     eval_disc_loss = eval_disc_loss_fn(eval_disc_logits, y)
     eval_disc_opt.zero_grad()
@@ -127,6 +135,7 @@ def train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn,
 def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                return_example=False,
                project_rec_updates=True,
+               disc_orig_sample_prob=0.0,
                ce_kwargs={},
                loss_mixture_coefficient=0.5):
     if return_example:
@@ -137,7 +146,10 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
     confusing_example, confusing_example_loss = compute_confusing_example(x, disc, gen)
     
     disc.train()
-    disc_logits = disc(confusing_example)
+    if train_disc_on_orig_samples and disc_orig_sample_prob > np.random.uniform(0, 1):
+        disc_logits = disc(x)
+    else:
+        disc_logits = disc(confusing_example)
     disc_loss = disc_loss_fn(disc_logits, y)
     disc_opt.zero_grad()
     disc_loss.backward()
@@ -234,8 +246,8 @@ def eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
     if return_example:
         rv.update({
             'clean_example': x.cpu().numpy(),
-            'confusing_example': confusing_example.cpu().numpy(),
-            'generated_example': gen_logits.detach().cpu().numpy()})
+            'confusing_example': to_uint8(confusing_example).cpu().numpy(),
+            'generated_example': to_uint8(gen_logits.detach()).cpu().numpy()})
     return rv
 
 def eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device):
@@ -244,6 +256,7 @@ def eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device):
     gen.eval()
     eval_disc.eval()
     confusing_example = gen(x)
+    confusing_example = to_uint8(confusing_example)
     eval_disc_logits = eval_disc(confusing_example)
     eval_disc_loss = eval_disc_loss_fn(eval_disc_logits, y)
     eval_disc_acc = np.mean(
@@ -267,7 +280,8 @@ def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss
                 progress_bar=None,
                 project_rec_updates=False,
                 ce_kwargs={},
-                loss_mixture_coefficient=0.5):
+                loss_mixture_coefficient=0.5,
+                disc_orig_sample_prob=0.0):
     results = {}
     for batch in dataloader:
         if pretrain_disc_phase:
@@ -286,7 +300,8 @@ def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss
             rv = train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                             project_rec_updates=project_rec_updates,
                             ce_kwargs=ce_kwargs,
-                            loss_mixture_coefficient=loss_mixture_coefficient)
+                            loss_mixture_coefficient=loss_mixture_coefficient,
+                            disc_orig_sample_prob=disc_orig_sample_prob)
             if eval_disc_items is not None:
                 eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
                 erv = train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn, device)

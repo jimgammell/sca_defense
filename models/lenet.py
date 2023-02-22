@@ -38,7 +38,7 @@ class LeNet5Classifier(nn.Module):
         return self.model(x)
 
 class LeNet5Autoencoder(nn.Module):
-    def __init__(self, shape=(1, 28, 28), use_sn=False, mixer_width=128):
+    def __init__(self, shape=(1, 28, 28), use_sn=False, mixer_width=128, output_transform=nn.Identity):
         super().__init__()
         self.shape = shape
         if use_sn:
@@ -69,9 +69,11 @@ class LeNet5Autoencoder(nn.Module):
             nn.BatchNorm2d(6),
             nn.ReLU(),
             sn(nn.ConvTranspose2d(6, 1, kernel_size=1, stride=1, padding=0)))
+        self.output_transform = output_transform()
     
     def forward(self, x):
         features = self.feature_extractor(x).view(-1, 256)
         mixed_features = self.mixer(features)
         reconstructed_input = self.reconstructor(mixed_features.view(-1, 16, 4, 4))
-        return reconstructed_input
+        output = self.output_transform(reconstructed_input)
+        return output

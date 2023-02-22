@@ -27,6 +27,7 @@ def run_trial(
     ce_opt_kwargs={'lr': 1e-2},
     project_rec_updates=False,
     loss_mixture_coefficient=0.5,
+    disc_orig_sample_prob=0.0,
     ind_eval_disc=True,
     save_dir=None):
     
@@ -59,7 +60,7 @@ def run_trial(
     
     # prepare models
     disc = LeNet5Classifier(output_classes=2, use_sn=disc_sn).to(device)
-    gen = LeNet5Autoencoder(use_sn=gen_sn).to(device)
+    gen = LeNet5Autoencoder(use_sn=gen_sn, output_transform=nn.Hardtanh).to(device)
     disc_opt = optim.Adam(disc.parameters(), betas=(0.5, 0.999))
     gen_opt = optim.Adam(gen.parameters())
     disc_loss_fn = nn.CrossEntropyLoss()
@@ -115,7 +116,8 @@ def run_trial(
                              ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                         'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
                              loss_mixture_coefficient=loss_mixture_coefficient,
-                             project_rec_updates=project_rec_updates)
+                             project_rec_updates=project_rec_updates,
+                             disc_orig_sample_prob=disc_orig_sample_prob)
         printl('Done training in {} seconds'.format(time.time()-t0))
         for key, item in rv.items():
             key = 'tr_'+key
@@ -147,14 +149,17 @@ def run_trial(
         if return_example:
             fig, axes = plt.subplots(4, 15, figsize=(60, 16))
             for eg, ax in zip(results['te_clean_example'][-1].squeeze(), axes[:, :5].flatten()):
+                eg = 0.5*eg+0.5
                 ax.imshow(eg, cmap='binary')
                 for spine in ax.spines.values():
                     spine.set_edgecolor('gray')
             for eg, ax in zip(results['te_confusing_example'][-1].squeeze(), axes[:, 5:10].flatten()):
+                eg = 0.5*eg+0.5
                 ax.imshow(eg, cmap='binary')
                 for spine in ax.spines.values():
                     spine.set_edgecolor('red')
             for eg, ax in zip(results['te_generated_example'][-1].squeeze(), axes[:, 10:].flatten()):
+                eg = 0.5*eg+0.5
                 ax.imshow(eg, cmap='binary')
                 for spine in ax.spines.values():
                     spine.set_edgecolor('blue')
