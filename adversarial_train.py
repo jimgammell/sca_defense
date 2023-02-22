@@ -146,7 +146,7 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
     confusing_example, confusing_example_loss = compute_confusing_example(x, disc, gen)
     
     disc.train()
-    if train_disc_on_orig_samples and disc_orig_sample_prob > np.random.uniform(0, 1):
+    if disc_orig_sample_prob > np.random.uniform(0, 1):
         disc_logits = disc(x)
     else:
         disc_logits = disc(confusing_example)
