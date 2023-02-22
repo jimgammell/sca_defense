@@ -3,48 +3,6 @@ import torch
 from torch import nn
 from torch.nn.utils import spectral_norm
 
-class LeNet5Autoencoder(nn.Module):
-    def __init__(self, shape=(1, 28, 28), bottleneck_width=64, use_sn=False):
-        super().__init__()
-        self.shape = shape
-        self.bottleneck_width=bottleneck_width
-        
-        if use_sn:
-            sn = spectral_norm
-        else:
-            sn = lambda x: x
-            
-        self.encoder = nn.Sequential(
-            sn(nn.Conv2d(shape[0], 6, kernel_size=5, stride=1, padding=0)),
-            nn.BatchNorm2d(6),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            sn(nn.Conv2d(6, 16, kernel_size=5, stride=1, padding=0)),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Flatten(),
-            sn(nn.Linear(256, bottleneck_width)))
-        self.decoder = nn.Sequential(
-            sn(nn.Linear(bottleneck_width, 256)),
-            nn.Unflatten(dim=1, unflattened_size=(16, 4, 4)),
-            nn.Upsample(scale_factor=2),
-            sn(nn.ConvTranspose2d(16, 6, kernel_size=5, stride=1, padding=0)),
-            nn.BatchNorm2d(6),
-            nn.ReLU(),
-            nn.Upsample(scale_factor=2),
-            sn(nn.ConvTranspose2d(6, 6, kernel_size=5, stride=1, padding=0)),
-            sn(nn.Conv2d(6, 1, kernel_size=1, stride=1, padding=0)))
-    
-    def get_features(self, x):
-        features = self.encoder(x)
-        return features
-    
-    def forward(self, x):
-        encoded_x = self.encoder(x)
-        reconstructed_x = self.decoder(encoded_x)
-        return reconstructed_x
-
 class LeNet5Classifier(nn.Module):
     def __init__(self, input_channels=1, output_classes=10, use_sn=False):
         super().__init__()
@@ -79,7 +37,7 @@ class LeNet5Classifier(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-class LeNet5Sanitizer(nn.Module):
+class LeNet5Autoencoder(nn.Module):
     def __init__(self, shape=(1, 28, 28), use_sn=False, mixer_width=128):
         super().__init__()
         self.shape = shape

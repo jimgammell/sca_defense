@@ -101,6 +101,29 @@ def eval_disc_step(batch, disc, disc_loss_fn, device):
         'disc_acc': disc_acc
     }
 
+def train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    gen.eval()
+    eval_disc.train()
+    confusing_example = gen(x)
+    eval_disc_logits = eval_disc(confusing_example)
+    eval_disc_loss = eval_disc_loss_fn(eval_disc_logits, y)
+    eval_disc_opt.zero_grad()
+    eval_disc_loss.backward()
+    eval_disc_opt.step()
+    eval_disc_acc = np.mean(
+        np.equal(
+            np.argmax(eval_disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    return {
+        'eval_disc_loss': eval_disc_loss.detach().cpu().numpy(),
+        'eval_disc_acc': eval_disc_acc
+    }
+
 def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                return_example=False,
                project_rec_updates=True,
@@ -144,8 +167,8 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
         for adv_grad, rec_grad in zip(gen_adv_gradients, gen_rec_gradients):
             dot = lambda x, y: (x*y).sum()
             proj_rec_grad = rec_grad - adv_grad*dot(adv_grad, rec_grad)/dot(adv_grad, adv_grad)
-            # project onto space orthogonal to the gradient of the adversarial loss, i.e. move in
-            #  a direction which keeps this loss constant (to the extent that it is well-approximated
+            # project onto space orthogonal to the gradient of the adversarial loss, i.e. move in a
+            #  direction which keeps this loss constant (to the extent that it is well-approximated
             #  by a hyperplane)
             proj_grad = loss_mixture_coefficient*adv_grad + (1-loss_mixture_coefficient)*proj_rec_grad
             gen_proj_gradients.append(proj_grad)
@@ -210,13 +233,37 @@ def eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
     }
     if return_example:
         rv.update({
+            'clean_example': x.cpu().numpy(),
             'confusing_example': confusing_example.cpu().numpy(),
             'generated_example': gen_logits.detach().cpu().numpy()})
     return rv
 
+def eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device):
+    x, y, _ = batch
+    x, y = x.to(device), y.to(device)
+    gen.eval()
+    eval_disc.eval()
+    confusing_example = gen(x)
+    eval_disc_logits = eval_disc(confusing_example)
+    eval_disc_loss = eval_disc_loss_fn(eval_disc_logits, y)
+    eval_disc_acc = np.mean(
+        np.equal(
+            np.argmax(eval_disc_logits.detach().cpu().numpy(), axis=-1),
+            y.detach().cpu().numpy()
+        )
+    )
+    
+    return {
+        'eval_disc_loss': eval_disc_loss.detach().cpu().numpy(),
+        'eval_disc_acc': eval_disc_acc
+    }
+
 def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                 pretrain_disc_phase=False,
                 pretrain_gen_phase=False,
+                pretrain_eval_disc_phase=False,
+                posttrain_eval_disc_phase=False,
+                eval_disc_items=None,
                 progress_bar=None,
                 project_rec_updates=False,
                 ce_kwargs={},
@@ -225,14 +272,32 @@ def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss
     for batch in dataloader:
         if pretrain_disc_phase:
             rv = pretrain_disc_step(batch, disc, disc_opt, disc_loss_fn, device)
+        elif pretrain_eval_disc_phase:
+            assert eval_disc_items is not None
+            eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+            rv = pretrain_disc_step(batch, eval_disc, eval_disc_opt, eval_disc_loss_fn, device)
         elif pretrain_gen_phase:
             rv = pretrain_gen_step(batch, gen, gen_opt, gen_loss_fn, device)
+        elif posttrain_eval_disc_phase:
+            assert eval_disc_items is not None
+            eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+            rv = train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn, device)
         else:
             rv = train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                             project_rec_updates=project_rec_updates,
                             ce_kwargs=ce_kwargs,
                             loss_mixture_coefficient=loss_mixture_coefficient)
+            if eval_disc_items is not None:
+                eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+                erv = train_evaldisc_step(batch, gen, eval_disc, eval_disc_opt, eval_disc_loss_fn, device)
+                rv.update(erv)
         for key, item in rv.items():
+            if pretrain_disc_phase or pretrain_gen_phase:
+                key = 'pt_'+key
+            elif pretrain_eval_disc_phase:
+                key = 'pt_eval_'+key
+            elif posttrain_eval_disc_phase:
+                key = 'po_'+key
             if not key in results.keys():
                 results[key] = []
             results[key].append(item)
@@ -246,32 +311,56 @@ def eval_epoch(dataloader, disc, gen, disc_loss_fn, gen_loss_fn, device,
                return_example=False,
                pretrain_disc_phase=False,
                pretrain_gen_phase=False,
+               pretrain_eval_disc_phase=False,
+               posttrain_eval_disc_phase=False,
+               eval_disc_items=None,
                progress_bar=None,
                ce_kwargs={},
                loss_mixture_coefficient=0.5):
     results = {}
     for idx, batch in enumerate(dataloader):
+        return_example_ = return_example and (idx == len(dataloader)-1)
         if pretrain_disc_phase:
             rv = eval_disc_step(batch, disc, disc_loss_fn, device)
+        elif pretrain_eval_disc_phase:
+            assert eval_disc_items is not None
+            eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+            rv = pretrain_disc_step(batch, eval_disc, eval_disc_opt, eval_disc_loss_fn, device)
         elif pretrain_gen_phase:
             rv = eval_gen_step(batch, gen, gen_loss_fn, device)
+        elif posttrain_eval_disc_phase:
+            assert eval_disc_items is not None
+            eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+            rv = eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device)
         else:
             rv = eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
-                           return_example=return_example and idx==len(dataloader)-1,
+                           return_example=return_example_,
                            ce_kwargs=ce_kwargs,
                            loss_mixture_coefficient=loss_mixture_coefficient)
-        if not (pretrain_disc_phase or pretrain_gen_phase) and idx==len(dataloader)-1:
+            if eval_disc_items is not None:
+                eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
+                erv = eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device)
+                rv.update(erv)
+        if return_example_:
+            results['clean_example'] = rv['clean_example']
             results['confusing_example'] = rv['confusing_example']
             results['generated_example'] = rv['generated_example']
+            del rv['clean_example']
             del rv['confusing_example']
             del rv['generated_example']
         for key, item in rv.items():
+            if pretrain_disc_phase or pretrain_gen_phase:
+                key = 'pt_'+key
+            elif pretrain_eval_disc_phase:
+                key = 'pt_eval_'+key
+            elif posttrain_eval_disc_phase:
+                key = 'po_'+key
             if not key in results.keys():
                 results[key] = []
             results[key].append(item)
         if progress_bar is not None:
             progress_bar.update(1)
     for key, item in results.items():
-        if key not in ['confusing_example', 'generated_example']:
+        if key not in ['clean_example', 'confusing_example', 'generated_example']:
             results[key] = np.mean(item)
     return results
