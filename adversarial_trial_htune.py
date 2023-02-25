@@ -5,11 +5,14 @@ from run_adversarial_trial import run_trial, plot_results
 
 trial_number = 0
 
-def run_wandb_hsweep(sweep_configuration, count=100):
+def run_wandb_hsweep(sweep_configuration, count=100, offline=True):
     def run_trial_wrapper():
         global trial_number
         save_dir = os.path.join('.', 'results', 'adversarial_wandb_htune', 'trial_{}'.format(trial_number))
-        wandb.init(mode='offline')
+        if offline:
+            wandb.init(mode='offline')
+        else:
+            wandb.init()
         kwargs = {
             'save_dir': save_dir,
             'batch_size': wandb.config.batch_size,
@@ -17,6 +20,7 @@ def run_wandb_hsweep(sweep_configuration, count=100):
             'disc_pretrain_epochs': wandb.config.disc_pretrain_epochs,
             'gen_pretrain_epochs': wandb.config.gen_pretrain_epochs,
             'train_epochs': wandb.config.train_epochs,
+            'eval_disc_posttrain_epochs': wandb.config.eval_disc_posttrain_epochs,
             'disc_sn': wandb.config.disc_sn,
             'gen_sn': wandb.config.gen_sn,
             'gen_loss_fn': getattr(nn, wandb.config.gen_loss_fn)(),
@@ -26,7 +30,10 @@ def run_wandb_hsweep(sweep_configuration, count=100):
             'ce_opt': getattr(optim, wandb.config.ce_opt),
             'ce_opt_kwargs': wandb.config.ce_opt_kwargs,
             'project_rec_updates': wandb.config.project_rec_updates,
-            'loss_mixture_coefficient': wandb.config.loss_mixture_coefficient
+            'loss_mixture_coefficient': wandb.config.loss_mixture_coefficient,
+            'ind_eval_disc': wandb.config.ind_eval_disc,
+            'disc_orig_sample_prob': wandb.config.disc_orig_sample_prob,
+            'report_to_wandb': True
         }
         run_trial(**kwargs)
         plot_results(save_dir)

@@ -3,6 +3,7 @@ import time
 import pickle
 from PIL import Image
 from matplotlib import pyplot as plt
+import wandb
 import numpy as np
 import torch
 from torch import optim, nn
@@ -29,7 +30,10 @@ def run_trial(
     loss_mixture_coefficient=0.5,
     disc_orig_sample_prob=0.0,
     ind_eval_disc=True,
-    save_dir=None):
+    use_reconstruction_critic=False,
+    save_dir=None,
+    report_to_wandb=False,
+    suppress_output=False):
     
     if save_dir is None:
         save_dir = os.path.join('.', 'results', 'adversarially_train')
@@ -40,7 +44,8 @@ def run_trial(
     if os.path.exists(debug_log_path):
         os.remove(debug_log_path)
     def printl(*args, **kwargs):
-        print(*args, **kwargs)
+        if not suppress_output:
+            print(*args, **kwargs)
         debug_log = open(debug_log_path, 'a')
         print(*args, file=debug_log, **kwargs)
         debug_log.close()
@@ -62,7 +67,7 @@ def run_trial(
     disc = LeNet5Classifier(output_classes=2, use_sn=disc_sn).to(device)
     gen = LeNet5Autoencoder(use_sn=gen_sn, output_transform=nn.Hardtanh).to(device)
     disc_opt = optim.Adam(disc.parameters(), betas=(0.5, 0.999))
-    gen_opt = optim.Adam(gen.parameters())
+    gen_opt = optim.SGD(gen.parameters(), lr=0.1)#optim.Adam(gen.parameters())
     disc_loss_fn = nn.CrossEntropyLoss()
     printl('Disc: {}'.format(disc))
     printl('Gen: {}'.format(gen))
@@ -80,6 +85,14 @@ def run_trial(
         eval_disc_items = (eval_disc, eval_disc_opt, eval_disc_loss_fn)
     else:
         eval_disc_items = None
+    if use_reconstruction_critic:
+        rc_disc = LeNet5Classifier(output_classes=1, sn=True).to(device)
+        rc_opt = optim.Adam(rec_loss_disc.parameters(), lr=2e-4, betas=(0.0, 0.999))
+        printl('Reconstruction critic: {}'.format(rl_disc))
+        printl('Reconstruction critic optimizer: {}'.format(rl_opt))
+        rc_items = (rc_disc, rc_opt)
+    else:
+        rc_items = None
     
     results = {'epoch': []}
     starting_epoch = 1
@@ -92,6 +105,8 @@ def run_trial(
         if pretrain_eval_disc_phase or posttrain_eval_disc_phase:
             assert eval_disc_items is not None
         return_example = not(pretrain_disc_phase or pretrain_gen_phase or pretrain_eval_disc_phase or posttrain_eval_disc_phase)
+        if report_to_wandb:
+            wandb_log = {}
         nonlocal results, current_epoch
         printl()
         printl('Starting epoch {}'.format(current_epoch))
@@ -103,6 +118,7 @@ def run_trial(
                             pretrain_eval_disc_phase=False,
                             posttrain_eval_disc_phase=False,
                             eval_disc_items=eval_disc_items,
+                            reconstruction_critic_items=rc_items,
                             ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                        'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
                             loss_mixture_coefficient=loss_mixture_coefficient)
@@ -113,6 +129,7 @@ def run_trial(
                              pretrain_eval_disc_phase=pretrain_eval_disc_phase,
                              posttrain_eval_disc_phase=posttrain_eval_disc_phase,
                              eval_disc_items=eval_disc_items,
+                             reconstruction_critic_items=rc_items,
                              ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                         'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
                              loss_mixture_coefficient=loss_mixture_coefficient,
@@ -121,6 +138,8 @@ def run_trial(
         printl('Done training in {} seconds'.format(time.time()-t0))
         for key, item in rv.items():
             key = 'tr_'+key
+            if report_to_wandb:
+                wandb_log.update({key: item})
             if not key in results.keys():
                 results[key] = []
             results[key].append(item)
@@ -132,16 +151,21 @@ def run_trial(
                         pretrain_eval_disc_phase=pretrain_eval_disc_phase,
                         posttrain_eval_disc_phase=posttrain_eval_disc_phase,
                         eval_disc_items=eval_disc_items,
+                        reconstruction_critic_items=rc_items,
                         ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                    'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
                         loss_mixture_coefficient=loss_mixture_coefficient)
         printl('Done testing in {} seconds'.format(time.time()-t0))
         for key, item in rv.items():
             key = 'te_'+key
+            if report_to_wandb:
+                wandb_log.update({key: item})
             if not key in results.keys():
                 results[key] = []
             results[key].append(item)
         results['epoch'].append(current_epoch)
+        if report_to_wandb:
+            wandb.log(wandb_log)
         printl('Results:')
         for key, item in results.items():
             if key not in ['epoch', 'tr_clean_example', 'te_clean_example', 'tr_confusing_example', 'tr_generated_example', 'te_confusing_example', 'te_generated_example']:
@@ -166,6 +190,7 @@ def run_trial(
             fig.suptitle('Epoch: {}'.format(current_epoch))
             plt.tight_layout()
             fig.savefig(os.path.join(eg_frames_dir, 'frame_{}.jpg'.format(current_epoch)))
+            plt.close()
         current_epoch += 1
         
     if eval_disc_items is not None:
@@ -284,6 +309,7 @@ def plot_traces(results_dir):
     fig.suptitle('Training curves from adversarial entropy-maximization trial')
     plt.tight_layout()
     fig.savefig(os.path.join(results_dir, 'traces.jpg'))
+    plt.close()
     
 def plot_results(results_dir):
     generate_animation(results_dir)

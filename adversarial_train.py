@@ -137,7 +137,8 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
                project_rec_updates=True,
                disc_orig_sample_prob=0.0,
                ce_kwargs={},
-               loss_mixture_coefficient=0.5):
+               loss_mixture_coefficient=0.5,
+               reconstruction_critic_items=None):
     if return_example:
         raise NotImplementedError
     x, y, _ = batch
@@ -162,15 +163,19 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
     )
     
     rv = {}
+    gen.train()
+    gen_logits = gen(x)
+    gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
+    if reconstruction_critic_items is None:
+        gen_rec_loss = gen_loss_fn(gen_logits, x)
+    else:
+        rc_disc, rc_opt = reconstruction_critic_items
+        rc_disc.eval()
+        gen_rec_loss = -torch.mean(rc_disc(gen_logits))
     if project_rec_updates:
-        gen.train()
-        gen_logits = gen(x)
-        gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
         gen_opt.zero_grad()
         gen_adv_loss.backward(retain_graph=True)
         gen_adv_gradients = [param.grad.clone() for param in gen.parameters()]
-    
-        gen_rec_loss = gen_loss_fn(gen_logits, x)
         gen_opt.zero_grad()
         gen_rec_loss.backward()
         gen_rec_gradients = [param.grad.clone() for param in gen.parameters()]
@@ -178,7 +183,7 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
         gen_proj_gradients = []
         for adv_grad, rec_grad in zip(gen_adv_gradients, gen_rec_gradients):
             dot = lambda x, y: (x*y).sum()
-            proj_rec_grad = rec_grad - adv_grad*dot(adv_grad, rec_grad)/dot(adv_grad, adv_grad)
+            proj_rec_grad = rec_grad - adv_grad*dot(adv_grad, rec_grad)/(dot(adv_grad, adv_grad)+1e-12)
             # project onto space orthogonal to the gradient of the adversarial loss, i.e. move in a
             #  direction which keeps this loss constant (to the extent that it is well-approximated
             #  by a hyperplane)
@@ -194,10 +199,6 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
         })
         
     else:
-        gen.train()
-        gen_logits = gen(x)
-        gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
-        gen_rec_loss = gen_loss_fn(gen_logits, x)
         gen_loss = loss_mixture_coefficient*gen_adv_loss + (1-loss_mixture_coefficient)*gen_rec_loss
         gen_opt.zero_grad()
         gen_loss.backward()
@@ -205,6 +206,20 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
         rv.update({
             'gen_adv_loss': gen_adv_loss.detach().cpu().numpy(),
             'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()})
+    
+    if reconstruction_critic_items is not None:
+        rc_disc.train()
+        rc_logits_real = rc_disc(x)
+        rc_logits_fake = rc_disc(gen_logits.detach())
+        rc_loss_real = -torch.mean(rc_logits_real)
+        rc_loss_fake = torch.mean(rc_logits_fake)
+        rc_loss = rc_loss_real + rc_loss_fake
+        rc_opt.zero_grad()
+        rc_loss.backward()
+        rc_opt.step()
+        rv.update({
+            'rc_loss_real': rc_loss_real.detach().cpu().numpy(),
+            'rc_loss_fake': rc_loss_fake.detach().cpu().numpy()})
     
     rv.update({
         'confusing_example_loss': confusing_example_loss,
@@ -216,7 +231,8 @@ def train_step(batch, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, d
 def eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
               return_example=False,
               ce_kwargs={},
-              loss_mixture_coefficient=0.5):
+              loss_mixture_coefficient=0.5,
+              reconstruction_critic_items=None):
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     disc.eval()
@@ -230,19 +246,29 @@ def eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
             y.detach().cpu().numpy()
         )
     )
-    
-    gen.eval()
-    gen_logits = gen(x)
-    gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
-    gen_rec_loss = gen_loss_fn(gen_logits, x)
-    
     rv = {
         'confusing_example_loss': confusing_example_loss,
         'disc_loss': disc_loss.detach().cpu().numpy(),
-        'disc_acc': disc_acc,
+        'disc_acc': disc_acc}
+    
+    gen.eval()
+    gen_logits = gen(x).detach()
+    gen_adv_loss = gen_loss_fn(gen_logits, confusing_example)
+    if reconstruction_critic_items is None:
+        gen_rec_loss = gen_loss_fn(gen_logits, x)
+    else:
+        rc_disc, _ = reconstruction_critic_items
+        rc_disc.eval()
+        rc_loss_fake = torch.mean(rc_disc(gen_logits))
+        rc_loss_real = -torch.mean(rc_disc(x))
+        gen_rec_loss = -rc_loss_fake
+        rv.update({
+            'rc_loss_real': rc_loss_real.detach().cpu().numpy(),
+            'rc_loss_fake': rc_loss_fake.detach().cpu().numpy()})
+    rv.update({
         'gen_adv_loss': gen_adv_loss.detach().cpu().numpy(),
-        'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()
-    }
+        'gen_rec_loss': gen_rec_loss.detach().cpu().numpy()})
+    
     if return_example:
         rv.update({
             'clean_example': x.cpu().numpy(),
@@ -281,6 +307,7 @@ def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss
                 project_rec_updates=False,
                 ce_kwargs={},
                 loss_mixture_coefficient=0.5,
+                reconstruction_critic_items=None,
                 disc_orig_sample_prob=0.0):
     results = {}
     for batch in dataloader:
@@ -301,6 +328,7 @@ def train_epoch(dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss
                             project_rec_updates=project_rec_updates,
                             ce_kwargs=ce_kwargs,
                             loss_mixture_coefficient=loss_mixture_coefficient,
+                            reconstruction_critic_items=reconstruction_critic_items,
                             disc_orig_sample_prob=disc_orig_sample_prob)
             if eval_disc_items is not None:
                 eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
@@ -331,7 +359,8 @@ def eval_epoch(dataloader, disc, gen, disc_loss_fn, gen_loss_fn, device,
                eval_disc_items=None,
                progress_bar=None,
                ce_kwargs={},
-               loss_mixture_coefficient=0.5):
+               loss_mixture_coefficient=0.5,
+               reconstruction_critic_items=None):
     results = {}
     for idx, batch in enumerate(dataloader):
         return_example_ = return_example and (idx == len(dataloader)-1)
@@ -351,7 +380,8 @@ def eval_epoch(dataloader, disc, gen, disc_loss_fn, gen_loss_fn, device,
             rv = eval_step(batch, disc, gen, disc_loss_fn, gen_loss_fn, device,
                            return_example=return_example_,
                            ce_kwargs=ce_kwargs,
-                           loss_mixture_coefficient=loss_mixture_coefficient)
+                           loss_mixture_coefficient=loss_mixture_coefficient,
+                           reconstruction_critic_items=reconstruction_critic_items)
             if eval_disc_items is not None:
                 eval_disc, eval_disc_opt, eval_disc_loss_fn = eval_disc_items
                 erv = eval_evaldisc_step(batch, gen, eval_disc, eval_disc_loss_fn, device)
