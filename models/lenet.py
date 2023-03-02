@@ -12,7 +12,7 @@ class LeNet5Classifier(nn.Module):
         else:
             sn = lambda x: x
         
-        feature_extractor = nn.Sequential(
+        self.feature_extractor = nn.Sequential(
             sn(nn.Conv2d(input_channels, 6, kernel_size=5, stride=1, padding=0)),
             nn.BatchNorm2d(6),
             nn.ReLU(),
@@ -22,17 +22,25 @@ class LeNet5Classifier(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
         eg_input = torch.randn(1, input_channels, 28, 28)
-        eg_output = feature_extractor(eg_input)
-        classifier = nn.Sequential(
+        eg_output = self.feature_extractor(eg_input)
+        self.feature_mixer = nn.Sequential(
             sn(nn.Linear(np.prod(eg_output.shape), 120)),
             nn.ReLU(),
-            sn(nn.Linear(120, 84)),
+            sn(nn.Linear(120, 84)))
+        self.classifier = nn.Sequential(
             nn.ReLU(),
             sn(nn.Linear(84, output_classes)))
         self.model = nn.Sequential(
-            feature_extractor,
+            self.feature_extractor,
             nn.Flatten(),
-            classifier)
+            self.feature_mixer,
+            self.classifier)
+        
+    def get_features(self, x):
+        features = self.feature_extractor(x)
+        features = features.view(-1, np.prod(features.shape[1:]))
+        features = self.feature_mixer(features)
+        return features
         
     def forward(self, x):
         return self.model(x)
@@ -70,6 +78,11 @@ class LeNet5Autoencoder(nn.Module):
             nn.ReLU(),
             sn(nn.ConvTranspose2d(6, 1, kernel_size=1, stride=1, padding=0)))
         self.output_transform = output_transform()
+    
+    def get_features(self, x):
+        features = self.feature_extractor(x).view(-1, 256)
+        mixed_features = self.mixer(features)
+        return mixed_features
     
     def forward(self, x):
         features = self.feature_extractor(x).view(-1, 256)

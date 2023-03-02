@@ -16,11 +16,13 @@ def run_trial(
     device='cuda',
     disc_pretrain_epochs=20,
     gen_pretrain_epochs=20,
+    ac_pretrain_epochs=20,
     eval_disc_posttrain_epochs=20,
     train_epochs=20,
     disc_sn=True,
     gen_sn=False,
     gen_loss_fn=nn.MSELoss(),
+    gen_opt_kwargs={'lr': 0.1},
     ce_eps=1e-5,
     ce_warmup_iter=100,
     ce_max_iter=1000,
@@ -30,13 +32,17 @@ def run_trial(
     loss_mixture_coefficient=0.5,
     disc_orig_sample_prob=0.0,
     ind_eval_disc=True,
-    use_reconstruction_critic=False,
+    critic_method='pixel_space',
     save_dir=None,
+    pretrain_dir=None,
     report_to_wandb=False,
-    suppress_output=False):
+    suppress_output=False,
+    trial_info=None):
     
     if save_dir is None:
         save_dir = os.path.join('.', 'results', 'adversarially_train')
+    if pretrain_dir is not None:
+        os.makedirs(pretrain_dir, exist_ok=True)
     eg_frames_dir = os.path.join(save_dir, 'eg_frames')
     os.makedirs(save_dir, exist_ok=True)
     os.makedirs(eg_frames_dir, exist_ok=True)
@@ -67,7 +73,7 @@ def run_trial(
     disc = LeNet5Classifier(output_classes=2, use_sn=disc_sn).to(device)
     gen = LeNet5Autoencoder(use_sn=gen_sn, output_transform=nn.Hardtanh).to(device)
     disc_opt = optim.Adam(disc.parameters(), betas=(0.5, 0.999))
-    gen_opt = optim.SGD(gen.parameters(), lr=0.1)#optim.Adam(gen.parameters())
+    gen_opt = optim.SGD(gen.parameters(), **gen_opt_kwargs)#optim.Adam(gen.parameters())
     disc_loss_fn = nn.CrossEntropyLoss()
     printl('Disc: {}'.format(disc))
     printl('Gen: {}'.format(gen))
@@ -85,26 +91,50 @@ def run_trial(
         eval_disc_items = (eval_disc, eval_disc_opt, eval_disc_loss_fn)
     else:
         eval_disc_items = None
-    if use_reconstruction_critic:
-        rc_disc = LeNet5Classifier(output_classes=1, sn=True).to(device)
-        rc_opt = optim.Adam(rec_loss_disc.parameters(), lr=2e-4, betas=(0.0, 0.999))
-        printl('Reconstruction critic: {}'.format(rl_disc))
-        printl('Reconstruction critic optimizer: {}'.format(rl_opt))
+    if critic_method == 'gan':
+        use_gan_critic = True
+        use_autoencoder_critic = False
+    elif critic_method == 'autoencoder':
+        use_autoencoder_critic = True
+        use_gan_critic = False
+    elif critic_method == 'pixel_space':
+        use_autoencoder_critic = use_gan_critic = False
+    else:
+        assert False
+    
+    if use_gan_critic:
+        rc_disc = LeNet5Classifier(output_classes=1, use_sn=True).to(device)
+        rc_opt = optim.Adam(rc_disc.parameters(), lr=2e-4, betas=(0.0, 0.999))
+        printl('GAN critic: {}'.format(rc_disc))
+        printl('GAN critic optimizer: {}'.format(rc_opt))
         rc_items = (rc_disc, rc_opt)
     else:
         rc_items = None
+    if use_autoencoder_critic:
+        ac_disc = LeNet5Autoencoder(mixer_width=64, output_transform=nn.Hardtanh).to(device)
+        ac_opt = optim.Adam(ac_disc.parameters())
+        ac_loss_fn = nn.MSELoss()
+        printl('Autoencoder critic: {}'.format(ac_disc))
+        printl('Autoencoder critic optimizer: {}'.format(ac_opt))
+        printl('Autoencoder critic loss function: {}'.format(ac_loss_fn))
+        ac_items = (ac_disc, ac_opt, ac_loss_fn)
+    else:
+        ac_items = None
     
     results = {'epoch': []}
     starting_epoch = 1
     current_epoch = starting_epoch
     def update_results(pretrain_disc_phase=False,
                        pretrain_gen_phase=False,
+                       pretrain_ac_phase=False,
                        pretrain_eval_disc_phase=False,
                        posttrain_eval_disc_phase=False):
-        assert int(pretrain_disc_phase)+int(pretrain_gen_phase)+int(pretrain_eval_disc_phase)+int(posttrain_eval_disc_phase) <= 1
+        assert int(pretrain_disc_phase)+int(pretrain_gen_phase)+int(pretrain_eval_disc_phase)+int(posttrain_eval_disc_phase)+int(pretrain_ac_phase) <= 1
         if pretrain_eval_disc_phase or posttrain_eval_disc_phase:
             assert eval_disc_items is not None
-        return_example = not(pretrain_disc_phase or pretrain_gen_phase or pretrain_eval_disc_phase or posttrain_eval_disc_phase)
+        if pretrain_ac_phase:
+            assert ac_items is not None
+        return_example = not(pretrain_disc_phase or pretrain_gen_phase or pretrain_eval_disc_phase or posttrain_eval_disc_phase or pretrain_ac_phase)
         if report_to_wandb:
             wandb_log = {}
         nonlocal results, current_epoch
@@ -114,10 +144,12 @@ def run_trial(
         if current_epoch == 0:
             rv = eval_epoch(train_dataloader, disc, gen, disc_loss_fn, gen_loss_fn, device,
                             pretrain_disc_phase=False,
+                            pretrain_ac_phase=False,
                             pretrain_gen_phase=False,
                             pretrain_eval_disc_phase=False,
                             posttrain_eval_disc_phase=False,
                             eval_disc_items=eval_disc_items,
+                            ac_items=ac_items,
                             reconstruction_critic_items=rc_items,
                             ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                        'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
@@ -126,9 +158,11 @@ def run_trial(
             rv = train_epoch(train_dataloader, disc, gen, disc_opt, gen_opt, disc_loss_fn, gen_loss_fn, device,
                              pretrain_disc_phase=pretrain_disc_phase,
                              pretrain_gen_phase=pretrain_gen_phase,
+                             pretrain_ac_phase=pretrain_ac_phase,
                              pretrain_eval_disc_phase=pretrain_eval_disc_phase,
                              posttrain_eval_disc_phase=posttrain_eval_disc_phase,
                              eval_disc_items=eval_disc_items,
+                             ac_items=ac_items,
                              reconstruction_critic_items=rc_items,
                              ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                         'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
@@ -148,9 +182,11 @@ def run_trial(
                         return_example=return_example,
                         pretrain_disc_phase=pretrain_disc_phase,
                         pretrain_gen_phase=pretrain_gen_phase,
+                        pretrain_ac_phase=pretrain_ac_phase,
                         pretrain_eval_disc_phase=pretrain_eval_disc_phase,
                         posttrain_eval_disc_phase=posttrain_eval_disc_phase,
                         eval_disc_items=eval_disc_items,
+                        ac_items=ac_items,
                         reconstruction_critic_items=rc_items,
                         ce_kwargs={'eps': ce_eps, 'warmup_iter': ce_warmup_iter, 'max_iter': ce_max_iter,
                                    'opt_const': ce_opt, 'opt_kwargs': ce_opt_kwargs},
@@ -194,18 +230,56 @@ def run_trial(
         current_epoch += 1
         
     if eval_disc_items is not None:
-        printl('\n\nPretraining the evaluation discriminator.')
+        if pretrain_dir is not None and os.path.exists(os.path.join(pretrain_dir, 'eval_disc.pth')):
+            printl('\n\nLoading a pretrained evaluation discriminator.')
+            eval_disc_items[0].load_state_dict(torch.load(os.path.join(pretrain_dir, 'eval_disc.pth')))
+            eval_disc_items[1].load_state_dict(torch.load(os.path.join(pretrain_dir, 'eval_disc_opt.pth')))
+        else:
+            printl('\n\nPretraining the evaluation discriminator.')
+            while current_epoch <= disc_pretrain_epochs:
+                update_results(pretrain_eval_disc_phase=True)
+            if pretrain_dir is not None:
+                torch.save(eval_disc_items[0].state_dict(), os.path.join(pretrain_dir, 'eval_disc.pth'))
+                torch.save(eval_disc_items[1].state_dict(), os.path.join(pretrain_dir, 'eval_disc_opt.pth'))
+            current_epoch = starting_epoch
+    if ac_items is not None:
+        print('!!!', ac_items)
+        if pretrain_dir is not None and os.path.exists(os.path.join(pretrain_dir, 'ac.pth')):
+            printl('\n\nLoading a pretrained autoencoder critic.')
+            ac_items[0].load_state_dict(torch.load(os.path.join(pretrain_dir, 'ac.pth')))
+            ac_items[1].load_state_dict(torch.load(os.path.join(pretrain_dir, 'ac_opt.pth')))
+        else:
+            printl('\n\nPretraining the autoencoder critic.')
+            while current_epoch <= ac_pretrain_epochs:
+                update_results(pretrain_ac_phase=True)
+            if pretrain_dir is not None:
+                torch.save(ac_items[0].state_dict(), os.path.join(pretrain_dir, 'ac.pth'))
+                torch.save(ac_items[1].state_dict(), os.path.join(pretrain_dir, 'ac_opt.pth'))
+            current_epoch = starting_epoch
+    if pretrain_dir is not None and os.path.exists(os.path.join(pretrain_dir, 'disc.pth')):
+        printl('\n\nLoading a pretrained discriminator.')
+        disc.load_state_dict(torch.load(os.path.join(pretrain_dir, 'disc.pth')))
+        disc_opt.load_state_dict(torch.load(os.path.join(pretrain_dir, 'disc_opt.pth')))
+    else:
+        printl('\n\nPretraining the discriminator.')
         while current_epoch <= disc_pretrain_epochs:
-            update_results(pretrain_eval_disc_phase=True)
+            update_results(pretrain_disc_phase=True)
+        if pretrain_dir is not None:
+            torch.save(disc.state_dict(), os.path.join(pretrain_dir, 'disc.pth'))
+            torch.save(disc_opt.state_dict(), os.path.join(pretrain_dir, 'disc_opt.pth'))
         current_epoch = starting_epoch
-    printl('\n\nPretraining the discriminator.')
-    while current_epoch <= disc_pretrain_epochs:
-        update_results(pretrain_disc_phase=True)
-    current_epoch = starting_epoch
-    printl('\n\nPretraining the generator.')
-    while current_epoch <= gen_pretrain_epochs:
-        update_results(pretrain_gen_phase=True)
-    current_epoch = starting_epoch
+    if pretrain_dir is not None and os.path.exists(os.path.join(pretrain_dir, 'gen.pth')):
+        printl('\n\nLoading a pretrained generator.')
+        gen.load_state_dict(torch.load(os.path.join(pretrain_dir, 'gen.pth')))
+        gen_opt.load_state_dict(torch.load(os.path.join(pretrain_dir, 'gen_opt.pth')))
+    else:
+        printl('\n\nPretraining the generator.')
+        while current_epoch <= gen_pretrain_epochs:
+            update_results(pretrain_gen_phase=True)
+        if pretrain_dir is not None:
+            torch.save(gen.state_dict(), os.path.join(pretrain_dir, 'gen.pth'))
+            torch.save(gen_opt.state_dict(), os.path.join(pretrain_dir, 'gen_opt.pth'))
+        current_epoch = starting_epoch
     printl('\n\nTraining the system.')
     while current_epoch <= train_epochs:
         update_results()
@@ -215,6 +289,8 @@ def run_trial(
         while current_epoch <= eval_disc_posttrain_epochs:
             update_results(posttrain_eval_disc_phase=True)
     
+    if trial_info is not None:
+        results.update({'trial_info': trial_info})
     with open(os.path.join(save_dir, 'results.pickle'), 'wb') as F:
         pickle.dump(results, F)
 
@@ -234,20 +310,28 @@ def plot_traces(results_dir):
     (fig, axes) = plt.subplots(1, 4, figsize=(4*ax_length, ax_length))
     
     dl_ax = axes[0]
-    dl_tr_loss = results['tr_pt_disc_loss']+results['tr_disc_loss']
-    dl_te_loss = results['te_pt_disc_loss']+results['te_disc_loss']
+    dl_tr_loss = results['tr_disc_loss']
+    if 'tr_pt_disc_loss' in results.keys():
+        dl_tr_loss = results['tr_pt_disc_loss']+dl_tr_loss
+    dl_te_loss = results['te_disc_loss']
+    if 'te_pt_disc_loss' in results.keys():
+        dl_te_loss = results['te_pt_disc_loss']+dl_te_loss
     dl_epochs = np.arange(len(dl_tr_loss))
     dl_ax.plot(dl_epochs, dl_tr_loss, linestyle='--', color='blue', label='loop-train')
     dl_ax.plot(dl_epochs, dl_te_loss, linestyle='-', color='blue', label='loop-test')
     if 'tr_pt_eval_disc_loss' in results.keys():
-        dl_tr_eval_loss = results['tr_pt_eval_disc_loss']+results['tr_eval_disc_loss']+results['tr_po_eval_disc_loss']
-        dl_te_eval_loss = results['te_pt_eval_disc_loss']+results['te_eval_disc_loss']+results['te_po_eval_disc_loss']
+        dl_tr_eval_loss = results['tr_eval_disc_loss']+results['tr_po_eval_disc_loss']
+        if 'tr_pt_eval_disc_loss' in results.keys():
+            dl_tr_eval_loss = results['tr_pt_eval_disc_loss'] + dl_tr_eval_loss
+        dl_te_eval_loss = results['te_eval_disc_loss']+results['te_po_eval_disc_loss']
+        if 'te_pt_eval_disc_loss' in results.keys():
+            dl_te_eval_loss = results['te_pt_eval_disc_loss'] + dl_te_eval_loss
         dl_ax.plot(np.arange(len(dl_tr_eval_loss)), dl_tr_eval_loss, linestyle='--', color='green', label='ind-train')
         dl_ax.plot(np.arange(len(dl_te_eval_loss)), dl_te_eval_loss, linestyle='-', color='green', label='ind-test')
     dl_ax.set_xlabel('Epoch')
     dl_ax.set_ylabel('Loss')
     dl_ax.set_yscale('log')
-    dl_ax.axvspan(0, len(results['tr_pt_disc_loss'])-.5, alpha=0.25, color='gray', label='pretraining')
+    dl_ax.axvspan(0, 0 if not('tr_pt_disc_loss' in results.keys()) else len(results['tr_pt_disc_loss'])-.5, alpha=0.25, color='gray', label='pretraining')
     dl_ax.axvspan(len(dl_tr_loss)-.5, len(dl_tr_eval_loss)-1, alpha=0.25, color='red', label='posttraining')
     dl_ax.legend()
     dl_ax.set_title('Discriminator loss')
@@ -255,20 +339,28 @@ def plot_traces(results_dir):
     dl_ax.grid(True)
     
     da_ax = axes[1]
-    da_tr_acc = results['tr_pt_disc_acc']+results['tr_disc_acc']
-    da_te_acc = results['te_pt_disc_acc']+results['te_disc_acc']
+    da_tr_acc = results['tr_disc_acc']
+    if 'tr_pt_disc_acc' in results.keys():
+        da_tr_acc = results['tr_pt_disc_acc']+da_tr_acc
+    da_te_acc = results['te_disc_acc']
+    if 'te_pt_disc_acc' in results.keys():
+        da_te_acc = results['te_pt_disc_acc']+da_te_acc
     da_epochs = dl_epochs
     da_ax.plot(da_epochs, da_tr_acc, linestyle='--', color='blue', label='loop-train')
     da_ax.plot(da_epochs, da_te_acc, linestyle='-', color='blue', label='loop-test')
     if 'tr_pt_eval_disc_acc' in results.keys():
-        da_tr_eval_acc = results['tr_pt_eval_disc_acc']+results['tr_eval_disc_acc']+results['tr_po_eval_disc_acc']
-        da_te_eval_acc = results['te_pt_eval_disc_acc']+results['te_eval_disc_acc']+results['te_po_eval_disc_acc']
+        da_tr_eval_acc = results['tr_eval_disc_acc']+results['tr_po_eval_disc_acc']
+        if 'tr_pt_eval_disc_acc' in results.keys():
+            da_tr_eval_acc = results['tr_pt_eval_disc_acc']+da_tr_eval_acc
+        da_te_eval_acc = results['te_eval_disc_acc']+results['te_po_eval_disc_acc']
+        if 'te_pt_eval_disc_acc' in results.keys():
+            da_te_eval_acc = results['te_pt_eval_disc_acc']+da_te_eval_acc
         da_ax.plot(np.arange(len(da_tr_eval_acc)), da_tr_eval_acc, linestyle='--', color='green', label='ind-train')
         da_ax.plot(np.arange(len(da_te_eval_acc)), da_te_eval_acc, linestyle='-', color='green', label='ind-test')
     da_ax.set_xlabel('Epoch')
     da_ax.set_ylabel('Accuracy')
     da_ax.set_ylim(0, 1)
-    da_ax.axvspan(0, len(results['tr_pt_disc_acc'])-.5, alpha=0.25, color='gray', label='pretraining')
+    da_ax.axvspan(0, 0 if not('tr_pt_disc_acc' in results.keys()) else len(results['tr_pt_disc_acc'])-.5, alpha=0.25, color='gray', label='pretraining')
     da_ax.axvspan(len(da_tr_acc)-.5, len(da_tr_eval_acc)-1, alpha=0.25, color='red', label='posttraining')
     da_ax.legend()
     da_ax.set_title('Discriminator accuracy')
@@ -276,9 +368,13 @@ def plot_traces(results_dir):
     da_ax.grid(True)
     
     g_ax = axes[2]
-    g_tr_rec_loss = results['tr_pt_gen_loss']+results['tr_gen_rec_loss']
+    g_tr_rec_loss = results['tr_gen_rec_loss']
+    if 'tr_pt_gen_loss' in results.keys():
+        g_tr_rec_loss = results['tr_pt_gen_loss']+g_tr_rec_loss
     g_tr_adv_loss = results['tr_gen_adv_loss']
-    g_te_rec_loss = results['te_pt_gen_loss']+results['te_gen_rec_loss']
+    g_te_rec_loss = results['te_gen_rec_loss']
+    if 'te_pt_gen_loss' in results.keys():
+        g_te_rec_loss = results['te_pt_gen_loss']+g_te_rec_loss
     g_te_adv_loss = results['te_gen_adv_loss']
     g_ax.plot(np.arange(len(g_tr_rec_loss)), g_tr_rec_loss, linestyle='--', color='blue', label='rec-train')
     g_ax.plot(np.arange(len(g_tr_rec_loss)-len(g_tr_adv_loss), len(g_tr_rec_loss)), g_tr_adv_loss, linestyle='--', color='red', label='adv-train')
@@ -287,7 +383,7 @@ def plot_traces(results_dir):
     g_ax.set_xlabel('Epoch')
     g_ax.set_ylabel('Loss')
     g_ax.set_yscale('log')
-    g_ax.axvspan(0, len(results['tr_pt_gen_loss'])-.5, alpha=0.25, color='gray', label='pretraining')
+    g_ax.axvspan(0, 0 if not('tr_pt_gen_loss' in results.keys()) else len(results['tr_pt_gen_loss'])-.5, alpha=0.25, color='gray', label='pretraining')
     g_ax.legend()
     g_ax.set_title('Generator loss')
     g_ax.set_xlim(0, len(g_tr_rec_loss)-1)
