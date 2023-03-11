@@ -3,6 +3,11 @@ import torch
 import torchvision
 from tqdm import tqdm
 
+def normalize_tensor(x):
+    r_x = np.max(x)-np.min(x)
+    x = 2*(x-0.5*r_x)/r_x
+    return x
+
 def add_square_watermark(image, center, radius):
     for ridx in range(center[0]-radius, center[0]+radius+1):
         for cidx in range(center[1]-radius, center[1]+radius+1):
@@ -28,13 +33,7 @@ class ColoredMNIST(torchvision.datasets.MNIST):
         
         color_0 = np.array([0.0, 0.0, 1.0]).reshape((3, 1, 1)) # blue
         color_1 = np.array([1.0, 0.0, 0.0]).reshape((3, 1, 1)) # red
-        color_transformations = [
-            lambda x: (color_0 + delta*(color_1-color_0))*x for delta in np.linspace(0, 1, num_colors)
-        ]
-        def normalize(x):
-            r_x = np.max(x)-np.min(x)
-            x = 2*(x-0.5*r_x)/r_x
-            return x
+        colors = [color_0 + delta*(color_1-color_0) for delta in np.linspace(0, 1, num_colors)]
         
         self.orig_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
         self.colored_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
@@ -42,11 +41,14 @@ class ColoredMNIST(torchvision.datasets.MNIST):
         for idx, data in enumerate(self.data):
             data = np.array(data).astype(np.float)
             color_target = np.random.randint(num_colors)
-            color_transformation = color_transformations[color_target]
-            colored_data = color_transformation(data.reshape((1, 28, 28)))
+            color = colors[color_target]
+            colored_data = np.stack(
+                [channel*(data.squeeze()) for channel in color],
+                axis=0
+            )
             if normalize:
-                data = normalize(data)
-                colored_data = normalize(colored_data)
+                data = normalize_tensor(data)
+                colored_data = normalize_tensor(colored_data)
             self.orig_data[idx] = data
             self.colored_data[idx] = colored_data
             self.color_targets[idx] = color_target
@@ -73,7 +75,7 @@ class WatermarkedMNIST(torchvision.datasets.MNIST):
         self.watermark_targets = len(self.targets)*[0]
         for idx, data in enumerate(self.data):
             data = np.array(data).astype(np.float)
-            data = 2.*(data/np.max(data))-1.
+            data = normalize_tensor(data)
             self.orig_data[idx] = data
             watermark_target = np.random.randint(2)
             if deterministic_position:

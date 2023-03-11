@@ -117,11 +117,10 @@ class IndClassifier(nn.Module):
         return logits
 
 def confusion_loss_fn(logits, tolerance=0.0):
-    model_dist = nn.functional.softmax(logits, dim=-1)
     uniform_dist = nn.functional.softmax(torch.zeros_like(logits), dim=-1)
-    cross_entropy = nn.functional.binary_cross_entropy(model_dist, uniform_dist)
-    uniform_entropy = nn.functional.binary_cross_entropy(uniform_dist, uniform_dist)
-    kl_div = cross_entropy - uniform_entropy
+    model_log_dist = nn.functional.log_softmax(logits, dim=-1)
+    uniform_log_dist = nn.functional.log_softmax(torch.zeros_like(logits), dim=-1)
+    kl_div = (uniform_dist*(uniform_log_dist-model_log_dist)).sum()
     if kl_div < tolerance:
         kl_div = 0.0*kl_div
     return kl_div

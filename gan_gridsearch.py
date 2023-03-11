@@ -3,7 +3,9 @@ from copy import deepcopy
 import os
 import torch
 from torch import nn, optim
-from lagrangian_trial import run_trial, generate_animation, plot_traces
+from datasets.classified_mnist import ColoredMNIST, WatermarkedMNIST
+from gan_trial import run_trial, generate_animation, plot_traces
+from gan_train import hinge_loss, leaky_hinge_loss, sum_loss
 
 def unwrap_config_dict(config_dict):
     unwrapped_dicts = []
@@ -16,18 +18,26 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main():
-    save_dir = os.path.join('.', 'results', 'lagrangian_trial__colored')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch')
     default_args = {
         'save_dir': save_dir,
-        'pretrain_dir': os.path.join(save_dir, 'pretrained_models')
     }
     args_to_sweep = {
-        'rec_loss_fn': [nn.MSELoss, nn.L1Loss],
-        'lbd_opt_kwargs': [{'lr': 1e-1}, {'lr': 1e0}, {'lr': 1e1}],
-        'separate_cls_partition': [True, False]
+        'dataset': [WatermarkedMNIST, ColoredMNIST],
+        'gen_loss': [hinge_loss, leaky_hinge_loss, sum_loss],
+        'disc_loss': [hinge_loss, leaky_hinge_loss],
+        'gen_kwargs': [
+            {'num_kernels': 16, 'bottleneck_width': 64, 'use_instance_norm': True},
+            {'num_kernels': 16, 'bottleneck_width': 64, 'use_spectral_norm': True}
+        ],
+        'disc_kwargs': [
+            {'num_kernels': 16, 'use_spectral_norm': True},
+            {'num_kernels': 16, 'use_instance_norm': True}
+        ]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
-        try:
+        #try:
+        if True:
             args = deepcopy(default_args)
             args.update(sweep_config)
             trial_dir = os.path.join(save_dir, 'trial_{}'.format(trial_idx))
@@ -43,10 +53,10 @@ def main():
             generate_animation(trial_dir)
             print('Done.')
             print('\n\n')
-        except BaseException as e:
-            print('Trial {} failed.'.format(trial_idx))
-            print('Sweep config: {}'.format(sweep_config))
-            print('Exception: {}'.format(e))
+        #except BaseException as e:
+        #    print('Trial {} failed.'.format(trial_idx))
+        #    print('Sweep config: {}'.format(sweep_config))
+        #    print('Exception: {}'.format(e))
     
 if __name__ == '__main__':
     main()

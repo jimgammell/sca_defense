@@ -13,7 +13,7 @@ from models.res_autoencoder import Encoder as ResEnc, Decoder as ResDec
 from datasets.classified_mnist import WatermarkedMNIST, ColoredMNIST
 
 def run_trial(
-    dataset=WatermarkedMNIST,
+    dataset=ColoredMNIST,
     dataset_kwargs={},
     enc=ResEnc,
     enc_kwargs={'use_sn': False},
@@ -39,7 +39,7 @@ def run_trial(
     cls_loss_fn_kwargs={},
     icls_loss_fn=nn.CrossEntropyLoss,
     icls_loss_fn_kwargs={},
-    pretrain_epochs=50,
+    pretrain_epochs=10,
     epochs=250,
     posttrain_epochs=50,
     batch_size=512,
@@ -52,7 +52,7 @@ def run_trial(
     trial_info=None):
     
     if save_dir is None:
-        save_dir = os.path.join('.', 'results', 'lagrangian_trial')
+        save_dir = os.path.join('.', 'results', 'lagrangian_trial__colored')
     if pretrain_dir is None:
         pretrain_dir = os.path.join(save_dir, 'pretrained_models')
     eg_frames_dir = os.path.join(save_dir, 'eg_frames')
@@ -64,7 +64,7 @@ def run_trial(
     for s in ['train', 'validation', 'test']:
         os.makedirs(os.path.join(results_dir, s), exist_ok=True)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'#'cuda' if torch.cuda.is_available() else 'cpu'
     
     mnist_loc = os.path.join('.', 'downloads', 'MNIST')
     train_dataset = dataset(train=True, root=mnist_loc, download=True)
@@ -154,10 +154,12 @@ def run_trial(
         if not posttrain_phase:
             fig, axes = plt.subplots(4, 10, figsize=(40, 16))
             for eg, ax in zip(val_rv['orig_example'][0].squeeze(), axes[:, :5].flatten()):
+                eg = eg.transpose(1, 2, 0)
                 ax.imshow(eg, cmap='binary')
                 for spine in ax.spines.values():
                     spine.set_edgecolor('gray')
             for eg, ax in zip(val_rv['rec_example'][0].squeeze(), axes[:, 5:].flatten()):
+                eg = eg.transpose(1, 2, 0)
                 ax.imshow(eg, cmap='binary')
                 for spine in ax.spines.values():
                     spine.set_edgecolor('blue')
@@ -301,7 +303,7 @@ def generate_animation(trial_dir):
                    format='GIF', append_images=images[1:], save_all=True, duration=100, loop=0)
     
 if __name__ == '__main__':
-    save_dir = os.path.join('.', 'results', 'lagrangian_trial')
+    save_dir = os.path.join('.', 'results', 'lagrangian_trial__colored')
     if '--run-trial' in sys.argv:
         run_trial(save_dir=save_dir)
     if '--generate-figs' in sys.argv:
