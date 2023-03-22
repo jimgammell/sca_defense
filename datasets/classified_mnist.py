@@ -22,6 +22,17 @@ def add_plus_watermark(image, center, radius):
                 image[ridx, cidx] = np.max(image)
     return image
 
+@torch.no_grad()
+def apply_transform(data, transform, batch_size, device):
+    for b_idx in range(len(data)//batch_size):
+        batch = data[batch_size*b_idx : batch_size*(b_idx+1)]
+        batch = torch.stack([
+            torch.from_numpy(x).to(device).to(torch.float) for x in batch
+        ]).reshape((batch_size, -1, 28, 28))
+        transformed_batch = transform(batch)
+        for x_idx in range(batch_size):
+            data[batch_size*b_idx+x_idx] = transformed_batch[x_idx].cpu().numpy()
+
 class ColoredMNIST(torchvision.datasets.MNIST):
     input_shape = (3, 28, 28)
     num_classes = 2
@@ -36,7 +47,7 @@ class ColoredMNIST(torchvision.datasets.MNIST):
         colors = [color_0 + delta*(color_1-color_0) for delta in np.linspace(0, 1, num_colors)]
         
         self.orig_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
-        self.colored_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
+        self.new_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
         self.color_targets = len(self.targets)*[0]
         for idx, data in enumerate(self.data):
             data = np.array(data).astype(np.float)
@@ -50,14 +61,14 @@ class ColoredMNIST(torchvision.datasets.MNIST):
                 data = normalize_tensor(data)
                 colored_data = normalize_tensor(colored_data)
             self.orig_data[idx] = data
-            self.colored_data[idx] = colored_data
+            self.new_data[idx] = colored_data
             self.color_targets[idx] = color_target
     
     def __getitem__(self, idx):
         _, target = super().__getitem__(idx)
         orig_data = self.orig_data[idx]
         orig_data = torch.from_numpy(np.array(orig_data)).to(torch.float)
-        data = torch.from_numpy(self.colored_data[idx]).to(torch.float).reshape(ColoredMNIST.input_shape)
+        data = torch.from_numpy(self.new_data[idx]).to(torch.float).reshape(ColoredMNIST.input_shape)
         if self.transform is not None:
             data = self.transform(data)
         color_target = torch.tensor(self.color_targets[idx]).to(torch.long)
@@ -70,8 +81,8 @@ class WatermarkedMNIST(torchvision.datasets.MNIST):
     def __init__(self, *args, deterministic_position=False, deterministic_radius=False, normalize=True, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.orig_data = len(self.data)*[np.zeros(self.data[0].shape, dtype=np.float)]
-        self.watermarked_data = len(self.data)*[np.zeros(self.data[0].shape, dtype=np.float)]
+        self.orig_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
+        self.new_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
         self.watermark_targets = len(self.targets)*[0]
         for idx, data in enumerate(self.data):
             data = np.array(data).astype(np.float)
@@ -90,14 +101,14 @@ class WatermarkedMNIST(torchvision.datasets.MNIST):
                 watermarked_data = add_square_watermark(data, watermark_center, watermark_radius)
             else:
                 watermarked_data = add_plus_watermark(data, watermark_center, watermark_radius)
-            self.watermarked_data[idx] = watermarked_data
+            self.new_data[idx] = watermarked_data
             self.watermark_targets[idx] = watermark_target
         
     def __getitem__(self, idx):
         _, target = super().__getitem__(idx)
         orig_data = self.orig_data[idx]
         orig_data = torch.from_numpy(np.array(orig_data)).to(torch.float)
-        data = torch.from_numpy(self.watermarked_data[idx]).to(torch.float).reshape(WatermarkedMNIST.input_shape)
+        data = torch.from_numpy(self.new_data[idx]).to(torch.float).reshape(WatermarkedMNIST.input_shape)
         if self.transform is not None:
             data = self.transform(data)
         watermark_target = torch.tensor(self.watermark_targets[idx]).to(torch.long)

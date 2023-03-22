@@ -9,27 +9,38 @@ import imageio
 import torch
 from torch import nn, optim
 from gan_train import *
-from models.sagan import Generator, Discriminator
-from datasets.classified_mnist import WatermarkedMNIST, ColoredMNIST
+from models.sa_unet import Generator, Discriminator, SanitizingDiscriminator
+from datasets.classified_mnist import WatermarkedMNIST, ColoredMNIST, apply_transform
 
 def run_trial(
     dataset=ColoredMNIST,
     dataset_kwargs={},
-    gen=Generator,
+    gen_constructor=Generator,
     gen_kwargs={},
     gen_opt=optim.Adam,
     gen_opt_kwargs={'lr': 1e-4, 'betas': (0.0, 0.9)},
-    disc=Discriminator,
+    disc_constructor=SanitizingDiscriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
     disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.9)},
-    accelerate_examples=False,
-    pretrain_gen_epochs=0,
-    epochs=10,
+    pretrain_gen_epochs=25,
+    epochs=250,
+    posttrain_epochs=25,
     batch_size=256,
+    swa_start_epoch=5,
+    project_gen_updates=False,
+    sub_realism_mean=True,
+    div_realism_std=True,
+    separate_leakage_partition=True,
+    gen_leakage_coefficient=0.1,
+    disc_invariance_coefficient=0.5,
+    disc_steps_per_gen_step=1.0,
+    stochastic_weight_averaging=False,
+    gen_skip_connection=True,
     save_dir=None,
     trial_info=None):
     
+    #gen_kwargs.update({'skip_connection': gen_skip_connection})
     if save_dir is None:
         save_dir = os.path.join('.', 'results', 'gan_trial')
     eg_frames_dir = os.path.join(save_dir, 'eg_frames')
@@ -44,24 +55,37 @@ def run_trial(
     
     mnist_loc = os.path.join('.', 'downloads', 'MNIST')
     train_dataset = dataset(train=True, root=mnist_loc, download=True)
-    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, (50000, 10000))
+    if separate_leakage_partition:
+        train_dataset, val_dataset, leakage_dataset = torch.utils.data.random_split(train_dataset, (25000, 10000, 25000))
+        leakage_dataset = torch.utils.data.ConcatDataset((len(train_dataset)//len(leakage_dataset))*[leakage_dataset])
+    else:
+        train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, (50000, 10000))
     test_dataset = dataset(train=False, root=mnist_loc, download=True)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+    if separate_leakage_partition:
+        leakage_dataloader = torch.utils.data.DataLoader(leakage_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
     
-    gen = gen(dataset.input_shape, **gen_kwargs).to(device)
+    gen = gen_constructor(dataset.input_shape, **gen_kwargs).to(device)
+    eval_gen = None
     gen_opt = gen_opt(gen.parameters(), **gen_opt_kwargs)
     gen_loss_fn = lambda *args: gen_loss(*args, **gen_loss_kwargs)
-    disc = disc(dataset.input_shape, **disc_kwargs).to(device)
+    disc = disc_constructor(dataset.input_shape, leakage_classes=dataset.num_classes, **disc_kwargs).to(device)
     disc_opt = disc_opt(disc.parameters(), **disc_opt_kwargs)
     disc_loss_fn = lambda *args: disc_loss(*args, **disc_loss_kwargs)
+    if stochastic_weight_averaging:
+        ema_avg = lambda averaged_model_parameter, model_parameter, _: 0.1*model_parameter + 0.9*averaged_model_parameter
+        gen_swa = torch.optim.swa_utils.AveragedModel(gen, avg_fn=ema_avg)
+        disc_swa = torch.optim.swa_utils.AveragedModel(disc, avg_fn=ema_avg)
+    else:
+        gen_swa = disc_swa = None
     train_args = (gen, gen_opt, disc, disc_opt, device)
     eval_args = (gen, disc, device)
     
     results = {}
-    def update_results(current_epoch, eval_only=False, autoencoder_gen=False):
-        nonlocal results
+    def update_results(current_epoch, eval_only=False, autoencoder_gen=False, posttrain=False):
+        nonlocal results, eval_gen, eval_args
         def preface_keys(d, preface):
             for key, item in deepcopy(d).items():
                 d[preface+'_'+key] = item
@@ -74,30 +98,49 @@ def run_trial(
         print('\n\n')
         print('Starting epoch {}.'.format(current_epoch))
         
+        kwargs = {
+            'sub_realism_mean': sub_realism_mean,
+            'div_realism_std': div_realism_std,
+            'gen_leakage_coefficient': gen_leakage_coefficient,
+            'disc_invariance_coefficient': disc_invariance_coefficient,
+            'autoencoder_gen': autoencoder_gen,
+            'gen_swa': gen_swa if current_epoch >= swa_start_epoch else None,
+            'disc_swa': disc_swa if current_epoch >= swa_start_epoch else None
+        }
         t0 = time.time()
         if not eval_only:
-            train_rv = train_epoch(train_dataloader, *train_args,
-                                   accelerate_examples=accelerate_examples,
+            train_rv = train_epoch(train_dataloader, *(train_args if not posttrain else posttrain_args),
+                                   leakage_dataloader=None if posttrain or not(separate_leakage_partition) else leakage_dataloader,
                                    return_weight_norms=True,
                                    return_grad_norms=True,
-                                   autoencoder_gen=autoencoder_gen)
+                                   project_gen_updates=project_gen_updates,
+                                   disc_steps_per_gen_step=disc_steps_per_gen_step,
+                                   posttrain=posttrain,
+                                   **kwargs)
         else:
-            train_rv = eval_epoch(train_dataloader, *eval_args)
+            train_rv = eval_epoch(train_dataloader, *(eval_args if not posttrain else posteval_args), posttrain=posttrain, **kwargs)
         train_rv['time'] = time.time()-t0
         print('Done with training phase. Results:')
         print_d(train_rv)
         
         t0 = time.time()
-        val_rv = eval_epoch(val_dataloader, *eval_args, return_example_idx=0)
+        val_rv = eval_epoch(val_dataloader, *(eval_args if not posttrain else posteval_args),
+                            return_example_idx=0, posttrain=posttrain, **kwargs)
         val_rv['time'] = time.time()-t0
         print('Done with validation phase. Results:')
         print_d(val_rv)
         
         t0 = time.time()
-        test_rv = eval_epoch(test_dataloader, *eval_args)
+        test_rv = eval_epoch(test_dataloader, *(eval_args if not posttrain else posteval_args),
+                             posttrain=posttrain, **kwargs)
         test_rv['time'] = time.time()-t0
         print('Done with test phase. Results:')
         print_d(test_rv)
+        
+        if posttrain:
+            preface_keys(train_rv, 'posttrain')
+            preface_keys(val_rv, 'posttrain')
+            preface_keys(test_rv, 'posttrain')
         
         if 'orig_example' in val_rv.keys() and 'rec_example' in val_rv.keys():
             fig, axes = plt.subplots(4, 10, figsize=(40, 16))
@@ -118,7 +161,7 @@ def run_trial(
                 ax.get_yaxis().set_ticks([])
             fig.suptitle('Epoch: {}'.format(current_epoch))
             plt.tight_layout()
-            fig.savefig(os.path.join(eg_frames_dir, 'frame_{}.jpg'.format(current_epoch)))
+            fig.savefig(os.path.join(eg_frames_dir, 'frame_{}.jpg'.format(current_epoch)), dpi=50)
             plt.close()
             del val_rv['orig_example']
             del val_rv['rec_example']
@@ -139,6 +182,19 @@ def run_trial(
         update_results(epoch_idx, autoencoder_gen=True)
     for epoch_idx in range(pretrain_gen_epochs+1, pretrain_gen_epochs+epochs+1):
         update_results(epoch_idx)
+        
+    # Train independent discriminator on the transformed datapoints to assess leakage
+    gen.eval()
+    apply_transform(train_dataset.dataset.new_data, gen, batch_size, device)
+    apply_transform(val_dataset.dataset.new_data, gen, batch_size, device)
+    apply_transform(test_dataset.new_data, gen, batch_size, device)
+    eval_disc = Discriminator(dataset.input_shape, n_classes=dataset.num_classes,
+                              use_sn=False, activation=nn.ReLU).to(device)
+    eval_disc_opt = optim.Adam(eval_disc.parameters(), lr=2e-4)
+    posttrain_args = (eval_disc, eval_disc_opt, nn.CrossEntropyLoss(), device)
+    posteval_args = (eval_disc, nn.CrossEntropyLoss(), device)
+    for epoch_idx in range(pretrain_gen_epochs+epochs+1, pretrain_gen_epochs+epochs+posttrain_epochs+1):
+        update_results(epoch_idx, posttrain=True)
         
 def plot_traces(trial_dir):
     figs_dir = os.path.join(trial_dir, 'figures')
@@ -161,14 +217,10 @@ def plot_traces(trial_dir):
         sorted_indices = np.argsort(epochs)
         epochs = epochs[sorted_indices]
         vals = vals[sorted_indices]
-        return epochs, vals
+        return epochs[1:], vals[1:]
     
-    ex_acc_tr = get_trace('acceleration_loss', 'train')
     ax_width = 4
-    if ex_acc_tr is not None:
-        n_axes = 4
-    else:
-        n_axes = 3
+    n_axes = 6
     (fig, axes) = plt.subplots(1, n_axes, figsize=(n_axes*ax_width, ax_width))
     
     axes[0].plot(*get_trace('disc_loss', 'train'), '--', color='red')
@@ -181,29 +233,54 @@ def plot_traces(trial_dir):
     axes[0].set_yscale('symlog', linthresh=1e-1)
     axes[0].legend()
     
-    axes[1].plot(*get_trace('disc_weight_norm', 'train'), '--', color='red', label='Disc (train)')
-    axes[1].plot(*get_trace('gen_weight_norm', 'train'), '--', color='blue', label='Gen (train)')
+    axes[1].plot(*get_trace('disc_loss_realism', 'train'), '--', color='red')
+    axes[1].plot(*get_trace('disc_loss_realism', 'validation'), '-', color='red', label='Disc loss')
+    axes[1].plot(*get_trace('gen_loss_realism', 'train'), '--', color='blue')
+    axes[1].plot(*get_trace('gen_loss_realism', 'validation'), '-', color='blue', label='Gen loss')
     axes[1].set_xlabel('Epoch')
-    axes[1].set_ylabel('Weight norm')
-    axes[1].set_title('Weight norms over time')
+    axes[1].set_ylabel('Loss')
+    axes[1].set_title('Realism loss over time')
+    axes[1].set_yscale('symlog', linthresh=1e-1)
     axes[1].legend()
     
-    axes[2].plot(*get_trace('disc_grad_norm', 'train'), '--', color='red', label='Disc (train)')
-    axes[2].plot(*get_trace('gen_grad_norm', 'train'), '--', color='blue', label='Gen (train)')
+    axes[2].plot(*get_trace('disc_loss_leakage', 'train'), '--', color='red')
+    axes[2].plot(*get_trace('disc_loss_leakage', 'validation'), '-', color='red')
+    axes[2].plot(*get_trace('gen_loss_leakage', 'train'), '--', color='blue', label='Disc loss')
+    axes[2].plot(*get_trace('gen_loss_leakage', 'validation'), '-', color='blue', label='Gen loss')
     axes[2].set_xlabel('Epoch')
-    axes[2].set_ylabel('Grad norm')
-    axes[2].set_title('Gradient norms over time')
-    axes[2].set_yscale('log')
+    axes[2].set_ylabel('Loss')
+    axes[2].set_title('Leakage loss over time')
+    axes[2].set_yscale('symlog', linthresh=1e-1)
     axes[2].legend()
     
-    if ex_acc_tr is not None:
-        axes[3].plot(*ex_acc_trace, '--', color='orange', label='Loss (train)')
-        tax3 = axes[3].twinx()
-        tax3.twinx().plot(*get_trace('acceleration_iter', 'train'), '--', color='black', label='Iters (train)')
-        axes[3].set_xlabel('Epoch')
-        axes[3].set_ylabel('Accelerated example loss')
-        tax3.set_ylabel('Acceleration iters')
-        axes[3].set_title('Example acceleration metrics over time')
+    axes[3].plot(*get_trace('disc_weight_norm', 'train'), '--', color='red', label='Disc (train)')
+    axes[3].plot(*get_trace('gen_weight_norm', 'train'), '--', color='blue', label='Gen (train)')
+    axes[3].set_xlabel('Epoch')
+    axes[3].set_ylabel('Weight norm')
+    axes[3].set_title('Weight norms over time')
+    axes[3].legend()
+    
+    axes[4].plot(*get_trace('disc_grad_norm', 'train'), '--', color='red', label='Disc (train)')
+    axes[4].plot(*get_trace('gen_grad_norm', 'train'), '--', color='blue', label='Gen (train)')
+    axes[4].set_xlabel('Epoch')
+    axes[4].set_ylabel('Grad norm')
+    axes[4].set_title('Gradient norms over time')
+    axes[4].set_yscale('log')
+    axes[4].legend()
+    
+    axes[5].plot(*get_trace('posttrain_loss', 'train'), '--', color='green')
+    axes[5].plot(*get_trace('posttrain_loss', 'validation'), '-', color='green', label='Loss')
+    tax5 = axes[5].twinx()
+    tax5.plot(*get_trace('posttrain_acc', 'train'), '--', color='orange')
+    tax5.plot(*get_trace('posttrain_acc', 'validation'), '-', color='orange', label='Accuracy')
+    axes[5].set_xlabel('Epoch')
+    axes[5].set_ylabel('Loss (cross entropy')
+    tax5.set_ylabel('Accuracy')
+    axes[5].set_title('Performance of independent discriminator')
+    axes[5].set_yscale('log')
+    tax5.set_ylim(0.0, 1.0)
+    axes[5].legend(loc='upper right')
+    tax5.legend(loc='lower left')
     
     plt.tight_layout()
     fig.savefig(os.path.join(figs_dir, 'traces.jpg'), dpi=50)
@@ -222,6 +299,7 @@ def generate_animation(trial_dir):
     
 if __name__ == '__main__':
     for dataset, save_dir in zip([WatermarkedMNIST, ColoredMNIST], ['gan_trial__watermarked', 'gan_trial__colored']):
+        save_dir = os.path.join('.', 'results', save_dir)
         if '--run-trial' in sys.argv:
             run_trial(dataset=dataset, save_dir=save_dir)
         if '--generate-figs' in sys.argv:

@@ -2,10 +2,10 @@ import itertools
 from copy import deepcopy
 import os
 import torch
+import json
 from torch import nn, optim
 from datasets.classified_mnist import ColoredMNIST, WatermarkedMNIST
 from gan_trial import run_trial, generate_animation, plot_traces
-from gan_train import hinge_loss, leaky_hinge_loss, sum_loss
 
 def unwrap_config_dict(config_dict):
     unwrapped_dicts = []
@@ -18,26 +18,19 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main():
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_ii')
     default_args = {
         'save_dir': save_dir,
     }
     args_to_sweep = {
-        'dataset': [WatermarkedMNIST, ColoredMNIST],
-        'gen_loss': [hinge_loss, leaky_hinge_loss, sum_loss],
-        'disc_loss': [hinge_loss, leaky_hinge_loss],
-        'gen_kwargs': [
-            {'num_kernels': 16, 'bottleneck_width': 64, 'use_instance_norm': True},
-            {'num_kernels': 16, 'bottleneck_width': 64, 'use_spectral_norm': True}
-        ],
-        'disc_kwargs': [
-            {'num_kernels': 16, 'use_spectral_norm': True},
-            {'num_kernels': 16, 'use_instance_norm': True}
-        ]
+        'dataset': [ColoredMNIST],
+        'gen_skip_connection': [True, False],
+        'disc_steps_per_gen_step': [1.0, 5.0],
+        'project_gen_updates': [False, True],
+        'gen_leakage_coefficient': [0.1, 0.5, 0.9]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
-        #try:
-        if True:
+        try:
             args = deepcopy(default_args)
             args.update(sweep_config)
             trial_dir = os.path.join(save_dir, 'trial_{}'.format(trial_idx))
@@ -53,10 +46,13 @@ def main():
             generate_animation(trial_dir)
             print('Done.')
             print('\n\n')
-        #except BaseException as e:
-        #    print('Trial {} failed.'.format(trial_idx))
-        #    print('Sweep config: {}'.format(sweep_config))
-        #    print('Exception: {}'.format(e))
+            for key, item in sweep_config.items():
+                if type(item) != str:
+                    sweep_config[key] = str(item)
+            with open(os.path.join(trial_dir, 'sweep_config.json'), 'w') as F:
+                json.dump(sweep_config, F)
+        except:
+            pass
     
 if __name__ == '__main__':
     main()

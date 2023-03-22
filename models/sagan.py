@@ -95,6 +95,59 @@ class GeneratorBlock(nn.Module):
         out = self.rejoin(x_comb)
         return out
     
+class SanitizingDiscriminator(nn.Module):
+    def __init__(self, input_shape, leakage_classes=2, initial_channels=16, downsample_blocks=2, fixed_resample=True):
+        super().__init__()
+        
+        self.input_transform = spectral_norm(nn.Conv2d(input_shape[0], initial_channels, kernel_size=1, stride=1, padding=0))
+        self.feature_extractor = nn.Sequential(
+            DiscriminatorBlock(
+                initial_channels, 2*initial_channels,
+                fixed_resample=fixed_resample, downsample=True
+            ),
+          *[DiscriminatorBlock(
+                initial_channels*2**n, initial_channels*2**(n+1),
+                fixed_resample=fixed_resample, downsample=True
+            ) for n in range(1, downsample_blocks)],
+            DiscriminatorBlock(
+                initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks,
+                fixed_resample=fixed_resample
+            ),
+            nn.LeakyReLU(0.1)
+        )
+        self.realism_feature_extractor = nn.Sequential(
+            DiscriminatorBlock(
+                initial_channels*2**(downsample_blocks+1), initial_channels*2**downsample_blocks,
+                fixed_resample=fixed_resample
+            )
+        )
+        self.leakage_feature_extractor = nn.Sequential(
+            DiscriminatorBlock(
+                initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks,
+                fixed_resample=fixed_resample
+            )
+        )
+        self.realism_classifier = spectral_norm(nn.Linear(initial_channels*2**downsample_blocks, 1))
+        self.leakage_classifier = spectral_norm(nn.Linear(initial_channels*2**downsample_blocks, leakage_classes))
+        
+    def extract_features(self, x):
+        x_i = self.input_transform(x)
+        x_fe = self.feature_extractor(x_i)
+        return x_fe
+    
+    def assess_realism(self, x_fe_a, x_fe_b):
+        x_fe = torch.cat((x_fe_a, x_fe_b), dim=1)
+        x_fe_r = self.realism_feature_extractor(x_fe)
+        x_fe_r = x_fe_r.sum(dim=(2, 3)).view(-1, x_fe_r.shape[1])
+        out = self.realism_classifier(x_fe_r)
+        return out
+    
+    def assess_leakage(self, x_fe):
+        x_fe_l = self.leakage_feature_extractor(x_fe)
+        x_fe_l = x_fe_l.sum(dim=(2, 3)).view(-1, x_fe_l.shape[1])
+        out = self.leakage_classifier(x_fe_l)
+        return out
+    
 class Discriminator(nn.Module):
     def __init__(self, input_shape, initial_channels=16, downsample_blocks=2, fixed_resample=True, two_inputs=True):
         super().__init__()
