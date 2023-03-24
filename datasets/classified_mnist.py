@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torchvision
 from tqdm import tqdm
+from gan_train import to_uint8
 
 def normalize_tensor(x):
     r_x = np.max(x)-np.min(x)
@@ -30,6 +31,7 @@ def apply_transform(data, transform, batch_size, device):
             torch.from_numpy(x).to(device).to(torch.float) for x in batch
         ]).reshape((batch_size, -1, 28, 28))
         transformed_batch = transform(batch)
+        transformed_batch = to_uint8(transformed_batch)
         for x_idx in range(batch_size):
             data[batch_size*b_idx+x_idx] = transformed_batch[x_idx].cpu().numpy()
 

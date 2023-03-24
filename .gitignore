@@ -8,3 +8,4 @@ results
 raw_datasets
 downloads
 wandb
+profiler_logs

@@ -2,9 +2,6 @@ import numpy as np
 import torch
 from torch import nn, optim
 
-# Things to try:
-#   Use only one discriminator feature extractor for all functionalities
-
 def val(tensor):
     try:
         return tensor.detach().cpu().numpy()
@@ -66,6 +63,9 @@ def stats_l1_loss(logits, y):
         loss += (logits[y==yy]-mean).norm(p=1)
     loss /= len(logits)
     return loss
+
+def hinge_realism_loss(logits):
+    return -logits.mean()
     
 def get_invariance_penalty(f1, f2, y):
     invariance_penalty = 0.0
@@ -105,29 +105,47 @@ def compute_optimal_example(example, disc, gen, eps=1e-5, max_iter=100, opt=opti
 def get_std(x):
     return (((x - x.mean(dim=0, keepdim=True))**2).mean(dim=0, keepdim=True))**0.5
 
-def whiten_features(features, y, sub_realism_mean=False, div_realism_std=False):
-    if sub_realism_mean:
-        mn = features.mean(dim=0, keepdim=True)
-        for yy in torch.unique(y):
-            mn_yy = features[y==yy].mean(dim=0, keepdim=True)
-            features[y==yy] = features[y==yy] - mn_yy + mn
-    if div_realism_std:
-        std = get_std(features)
-        for yy in torch.unique(y):
-            std_yy = get_std(features[y==yy])
-            features[y==yy] = features[y==yy] * std / std_yy
+def get_whitened_features(features, y, detach=False):
+    mn = torch.tensor(0.0, requires_grad=not(detach), device=features.device)
+    std = torch.tensor(1.0, requires_grad=not(detach), device=features.device)
+    for yy in torch.unique(y):
+        mn_yy = features[y==yy].mean(dim=0, keepdim=True)
+        if detach:
+            mn_yy = mn_yy.detach()
+        features[y==yy] = features[y==yy] - mn_yy
+        std_yy = get_std(features[y==yy])
+        if detach:
+            std_yy = std_yy.detach()
+        features[y==yy] = features[y==yy] / std_yy
+        mn = mn + mn_yy
+        std = std * std_yy
+    mn = mn / len(torch.unique(y))
+    std = std ** (1.0/len(torch.unique(y)))
+    if detach:
+        mn, std = mn.detach(), std.detach()
+    features = std * features + mn
     return features
 
 def feature_whitening_penalty(features, y):
-    loss = 0.0
-    mn = features.mean(dim=0, keepdim=True)
-    std = get_std(features)
-    for yy in torch.unique(y):
-        mn_yy = features[y==yy].mean(dim=0, keepdim=True)
-        std_yy = get_std(features[y==yy])
-        loss += (mn_yy - mn).norm(p=1)
-        loss += (std_yy - std).norm(p=1)
-    loss /= len(features)
+    mean = torch.tensor(0.0, requires_grad=True, device=features.device)
+    std_dev = torch.tensor(1.0, requires_grad=True, device=features.device)
+    unique_labels = torch.unique(y)
+    cc_means, cc_std_devs = [], []
+    for label in unique_labels:
+        cc_mean = features[y==label].mean(dim=0, keepdim=True)
+        cc_std_dev = get_std(features[y==label])
+        cc_means.append(cc_mean)
+        cc_std_devs.append(cc_std_dev)
+        mean = mean + cc_mean
+        std_dev = std_dev * cc_std_dev
+    mean = mean / len(unique_labels)
+    std_dev = std_dev ** (1.0/len(unique_labels))
+    loss = torch.tensor(0.0, requires_grad=True, device=features.device)
+    for cc_mean in cc_means:
+        loss = loss + (mean - cc_mean).norm(p=1)
+    for cc_std_dev in cc_std_devs:
+        loss = loss + (std_dev - cc_std_dev).norm(p=1)
+    loss = loss / len(features)
     return loss
 
 def train_single_step(batch, model, opt, loss_fn, device):
@@ -161,14 +179,16 @@ def eval_single_step(batch, model, loss_fn, device):
 
 def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=False, leakage_batch=None,
                return_example=False, return_weight_norms=False, return_grad_norms=False,
-               sub_realism_mean=False, div_realism_std=False,
-               gen_leakage_coefficient=0.5, disc_invariance_coefficient=0.5,
+               whiten_features=False,
+               gen_leakage_coefficient=0.5, disc_leakage_coefficient=0.5, disc_invariance_coefficient=1.0,
                train_gen=True, train_disc=True, 
-               disc_leakage_loss=multiclass_hinge_loss, gen_leakage_loss=stats_l1_loss,
+               disc_realism_loss_fn=hinge_loss, gen_realism_loss_fn=hinge_realism_loss,
+               disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=stats_l1_loss,
                train_leakage_disc_on_orig_samples=False,
                whitening_averaging_coefficient=0.0,
-               gen_swa=None, disc_swa=None,
-               eval_gen=None, eval_gen_beta=None):
+               detached_feature_whitening=False,
+               gen_swa=None, disc_swa=None):
+    
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     disc.train()
@@ -179,38 +199,42 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
     disc_tr.train()
     rv = {}
     
-    # discriminator update
     if train_disc:
-        x_rec = gen_tr(x).detach()
-        features_real = disc.realism_analyzer.extract_features(torch.cat((x, x), dim=1))
-        features_real = whiten_features(features_real, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-        logits_real = disc.realism_analyzer.classify_features(features_real)
-        features_fake = disc.realism_analyzer.extract_features(torch.cat((x, x_rec), dim=1))
-        features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-        logits_fake = disc.realism_analyzer.classify_features(features_fake)
-        disc_loss_realism = 0.5*hinge_loss(logits_real, 1) + 0.5*hinge_loss(logits_fake, -1)
-        #features_real = disc.realism_analyzer.extract_features(x)
-        #features_real = whiten_features(features_real, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-        #logits_real = disc.realism_analyzer.classify_features(torch.cat((features_real, features_real), dim=1))
-        #features_fake = disc.realism_analyzer.extract_features(x_rec)
-        #features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std) ##
-        #logits_fake = disc.realism_analyzer.classify_features(torch.cat((features_real, features_fake), dim=1))
-        #disc_loss_realism = 0.5*hinge_loss(logits_real, 1) + 0.5*hinge_loss(logits_fake, -1)
+        # feature extraction for subsequent updates
         if leakage_batch is not None:
             x_lk, y_lk, _ = leakage_batch
             x_lk, y_lk = x_lk.to(device), y_lk.to(device)
-            x_rec = gen_tr(x_lk).detach()
         else:
-            x_lk = x
-            y_lk = y
+            x_lk, y_lk = x, y
+        with torch.no_grad():
+            x_rec_lk = gen_tr(x_lk)
+        features_real = disc.extract_features(x_lk)
+        features_fake = disc.extract_features(x_rec_lk)
+        
+        # calculate loss w.r.t. distinguishing real vs. fake samples
+        features_real_mixed = disc.mix_features_for_realism_analysis(features_real)
+        features_fake_mixed = disc.mix_features_for_realism_analysis(features_fake)
+        invariance_penalty = feature_whitening_penalty(features_real_mixed, y_lk)
+        if whiten_features:
+            features_real_mixed = get_whitened_features(features_real_mixed, y_lk, detach=detached_feature_whitening)
+        logits_real = disc.classify_realism(features_real_mixed, features_real_mixed)
+        logits_fake = disc.classify_realism(features_real_mixed, features_fake_mixed)
+        disc_loss_realism = \
+            0.5*disc_realism_loss_fn(logits_real, 1) +\
+            0.5*disc_realism_loss_fn(logits_fake, -1) +\
+            disc_invariance_coefficient*invariance_penalty
+        
+        # calculate loss w.r.t. identifying leaked information from samples
         if train_leakage_disc_on_orig_samples:
-            leakage_real = disc.assess_leakage(x_lk)
-            disc_loss_leakage = disc_leakage_loss(leakage_real, y_lk)
+            leakage_real = disc.classify_leakage(features_real)
+            disc_loss_leakage = disc_leakage_loss_fn(leakage_real, y_lk)
         else:
-            leakage_fake = disc.assess_leakage(x_rec)
-            disc_loss_leakage = disc_leakage_loss(leakage_fake, y_lk)
-        disc_loss = disc_loss_realism + disc_loss_leakage
-        disc_opt.zero_grad()
+            leakage_fake = disc.classify_leakage(features_fake)
+            disc_loss_leakage = disc_leakage_loss_fn(leakage_fake, y_lk)
+        
+        # update discriminator parameters
+        disc_loss = (1-disc_leakage_coefficient)*disc_loss_realism + disc_leakage_coefficient*disc_loss_leakage
+        disc_opt.zero_grad(set_to_none=True)
         disc_loss.backward()
         if return_grad_norms:
             rv.update({'disc_grad_norm': get_grad_norm(disc)})
@@ -218,29 +242,36 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         if disc_swa is not None:
             disc_swa.update_parameters(disc)
     else:
-        disc_loss = disc_loss_realism = disc_loss_leakage = None
+        disc_loss = disc_loss_realism = disc_loss_leakage = invariance_penalty = None
     
     # generator update
     if train_gen:
+        # feature extraction for subsequent batches
         x_rec = gen(x)
-        features_fake = disc_tr.realism_analyzer.extract_features(torch.cat((x, x_rec), dim=1))
-        features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-        logits_fake = disc_tr.realism_analyzer.classify_features(features_fake)
-        #features_real = disc.realism_analyzer.extract_features(x)
-        #features_real = whiten_features(features_real, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-        #features_fake = disc.realism_analyzer.extract_features(x_rec)
-        #features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std) ##
-        #logits_fake = disc.realism_analyzer.classify_features(torch.cat((features_real, features_fake), dim=1))
-        gen_loss_realism = -logits_fake.mean()
-        leakage = disc_tr.assess_leakage(x_rec)
-        gen_loss_leakage = gen_leakage_loss(leakage, y)
+        with torch.no_grad():
+            features_real = disc_tr.extract_features(x)
+            features_real_mixed = disc_tr.mix_features_for_realism_analysis(features_real)
+            if whiten_features:
+                features_real_mixed = get_whitened_features(features_real_mixed, y, detach=detached_feature_whitening)
+        features_fake = disc_tr.extract_features(x_rec)
+        
+        # calculate loss w.r.t. making fake images similar to real images
+        features_fake_mixed = disc_tr.mix_features_for_realism_analysis(features_fake)
+        logits_fake = disc_tr.classify_realism(features_real_mixed, features_fake_mixed)
+        gen_loss_realism = gen_realism_loss_fn(logits_fake)
+        
+        # calculate loss w.r.t. avoiding information leakage
+        leakage_fake = disc_tr.classify_leakage(features_fake)
+        gen_loss_leakage = gen_leakage_loss_fn(leakage_fake, y)
+        
+        # update generator parameters
         gen_loss = gen_leakage_coefficient*gen_loss_leakage + (1-gen_leakage_coefficient)*gen_loss_realism
         if project_gen_updates: # and leakage loss > threshold
             dot = lambda x, y: (x*y).sum()
-            gen_opt.zero_grad()
+            gen_opt.zero_grad(set_to_none=True)
             gen_loss_leakage.backward(retain_graph=True)
             gen_leakage_gradients = [param.grad.clone() for param in gen.parameters()]
-            gen_opt.zero_grad()
+            gen_opt.zero_grad(set_to_none=True)
             gen_loss_realism.backward()
             for leakage_grad, param in zip(gen_leakage_gradients, gen.parameters()):
                 realism_grad = param.grad
@@ -248,22 +279,13 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
                 projected_grad = 0.5*projected_grad + 0.5*leakage_grad
                 param.grad = projected_grad
         else:
-            gen_opt.zero_grad()
+            gen_opt.zero_grad(set_to_none=True)
             gen_loss.backward()
         if return_grad_norms:
             rv.update({'gen_grad_norm': get_grad_norm(gen)})
         gen_opt.step()
         if gen_swa is not None:
             gen_swa.update_parameters(gen)
-        if (eval_gen is not None) and (eval_gen_beta is not None):
-            with torch.no_grad():
-                sd_train, sd_eval = gen.state_dict(), eval_gen.state_dict()
-                for key in sd_train.keys():
-                    if sd_train[key].dtype != torch.float:
-                        continue
-                    assert key in sd_eval.keys()
-                    sd_eval[key] = eval_gen_beta*sd_eval[key] + (1-eval_gen_beta)*sd_train[key]
-                eval_gen.load_state_dict(sd_eval)
     else:
         gen_loss = gen_loss_realism = gen_loss_leakage = None
     
@@ -271,6 +293,7 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         'disc_loss_realism': val(disc_loss_realism),
         'disc_loss_leakage': val(disc_loss_leakage),
         'disc_loss': val(disc_loss),
+        'disc_invariance_penalty': val(invariance_penalty),
         'gen_loss_realism': val(gen_loss_realism),
         'gen_loss_leakage': val(gen_loss_leakage),
         'gen_loss': val(gen_loss)
@@ -289,12 +312,14 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
 
 @torch.no_grad()
 def eval_step(batch, gen, disc, device,
-              return_example=False, sub_realism_mean=False, div_realism_std=False,
-              gen_leakage_coefficient=0.5, disc_invariance_coefficient=0.5,
+              return_example=False, whiten_features=False,
+              gen_leakage_coefficient=0.5, disc_leakage_coefficient=0.5, disc_invariance_coefficient=1.0,
               train_leakage_disc_on_orig_samples=False,
               whitening_averaging_coefficient=0.0,
               disc_swa=None, gen_swa=None,
-              disc_leakage_loss=multiclass_hinge_loss, gen_leakage_loss=stats_l1_loss):
+              detached_feature_whitening=False,
+              disc_realism_loss_fn=hinge_loss, gen_realism_loss_fn=hinge_realism_loss,
+              disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=stats_l1_loss):
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     if disc_swa is not None:
@@ -305,34 +330,35 @@ def eval_step(batch, gen, disc, device,
     gen.eval()
     
     x_rec = gen(x)
-    #features_real = disc.realism_analyzer.extract_features(x)
-    #features_real = whiten_features(features_real, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-    #features_fake = disc.realism_analyzer.extract_features(x_rec)
-    #features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-    #logits_real = disc.realism_analyzer.classify_features(torch.cat((features_real, features_real), dim=1))
-    #logits_fake = disc.realism_analyzer.classify_features(torch.cat((features_real, features_fake), dim=1))
-    features_real = disc.realism_analyzer.extract_features(torch.cat((x, x), dim=1))
-    features_real = whiten_features(features_real, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-    logits_real = disc.realism_analyzer.classify_features(features_real)
-    features_fake = disc.realism_analyzer.extract_features(torch.cat((x, x_rec), dim=1))
-    features_fake = whiten_features(features_fake, y, sub_realism_mean=sub_realism_mean, div_realism_std=div_realism_std)
-    logits_fake = disc.realism_analyzer.classify_features(features_fake)
-    disc_loss_realism = 0.5*hinge_loss(logits_real, 1) + 0.5*hinge_loss(logits_fake, -1)
-    leakage_fake = disc.assess_leakage(x_rec)
+    features_real = disc.extract_features(x)
+    features_fake = disc.extract_features(x_rec)
+    features_real_mixed = disc.mix_features_for_realism_analysis(features_real)
+    features_fake_mixed = disc.mix_features_for_realism_analysis(features_fake)
+    invariance_penalty = feature_whitening_penalty(features_real_mixed, y)
+    if whiten_features:
+        features_real = get_whitened_features(features_real, y)
+    logits_real = disc.classify_realism(features_real_mixed, features_real_mixed)
+    logits_fake = disc.classify_realism(features_real_mixed, features_fake_mixed)
+    disc_loss_realism = \
+        0.5*disc_realism_loss_fn(logits_real, 1) +\
+        0.5*disc_realism_loss_fn(logits_fake, -1) +\
+        disc_invariance_coefficient*invariance_penalty
+    leakage_fake = disc.classify_leakage(features_fake)
     if train_leakage_disc_on_orig_samples:
-        leakage_real = disc.assess_leakage(x)
-        disc_loss_leakage = disc_leakage_loss(leakage_real, y)
+        leakage_real = disc.classify_leakage(features_real)
+        disc_loss_leakage = disc_leakage_loss_fn(leakage_real, y)
     else:
-        disc_loss_leakage = disc_leakage_loss(leakage_fake, y)
-    disc_loss = disc_loss_realism + disc_loss_leakage
-    gen_loss_realism = -logits_fake.mean()
-    gen_loss_leakage = gen_leakage_loss(leakage_fake, y)
+        disc_loss_leakage = disc_leakage_loss_fn(leakage_fake, y)
+    disc_loss = (1-disc_leakage_coefficient)*disc_loss_realism + disc_leakage_coefficient*disc_loss_leakage
+    gen_loss_realism = gen_realism_loss_fn(logits_fake)
+    gen_loss_leakage = gen_leakage_loss_fn(leakage_fake, y)
     gen_loss = gen_leakage_coefficient*gen_loss_leakage + (1-gen_leakage_coefficient)*gen_loss_realism
     
     rv = {
         'disc_loss_realism': val(disc_loss_realism),
         'disc_loss_leakage': val(disc_loss_leakage),
         'disc_loss': val(disc_loss),
+        'disc_invariance_penalty': val(invariance_penalty),
         'gen_loss_realism': val(gen_loss_realism),
         'gen_loss_leakage': val(gen_loss_leakage),
         'gen_loss': val(gen_loss)
@@ -344,7 +370,7 @@ def eval_step(batch, gen, disc, device,
         })
     return rv
 
-def train_epoch(dataloader, *step_args, leakage_dataloader=None, return_example_idx=None, disc_steps_per_gen_step=1.0, autoencoder_gen=False, posttrain=False, **step_kwargs):
+def train_epoch(dataloader, *step_args, leakage_dataloader=None, return_example_idx=None, disc_steps_per_gen_step=1.0, autoencoder_gen=False, posttrain=False, profile_epoch=False, **step_kwargs):
     rv = {}
     if autoencoder_gen:
         glc = step_kwargs['gen_leakage_coefficient']
@@ -352,32 +378,54 @@ def train_epoch(dataloader, *step_args, leakage_dataloader=None, return_example_
         step_kwargs['train_leakage_disc_on_orig_samples'] = True
         disc_steps_per_gen_step = 1.0
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx)==int else return_example_idx
-    disc_steps = 0.0
+    disc_steps = gen_steps = 0.0
     if leakage_dataloader is not None:
         dataloader_tr = zip(dataloader, leakage_dataloader)
     else:
         dataloader_tr = dataloader
-    for bidx, batch in enumerate(dataloader_tr):
-        if posttrain:
-            step_rv = train_single_step(batch, *step_args)
-        else:
-            disc_steps += 1.0
-            if leakage_dataloader is not None:
-                batch, leakage_batch = batch
-            step_rv = train_step(batch, *step_args, return_example=bidx in re_indices,
-                                 leakage_batch=None if leakage_dataloader is None else leakage_batch,
-                                 train_gen=disc_steps>=disc_steps_per_gen_step,
-                                 **step_kwargs)
-            if disc_steps >= disc_steps_per_gen_step:
-                disc_steps -= disc_steps_per_gen_step
-        for key, item in step_rv.items():
-            if not key in rv.keys():
-                rv[key] = []
-            rv[key].append(item)
+    def run_epoch():
+        nonlocal rv, disc_steps, gen_steps
+        for bidx, batch in enumerate(dataloader_tr):
+            if posttrain:
+                step_rv = train_single_step(batch, *step_args)
+            else:
+                if disc_steps_per_gen_step > 1:
+                    disc_steps += 1
+                    train_disc = True
+                    train_gen = disc_steps >= disc_steps_per_gen_step
+                    if disc_steps >= disc_steps_per_gen_step:
+                        disc_steps -= disc_steps_per_gen_step
+                elif disc_steps_per_gen_step < 1:
+                    gen_steps += 1
+                    train_gen = True
+                    train_disc = gen_steps >= 1/disc_steps_per_gen_step
+                    if gen_steps >= 1/disc_steps_per_gen_step:
+                        gen_steps -= 1/disc_steps_per_gen_step
+                else:
+                    train_disc = train_gen = True
+                if leakage_dataloader is not None:
+                    batch, leakage_batch = batch
+                step_rv = train_step(batch, *step_args, return_example=bidx in re_indices,
+                                     leakage_batch=None if leakage_dataloader is None else leakage_batch,
+                                     train_gen=train_gen, train_disc=train_disc,
+                                     **step_kwargs)
+                if profile_epoch:
+                    prof.step()
+            for key, item in step_rv.items():
+                if not key in rv.keys():
+                    rv[key] = []
+                rv[key].append(item)
+    if profile_epoch:
+        with  torch.profiler.profile(
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=2),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler('./profiler_logs/saunet_gan'),
+            record_shapes=True,
+            with_stack=True) as prof:
+            run_epoch()
+    else:
+        run_epoch()
     if 'gen_swa' in step_kwargs.keys() and step_kwargs['gen_swa'] is not None:
         torch.optim.swa_utils.update_bn(dataloader, step_kwargs['gen_swa'])
-    if 'disc_swa' in step_kwargs.keys() and step_kwargs['disc_swa'] is not None:
-        torch.optim.swa_utils.update_bn(dataloader, step_kwargs['disc_swa'])
     for key, item in rv.items():
         if not key in ['orig_example', 'rec_example']:
             rv[key] = np.nanmean(item)

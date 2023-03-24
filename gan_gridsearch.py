@@ -3,6 +3,7 @@ from copy import deepcopy
 import os
 import torch
 import json
+import numpy as np
 from torch import nn, optim
 from datasets.classified_mnist import ColoredMNIST, WatermarkedMNIST
 from gan_trial import run_trial, generate_animation, plot_traces
@@ -18,16 +19,14 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main():
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_ii')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_v')
     default_args = {
         'save_dir': save_dir,
     }
     args_to_sweep = {
-        'dataset': [ColoredMNIST],
-        'gen_skip_connection': [True, False],
-        'disc_steps_per_gen_step': [1.0, 5.0],
-        'project_gen_updates': [False, True],
-        'gen_leakage_coefficient': [0.1, 0.5, 0.9]
+        'dataset': [ColoredMNIST, WatermarkedMNIST],
+        'disc_invariance_coefficient': [0.0, 1e2],
+        'disc_steps_per_gen_step': [1.0, 0.2, 5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
         try:
@@ -51,8 +50,8 @@ def main():
                     sweep_config[key] = str(item)
             with open(os.path.join(trial_dir, 'sweep_config.json'), 'w') as F:
                 json.dump(sweep_config, F)
-        except:
-            pass
+        except BaseException as e:
+            print(e)
     
 if __name__ == '__main__':
     main()

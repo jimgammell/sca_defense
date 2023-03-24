@@ -55,88 +55,135 @@ class DiscriminatorBlock(nn.Module):
         super().__init__()
         
         self.residual_connection = nn.Sequential(
-            activation(),
             sn(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)),
             activation(),
             sn(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)),
+            activation(),
             get_resample_layer(out_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn)
         )
         self.skip_connection = nn.Sequential(
             sn(nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)),
             get_resample_layer(out_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn)
         )
-        self.rejoin = sn(nn.Conv2d(2*out_channels, out_channels, kernel_size=1, stride=1, padding=0))
         
     def forward(self, x):
         x_rc = self.residual_connection(x)
         x_sc = self.skip_connection(x)
-        x_comb = torch.cat((x_rc, x_sc), dim=1)
-        out = self.rejoin(x_comb)
+        out = x_rc + x_sc
         return out
 
+class WideDiscriminatorBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, fixed_resample=False, downsample=False, upsample=False, sn=spectral_norm, activation=lambda: nn.LeakyReLU(0.1)):
+        super().__init__()
+        
+        self.residual_connection = nn.Sequential(
+            sn(nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2)),
+            activation(),
+            get_resample_layer(out_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn)
+        )
+    
+    def forward(self, x):
+        x_rc = self.residual_connection(x)
+        return x_rc
+
 class GeneratorBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, fixed_resample=True, downsample=False, upsample=False):
+    def __init__(self, in_channels, out_channels, fixed_resample=True, down_block=True, downsample=False, upsample=False, sn=spectral_norm, activation=nn.ReLU, output_bias=True):
+        super().__init__()
+        
+        if down_block:
+            self.residual_connection = nn.Sequential(
+                sn(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)),
+                activation(),
+                nn.BatchNorm2d(out_channels),
+                get_resample_layer(out_channels, downsample=downsample, upsample=upsample, sn=sn),
+                sn(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False))
+            )
+        else:
+            self.residual_connection = nn.Sequential(
+                nn.BatchNorm2d(in_channels),
+                activation(),
+                get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn),
+                sn(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)),
+                nn.BatchNorm2d(out_channels),
+                activation(),
+                sn(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=output_bias))
+            )
+        self.skip_connection = nn.Sequential(
+            get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn),
+            sn(nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=output_bias))
+        )
+        
+    def forward(self, x):
+        x_rc = self.residual_connection(x)
+        x_sc = self.skip_connection(x)
+        out = x_rc + x_sc
+        return out
+    
+class WideGeneratorBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, fixed_resample=True, downsample=False, upsample=False, sn=spectral_norm, activation=nn.ReLU, output_bias=True):
         super().__init__()
         
         self.residual_connection = nn.Sequential(
             nn.BatchNorm2d(in_channels),
-            nn.ReLU(),
-            get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            spectral_norm(nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1))
+            activation(),
+            get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn),
+            sn(nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=1, padding=2, bias=output_bias))
         )
         self.skip_connection = nn.Sequential(
-            get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0))
+            get_resample_layer(in_channels, fixed_resample=fixed_resample, downsample=downsample, upsample=upsample, sn=sn),
+            sn(nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=output_bias))
         )
-        self.rejoin = spectral_norm(nn.Conv2d(2*out_channels, out_channels, kernel_size=1, stride=1, padding=0))
         
     def forward(self, x):
         x_rc = self.residual_connection(x)
         x_sc = self.skip_connection(x)
-        x_comb = torch.cat((x_rc, x_sc), dim=1)
-        out = self.rejoin(x_comb)
+        out = x_rc + x_sc
         return out
     
 class SubmoduleWrapper(nn.Module):
-    def __init__(self, submodule, submodule_channels, num_straight_blocks, sa_block=True, fixed_resample=True):
+    def __init__(self, submodule, submodule_channels, num_straight_blocks, sa_block=True, fixed_resample=True, sn=spectral_norm, activation=nn.ReLU, generator_block=GeneratorBlock):
         super().__init__()
         
         self.resample_path = nn.Sequential(
-            GeneratorBlock(submodule_channels//2, submodule_channels, downsample=True, fixed_resample=fixed_resample),
+            generator_block(submodule_channels//2, submodule_channels, downsample=True, activation=activation, fixed_resample=fixed_resample),
             submodule,
-            GeneratorBlock(submodule_channels, submodule_channels//2, upsample=True, fixed_resample=fixed_resample)
+            generator_block(submodule_channels, submodule_channels//2, upsample=True, activation=activation, fixed_resample=fixed_resample)
         )
         self.skip_path = nn.Sequential(
-          *[GeneratorBlock(submodule_channels//2, submodule_channels//2) for _ in range(num_straight_blocks//2)],
+          *[generator_block(submodule_channels//2, submodule_channels//2, activation=activation, sn=sn, down_block=True) for _ in range(num_straight_blocks//2)],
             SelfAttentionBlock(submodule_channels//2) if sa_block else nn.Identity(),
-          *[GeneratorBlock(submodule_channels//2, submodule_channels//2) for _ in range(num_straight_blocks//2)]
+          *[generator_block(submodule_channels//2, submodule_channels//2, activation=activation, sn=sn, down_block=False) for _ in range(num_straight_blocks//2)]
         )
-        self.rejoin = spectral_norm(nn.Conv2d(submodule_channels, submodule_channels//2, kernel_size=1, stride=1, padding=0))
+        self.rejoin = sn(nn.Conv2d(submodule_channels, submodule_channels//2, kernel_size=1, stride=1, padding=0))
         
     def forward(self, x):
         x_rp = self.resample_path(x)
         x_sp = self.skip_path(x)
+        out = x_rp + x_sp
         x_comb = torch.cat((x_rp, x_sp), dim=1)
         out = self.rejoin(x_comb)
         return out
     
 class Generator(nn.Module):
-    def __init__(self, input_shape, initial_channels=8, downsample_blocks=2, sa_block=True, fixed_resample=True):
+    def __init__(self, input_shape, initial_channels=8, downsample_blocks=1, sa_block=False, fixed_resample=False, use_sn=True):
         super().__init__()
         
-        self.input_transform = GeneratorBlock(input_shape[0], initial_channels)
+        sn = spectral_norm if use_sn else lambda x: x
+        activation = lambda: nn.ReLU(inplace=True)
+        generator_block = GeneratorBlock
+        
+        self.input_transform = generator_block(input_shape[0], initial_channels, sn=sn, activation=activation, down_block=True)
         self.model = nn.Sequential(
-            GeneratorBlock(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks),
+            generator_block(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks, activation=activation, sn=sn, down_block=True),
             SelfAttentionBlock(initial_channels*2**downsample_blocks) if sa_block else nn.Identity(),
-            GeneratorBlock(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks)
+            generator_block(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks, activation=activation, sn=sn, down_block=False)
         )
         for n in range(downsample_blocks):
-            self.model = SubmoduleWrapper(self.model, initial_channels*2**(downsample_blocks-n), 2,
-                                          sa_block=sa_block, fixed_resample=fixed_resample)
-        self.output_transform = GeneratorBlock(initial_channels, input_shape[0])
+            self.model = SubmoduleWrapper(
+                self.model, initial_channels*2**(downsample_blocks-n), 2,
+                sa_block=sa_block, fixed_resample=fixed_resample, sn=sn,
+                activation=activation, generator_block=generator_block)
+        self.output_transform = generator_block(initial_channels, input_shape[0], sn=sn, down_block=False)
         self.apply(init_weights(nn.init.calculate_gain('relu')))
         
     def forward(self, x):
@@ -146,52 +193,146 @@ class Generator(nn.Module):
         out = torch.tanh(out)
         return out
     
-class Discriminator(nn.Module):
-    def __init__(self, input_shape, n_classes=1, initial_channels=8, downsample_blocks=2, sa_block=True, fixed_resample=True, use_sn=True, activation=lambda: nn.LeakyReLU(0.1)):
+class DiscriminatorFeatureExtractor(nn.Module):
+    def __init__(self, input_shape, initial_channels=8, downsample_blocks=2, sa_block=False, fixed_resample=True, sn=spectral_norm, activation=lambda: nn.LeakyReLU(0.1), discriminator_block=DiscriminatorBlock):
         super().__init__()
-        
-        if use_sn:
-            sn = spectral_norm
-        else:
-            sn = lambda x: x
-        
-        self.input_transform = DiscriminatorBlock(input_shape[0], initial_channels, sn=sn, activation=activation)
+
+        #self.input_transform = discriminator_block(input_shape[0], initial_channels, sn=sn, activation=activation)
+        self.input_transform = sn(nn.Conv2d(input_shape[0], initial_channels, kernel_size=1))
         self.feature_extractor = nn.Sequential(
-            DiscriminatorBlock(initial_channels, 2*initial_channels,
+            discriminator_block(initial_channels, 2*initial_channels,
                                fixed_resample=fixed_resample, downsample=True, sn=sn, activation=activation),
             SelfAttentionBlock(2*initial_channels) if sa_block else nn.Identity(),
-            *[DiscriminatorBlock(initial_channels*2**n, initial_channels*2**(n+1),
+            *[discriminator_block(initial_channels*2**n, initial_channels*2**(n+1),
                                  fixed_resample=fixed_resample, downsample=True, sn=sn, activation=activation)
               for n in range(1, downsample_blocks)],
-            DiscriminatorBlock(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks, sn=sn, activation=activation)
+            discriminator_block(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks, sn=sn, activation=activation)
         )
-        self.classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, n_classes))
-        self.apply(init_weights(nn.init.calculate_gain('leaky_relu', 0.1)))
-    
-    def extract_features(self, x):
+        #self.feature_compressor = nn.Sequential(
+        #    sn(nn.Linear(initial_channels*2**downsample_blocks*(input_shape[1]//(2**downsample_blocks))**2, initial_channels*2**downsample_blocks)),
+        #    activation(),
+        #    sn(nn.Linear(initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks))
+        #)
+        
+    def forward(self, x):
         x_i = self.input_transform(x)
         x_fe = self.feature_extractor(x_i)
         x_sp = x_fe.sum(dim=(2, 3)).view(-1, x_fe.shape[1])
+        #x_sp = self.feature_compressor(x_fe.view(-1, np.prod(x_fe.shape[1:])))
         return x_sp
-    
-    def classify_features(self, features):
-        out = self.classifier(features)
-        return out
-    
-    def forward(self, x):
-        features = self.extract_features(x)
-        out = self.classify_features(features)
-        return out
-    
-class SanitizingDiscriminator(nn.Module):
-    def __init__(self, input_shape, leakage_classes=2, fixed_resample=True):
+
+class DiscriminatorClassifier(nn.Module):
+    def __init__(self, input_shape, n_logits=1, n_features=32, mixer=False, sn=spectral_norm, activation=lambda: nn.LeakyReLU(0.1)):
         super().__init__()
         
-        self.realism_analyzer = Discriminator([2*input_shape[0], *input_shape[1:]], n_classes=1, fixed_resample=fixed_resample)
-        self.leakage_analyzer = Discriminator(input_shape, n_classes=leakage_classes, fixed_resample=fixed_resample)
+        if mixer:
+            self.feature_mixer = sn(nn.Linear(n_features//2, n_features//2))
+        else:
+            self.feature_mixer = None
+        self.classifier = sn(nn.Linear(n_features, n_logits))
         
-    def assess_realism(self, eg_1, eg_2):
-        return self.realism_analyzer(torch.cat((eg_1, eg_2), dim=1))
+    def mix_features(self, x):
+        if self.feature_mixer is None:
+            return x
+        else:
+            return self.feature_mixer(x)
     
-    def assess_leakage(self, eg):
-        return self.leakage_analyzer(eg)
+    def classify_features(self, x):
+        return self.classifier(x)
+
+class SwaDiscriminatorClassifier(nn.Module):
+    def __init__(self, discriminator_classifier, avg_fn):
+        super().__init__()
+        
+        if discriminator_classifier.feature_mixer is not None:
+            self.feature_mixer = torch.optim.swa_utils.AveragedModel(discriminator_classifier.feature_mixer, avg_fn=avg_fn)
+        else:
+            self.feature_mixer = None
+        self.classifier = torch.optim.swa_utils.AveragedModel(discriminator_classifier.classifier, avg_fn=avg_fn)
+    
+    def mix_features(self, x):
+        if self.feature_mixer is None:
+            return x
+        else:
+            return self.feature_mixer(x)
+    
+    def classify_features(self, x):
+        return self.classifier(x)
+    
+    def update_parameters(self, discriminator_classifier):
+        if self.feature_mixer is not None:
+            assert discriminator_classifier.feature_mixer is not None
+            self.feature_mixer.update_parameters(discriminator_classifier.feature_mixer)
+        self.classifier.update_parameters(discriminator_classifier.classifier)
+
+class Classifier(nn.Module):
+    def __init__(self, input_shape, leakage_classes=2, initial_channels=8, downsample_blocks=1, sa_block=True, fixed_resample=True):
+        super().__init__()
+        
+        self.feature_extractor = DiscriminatorFeatureExtractor(
+            input_shape, initial_channels=initial_channels, downsample_blocks=downsample_blocks, sa_block=sa_block,
+            fixed_resample=fixed_resample, sn=lambda x: x, activation=nn.ReLU)
+        self.leakage_classifier = DiscriminatorClassifier(
+            input_shape, n_logits=leakage_classes, n_features=initial_channels*2**downsample_blocks,
+            sn=lambda x: x, activation=nn.ReLU)
+    
+    def forward(self, x):
+        features = self.feature_extractor(x)
+        out = self.leakage_classifier.classify_features(features)
+        return out
+        
+class Discriminator(nn.Module):
+    def __init__(self, input_shape, leakage_classes=2, initial_channels=8, downsample_blocks=2, sa_block=False, fixed_resample=False):
+        super().__init__()
+        
+        discriminator_block = WideDiscriminatorBlock
+        activation = lambda: nn.LeakyReLU(0.1)
+        
+        self.feature_extractor = DiscriminatorFeatureExtractor(
+            input_shape, initial_channels=initial_channels, downsample_blocks=downsample_blocks, sa_block=sa_block,
+            fixed_resample=fixed_resample, sn=spectral_norm, activation=activation, discriminator_block=discriminator_block)
+        self.leakage_classifier = DiscriminatorClassifier(
+            input_shape, n_logits=leakage_classes, n_features=initial_channels*2**downsample_blocks,
+            sn=spectral_norm, activation=activation)
+        self.realism_classifier = DiscriminatorClassifier(
+            input_shape, n_logits=1, n_features=2*initial_channels*2**downsample_blocks,
+            sn=spectral_norm, activation=activation)
+        
+    def extract_features(self, x):
+        return self.feature_extractor(x)
+    
+    def mix_features_for_realism_analysis(self, x):
+        return self.realism_classifier.mix_features(x)
+    
+    def classify_realism(self, x1, x2):
+        x = torch.cat((x1, x2), dim=1)
+        return self.realism_classifier.classify_features(x)
+    
+    def classify_leakage(self, x):
+        return self.leakage_classifier.classify_features(x)
+    
+class SwaDiscriminator(nn.Module):
+    def __init__(self, discriminator, avg_fn):
+        super().__init__()
+        
+        self.feature_extractor = torch.optim.swa_utils.AveragedModel(discriminator.feature_extractor, avg_fn=avg_fn)
+        self.leakage_classifier = SwaDiscriminatorClassifier(discriminator.leakage_classifier, avg_fn)
+        self.realism_classifier = SwaDiscriminatorClassifier(discriminator.realism_classifier, avg_fn)
+        
+    def extract_features(self, x):
+        return self.feature_extractor(x)
+    
+    def mix_features_for_realism_analysis(self, x):
+        return self.realism_classifier.mix_features(x)
+    
+    def classify_realism(self, x1, x2):
+        x = torch.cat((x1, x2), dim=1)
+        return self.realism_classifier.classify_features(x)
+    
+    def classify_leakage(self, x):
+        return self.leakage_classifier.classify_features(x)
+    
+    def update_parameters(self, discriminator):
+        self.feature_extractor.update_parameters(discriminator.feature_extractor)
+        self.leakage_classifier.update_parameters(discriminator.leakage_classifier)
+        self.realism_classifier.update_parameters(discriminator.realism_classifier)

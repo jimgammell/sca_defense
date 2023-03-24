@@ -9,7 +9,7 @@ import imageio
 import torch
 from torch import nn, optim
 from gan_train import *
-from models.sa_unet import Generator, Discriminator, SanitizingDiscriminator
+from models.unet_v2 import Generator, Discriminator, Classifier
 from datasets.classified_mnist import WatermarkedMNIST, ColoredMNIST, apply_transform
 
 def run_trial(
@@ -19,28 +19,29 @@ def run_trial(
     gen_kwargs={},
     gen_opt=optim.Adam,
     gen_opt_kwargs={'lr': 1e-4, 'betas': (0.0, 0.9)},
-    disc_constructor=SanitizingDiscriminator,
+    disc_constructor=Discriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
     disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.9)},
-    pretrain_gen_epochs=25,
-    epochs=250,
+    pretrain_gen_epochs=0,
+    epochs=25,
     posttrain_epochs=25,
     batch_size=256,
-    swa_start_epoch=5,
+    swa_start_epoch=2,
     project_gen_updates=False,
-    sub_realism_mean=True,
-    div_realism_std=True,
-    separate_leakage_partition=True,
-    gen_leakage_coefficient=0.1,
-    disc_invariance_coefficient=0.5,
+    whiten_features=False,
+    calculate_weight_norms=True,
+    calculate_grad_norms=True,
+    separate_leakage_partition=False,
+    gen_leakage_coefficient=0.0,
+    disc_leakage_coefficient=0.0,
+    disc_invariance_coefficient=0.0,
     disc_steps_per_gen_step=1.0,
     stochastic_weight_averaging=False,
-    gen_skip_connection=True,
+    detached_feature_whitening=False,
     save_dir=None,
     trial_info=None):
     
-    #gen_kwargs.update({'skip_connection': gen_skip_connection})
     if save_dir is None:
         save_dir = os.path.join('.', 'results', 'gan_trial')
     eg_frames_dir = os.path.join(save_dir, 'eg_frames')
@@ -75,9 +76,9 @@ def run_trial(
     disc_opt = disc_opt(disc.parameters(), **disc_opt_kwargs)
     disc_loss_fn = lambda *args: disc_loss(*args, **disc_loss_kwargs)
     if stochastic_weight_averaging:
-        ema_avg = lambda averaged_model_parameter, model_parameter, _: 0.1*model_parameter + 0.9*averaged_model_parameter
-        gen_swa = torch.optim.swa_utils.AveragedModel(gen, avg_fn=ema_avg)
-        disc_swa = torch.optim.swa_utils.AveragedModel(disc, avg_fn=ema_avg)
+        ema_avg = lambda averaged_model_parameter, model_parameter, _: 0.01*model_parameter + 0.99*averaged_model_parameter
+        gen_swa = torch.optim.swa_utils.AveragedModel(gen, avg_fn=ema_avg).to(device)
+        #disc_swa = SwaDiscriminator(disc, ema_avg).to(device)
     else:
         gen_swa = disc_swa = None
     train_args = (gen, gen_opt, disc, disc_opt, device)
@@ -99,9 +100,10 @@ def run_trial(
         print('Starting epoch {}.'.format(current_epoch))
         
         kwargs = {
-            'sub_realism_mean': sub_realism_mean,
-            'div_realism_std': div_realism_std,
+            'whiten_features': whiten_features,
+            'detached_feature_whitening': detached_feature_whitening,
             'gen_leakage_coefficient': gen_leakage_coefficient,
+            'disc_leakage_coefficient': disc_leakage_coefficient,
             'disc_invariance_coefficient': disc_invariance_coefficient,
             'autoencoder_gen': autoencoder_gen,
             'gen_swa': gen_swa if current_epoch >= swa_start_epoch else None,
@@ -111,11 +113,12 @@ def run_trial(
         if not eval_only:
             train_rv = train_epoch(train_dataloader, *(train_args if not posttrain else posttrain_args),
                                    leakage_dataloader=None if posttrain or not(separate_leakage_partition) else leakage_dataloader,
-                                   return_weight_norms=True,
-                                   return_grad_norms=True,
+                                   return_weight_norms=calculate_weight_norms,
+                                   return_grad_norms=calculate_grad_norms,
                                    project_gen_updates=project_gen_updates,
                                    disc_steps_per_gen_step=disc_steps_per_gen_step,
                                    posttrain=posttrain,
+                                   profile_epoch=False,#current_epoch==1,
                                    **kwargs)
         else:
             train_rv = eval_epoch(train_dataloader, *(eval_args if not posttrain else posteval_args), posttrain=posttrain, **kwargs)
@@ -129,7 +132,7 @@ def run_trial(
         val_rv['time'] = time.time()-t0
         print('Done with validation phase. Results:')
         print_d(val_rv)
-        
+
         t0 = time.time()
         test_rv = eval_epoch(test_dataloader, *(eval_args if not posttrain else posteval_args),
                              posttrain=posttrain, **kwargs)
@@ -177,7 +180,7 @@ def run_trial(
         with open(os.path.join(results_dir, 'trial_info.pickle'), 'wb') as F:
             pickle.dump(trial_info, F)
     
-    update_results(0, eval_only=True)
+    #update_results(0, eval_only=True)
     for epoch_idx in range(1, pretrain_gen_epochs+1):
         update_results(epoch_idx, autoencoder_gen=True)
     for epoch_idx in range(pretrain_gen_epochs+1, pretrain_gen_epochs+epochs+1):
@@ -188,9 +191,8 @@ def run_trial(
     apply_transform(train_dataset.dataset.new_data, gen, batch_size, device)
     apply_transform(val_dataset.dataset.new_data, gen, batch_size, device)
     apply_transform(test_dataset.new_data, gen, batch_size, device)
-    eval_disc = Discriminator(dataset.input_shape, n_classes=dataset.num_classes,
-                              use_sn=False, activation=nn.ReLU).to(device)
-    eval_disc_opt = optim.Adam(eval_disc.parameters(), lr=2e-4)
+    eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_classes).to(device)
+    eval_disc_opt = optim.Adam(eval_disc.parameters())
     posttrain_args = (eval_disc, eval_disc_opt, nn.CrossEntropyLoss(), device)
     posteval_args = (eval_disc, nn.CrossEntropyLoss(), device)
     for epoch_idx in range(pretrain_gen_epochs+epochs+1, pretrain_gen_epochs+epochs+posttrain_epochs+1):
@@ -220,67 +222,95 @@ def plot_traces(trial_dir):
         return epochs[1:], vals[1:]
     
     ax_width = 4
-    n_axes = 6
+    n_axes = 7
     (fig, axes) = plt.subplots(1, n_axes, figsize=(n_axes*ax_width, ax_width))
     
-    axes[0].plot(*get_trace('disc_loss', 'train'), '--', color='red')
-    axes[0].plot(*get_trace('disc_loss', 'validation'), '-', color='red', label='Disc loss')
-    axes[0].plot(*get_trace('gen_loss', 'train'), '--', color='blue')
-    axes[0].plot(*get_trace('gen_loss', 'validation'), '-', color='blue', label='Gen loss')
+    try:
+        axes[0].plot(*get_trace('disc_loss', 'train'), '--', color='red')
+        axes[0].plot(*get_trace('disc_loss', 'validation'), '-', color='red', label='Disc loss')
+        axes[0].plot(*get_trace('gen_loss', 'train'), '--', color='blue')
+        axes[0].plot(*get_trace('gen_loss', 'validation'), '-', color='blue', label='Gen loss')
+    except:
+        pass
     axes[0].set_xlabel('Epoch')
     axes[0].set_ylabel('Loss')
     axes[0].set_title('GAN losses over time')
     axes[0].set_yscale('symlog', linthresh=1e-1)
     axes[0].legend()
     
-    axes[1].plot(*get_trace('disc_loss_realism', 'train'), '--', color='red')
-    axes[1].plot(*get_trace('disc_loss_realism', 'validation'), '-', color='red', label='Disc loss')
-    axes[1].plot(*get_trace('gen_loss_realism', 'train'), '--', color='blue')
-    axes[1].plot(*get_trace('gen_loss_realism', 'validation'), '-', color='blue', label='Gen loss')
+    try:
+        axes[1].plot(*get_trace('disc_loss_realism', 'train'), '--', color='red')
+        axes[1].plot(*get_trace('disc_loss_realism', 'validation'), '-', color='red', label='Disc loss')
+        axes[1].plot(*get_trace('gen_loss_realism', 'train'), '--', color='blue')
+        axes[1].plot(*get_trace('gen_loss_realism', 'validation'), '-', color='blue', label='Gen loss')
+    except:
+        pass
     axes[1].set_xlabel('Epoch')
     axes[1].set_ylabel('Loss')
     axes[1].set_title('Realism loss over time')
     axes[1].set_yscale('symlog', linthresh=1e-1)
     axes[1].legend()
     
-    axes[2].plot(*get_trace('disc_loss_leakage', 'train'), '--', color='red')
-    axes[2].plot(*get_trace('disc_loss_leakage', 'validation'), '-', color='red')
-    axes[2].plot(*get_trace('gen_loss_leakage', 'train'), '--', color='blue', label='Disc loss')
-    axes[2].plot(*get_trace('gen_loss_leakage', 'validation'), '-', color='blue', label='Gen loss')
+    try:
+        axes[2].plot(*get_trace('disc_loss_leakage', 'train'), '--', color='red')
+        axes[2].plot(*get_trace('disc_loss_leakage', 'validation'), '-', color='red')
+        axes[2].plot(*get_trace('gen_loss_leakage', 'train'), '--', color='blue', label='Disc loss')
+        axes[2].plot(*get_trace('gen_loss_leakage', 'validation'), '-', color='blue', label='Gen loss')
+    except:
+        pass
     axes[2].set_xlabel('Epoch')
     axes[2].set_ylabel('Loss')
     axes[2].set_title('Leakage loss over time')
     axes[2].set_yscale('symlog', linthresh=1e-1)
     axes[2].legend()
     
-    axes[3].plot(*get_trace('disc_weight_norm', 'train'), '--', color='red', label='Disc (train)')
-    axes[3].plot(*get_trace('gen_weight_norm', 'train'), '--', color='blue', label='Gen (train)')
+    try:
+        axes[3].plot(*get_trace('disc_invariance_penalty', 'train'), '--', color='red')
+        axes[3].plot(*get_trace('disc_invariance_penalty', 'validation'), '-', color='red')
+    except:
+        pass
     axes[3].set_xlabel('Epoch')
-    axes[3].set_ylabel('Weight norm')
-    axes[3].set_title('Weight norms over time')
-    axes[3].legend()
+    axes[3].set_ylabel('Loss')
+    axes[3].set_title('Disc invariance penalty over time')
+    axes[3].set_yscale('log')
     
-    axes[4].plot(*get_trace('disc_grad_norm', 'train'), '--', color='red', label='Disc (train)')
-    axes[4].plot(*get_trace('gen_grad_norm', 'train'), '--', color='blue', label='Gen (train)')
+    try:
+        axes[4].plot(*get_trace('disc_weight_norm', 'train'), '--', color='red', label='Disc (train)')
+        axes[4].plot(*get_trace('gen_weight_norm', 'train'), '--', color='blue', label='Gen (train)')
+    except:
+        pass
     axes[4].set_xlabel('Epoch')
-    axes[4].set_ylabel('Grad norm')
-    axes[4].set_title('Gradient norms over time')
-    axes[4].set_yscale('log')
+    axes[4].set_ylabel('Weight norm')
+    axes[4].set_title('Weight norms over time')
     axes[4].legend()
     
-    axes[5].plot(*get_trace('posttrain_loss', 'train'), '--', color='green')
-    axes[5].plot(*get_trace('posttrain_loss', 'validation'), '-', color='green', label='Loss')
-    tax5 = axes[5].twinx()
-    tax5.plot(*get_trace('posttrain_acc', 'train'), '--', color='orange')
-    tax5.plot(*get_trace('posttrain_acc', 'validation'), '-', color='orange', label='Accuracy')
+    try:
+        axes[5].plot(*get_trace('disc_grad_norm', 'train'), '--', color='red', label='Disc (train)')
+        axes[5].plot(*get_trace('gen_grad_norm', 'train'), '--', color='blue', label='Gen (train)')
+    except:
+        pass
     axes[5].set_xlabel('Epoch')
-    axes[5].set_ylabel('Loss (cross entropy')
-    tax5.set_ylabel('Accuracy')
-    axes[5].set_title('Performance of independent discriminator')
+    axes[5].set_ylabel('Grad norm')
+    axes[5].set_title('Gradient norms over time')
     axes[5].set_yscale('log')
-    tax5.set_ylim(0.0, 1.0)
-    axes[5].legend(loc='upper right')
-    tax5.legend(loc='lower left')
+    axes[5].legend()
+    
+    tax6 = axes[6].twinx()
+    try:
+        axes[6].plot(*get_trace('posttrain_loss', 'train'), '--', color='green')
+        axes[6].plot(*get_trace('posttrain_loss', 'validation'), '-', color='green', label='Loss')
+        tax6.plot(*get_trace('posttrain_acc', 'train'), '--', color='orange')
+        tax6.plot(*get_trace('posttrain_acc', 'validation'), '-', color='orange', label='Accuracy')
+    except:
+        pass
+    axes[6].set_xlabel('Epoch')
+    axes[6].set_ylabel('Loss (cross entropy')
+    tax6.set_ylabel('Accuracy')
+    axes[6].set_title('Performance of independent discriminator')
+    axes[6].set_yscale('log')
+    tax6.set_ylim(0.0, 1.0)
+    axes[6].legend(loc='upper right')
+    tax6.legend(loc='lower left')
     
     plt.tight_layout()
     fig.savefig(os.path.join(figs_dir, 'traces.jpg'), dpi=50)
@@ -298,7 +328,7 @@ def generate_animation(trial_dir):
             writer.append_data(image)
     
 if __name__ == '__main__':
-    for dataset, save_dir in zip([WatermarkedMNIST, ColoredMNIST], ['gan_trial__watermarked', 'gan_trial__colored']):
+    for dataset, save_dir in zip([ColoredMNIST], ['gan_trial__colored']):#zip([WatermarkedMNIST, ColoredMNIST], ['gan_trial__watermarked', 'gan_trial__colored']):
         save_dir = os.path.join('.', 'results', save_dir)
         if '--run-trial' in sys.argv:
             run_trial(dataset=dataset, save_dir=save_dir)
