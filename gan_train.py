@@ -103,7 +103,25 @@ def compute_optimal_example(example, disc, gen, eps=1e-5, max_iter=100, opt=opti
     return confusing_example.detach(), loss.detach().cpu().numpy(), current_iter
 
 def get_std(x):
-    return (((x - x.mean(dim=0, keepdim=True))**2).mean(dim=0, keepdim=True))**0.5
+    #return (((x - x.mean(dim=0, keepdim=True))**2).mean(dim=0, keepdim=True))**0.5
+    return x.std(dim=0, keepdim=True)
+
+# Might suffer from class imbalance.
+def get_mcmatching_penalty(X, y):
+    def get_mn(x):
+        return x.mean(dim=0, keepdim=True)
+    def get_cov(x, x_mn):
+        return torch.mm(x.permute(1, 0), x)/x.size(0) - torch.mm(x_mn.permute(1, 0), x)
+    X_mn = get_mn(X)
+    X_cov = get_cov(X, X_mn)
+    loss = torch.tensor(0.0, dtype=torch.float, device=X.device, requires_grad=True)
+    for yy in torch.unique(y):
+        cc_mn = get_mn(X[y==yy])
+        cc_cov = get_cov(X[y==yy], cc_mn)
+        loss += (X_mn-cc_mn).norm(p=1)
+        loss += (X_cov-cc_cov).norm(p=1)
+    loss /= len(X)
+    return loss
 
 def get_whitened_features(features, y, detach=False):
     mn = torch.tensor(0.0, requires_grad=not(detach), device=features.device)
@@ -184,7 +202,7 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
                train_gen=True, train_disc=True, 
                disc_realism_loss_fn=hinge_loss, gen_realism_loss_fn=hinge_realism_loss,
                disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=stats_l1_loss,
-               train_leakage_disc_on_orig_samples=False,
+               train_leakage_disc_on_orig_samples=False, clip_gradients=False,
                whitening_averaging_coefficient=0.0,
                detached_feature_whitening=False,
                gen_swa=None, disc_swa=None):
@@ -208,34 +226,37 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
             x_lk, y_lk = x, y
         with torch.no_grad():
             x_rec_lk = gen_tr(x_lk)
-        features_real = disc.extract_features(x_lk)
-        features_fake = disc.extract_features(x_rec_lk)
+        features_orig = disc.extract_features(x_lk)
+        features_rec = disc.extract_features(x_rec_lk)
         
-        # calculate loss w.r.t. distinguishing real vs. fake samples
-        features_real_mixed = disc.mix_features_for_realism_analysis(features_real)
-        features_fake_mixed = disc.mix_features_for_realism_analysis(features_fake)
-        invariance_penalty = feature_whitening_penalty(features_real_mixed, y_lk)
+        # calculate loss w.r.t. distinguishing real vs fake samples
+        features_realism_orig = disc.get_realism_features(features_orig)
+        features_realism_rec = disc.get_realism_features(features_rec)
+        invariance_penalty = feature_whitening_penalty(features_realism_orig, y_lk)
+        features_realism_ref = features_realism_orig.clone()
         if whiten_features:
-            features_real_mixed = get_whitened_features(features_real_mixed, y_lk, detach=detached_feature_whitening)
-        logits_real = disc.classify_realism(features_real_mixed, features_real_mixed)
-        logits_fake = disc.classify_realism(features_real_mixed, features_fake_mixed)
+            features_realism_orig = get_whitened_features(features_realism_orig, y_lk, detach=detached_feature_whitening)
+        logits_realism_orig = disc.classify_realism(features_realism_ref, features_realism_orig)
+        logits_realism_rec = disc.classify_realism(features_realism_ref, features_realism_rec)
         disc_loss_realism = \
-            0.5*disc_realism_loss_fn(logits_real, 1) +\
-            0.5*disc_realism_loss_fn(logits_fake, -1) +\
+            0.5*disc_realism_loss_fn(logits_realism_orig, 1) +\
+            0.5*disc_realism_loss_fn(logits_realism_rec, -1) +\
             disc_invariance_coefficient*invariance_penalty
         
         # calculate loss w.r.t. identifying leaked information from samples
         if train_leakage_disc_on_orig_samples:
-            leakage_real = disc.classify_leakage(features_real)
-            disc_loss_leakage = disc_leakage_loss_fn(leakage_real, y_lk)
+            leakage_features = disc.get_leakage_features(features_orig)
         else:
-            leakage_fake = disc.classify_leakage(features_fake)
-            disc_loss_leakage = disc_leakage_loss_fn(leakage_fake, y_lk)
+            leakage_features = disc.get_leakage_features(features_rec)
+        leakage_logits = disc.classify_leakage(leakage_features)
+        disc_loss_leakage = disc_leakage_loss_fn(leakage_logits, y_lk)
         
         # update discriminator parameters
         disc_loss = (1-disc_leakage_coefficient)*disc_loss_realism + disc_leakage_coefficient*disc_loss_leakage
         disc_opt.zero_grad(set_to_none=True)
         disc_loss.backward()
+        if clip_gradients:
+            nn.utils.clip_grad_norm_(disc.parameters(), 1.0)
         if return_grad_norms:
             rv.update({'disc_grad_norm': get_grad_norm(disc)})
         disc_opt.step()
@@ -249,20 +270,19 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         # feature extraction for subsequent batches
         x_rec = gen(x)
         with torch.no_grad():
-            features_real = disc_tr.extract_features(x)
-            features_real_mixed = disc_tr.mix_features_for_realism_analysis(features_real)
-            if whiten_features:
-                features_real_mixed = get_whitened_features(features_real_mixed, y, detach=detached_feature_whitening)
-        features_fake = disc_tr.extract_features(x_rec)
+            features_orig = disc_tr.extract_features(x)
+            features_realism_ref = disc_tr.get_realism_features(features_orig)
+        features_rec = disc_tr.extract_features(x_rec)
+        features_realism_rec = disc_tr.get_realism_features(features_rec)
+        features_leakage_rec = disc_tr.get_leakage_features(features_rec)
         
         # calculate loss w.r.t. making fake images similar to real images
-        features_fake_mixed = disc_tr.mix_features_for_realism_analysis(features_fake)
-        logits_fake = disc_tr.classify_realism(features_real_mixed, features_fake_mixed)
-        gen_loss_realism = gen_realism_loss_fn(logits_fake)
+        logits_realism = disc_tr.classify_realism(features_realism_ref, features_realism_rec)
+        gen_loss_realism = gen_realism_loss_fn(logits_realism)
         
         # calculate loss w.r.t. avoiding information leakage
-        leakage_fake = disc_tr.classify_leakage(features_fake)
-        gen_loss_leakage = gen_leakage_loss_fn(leakage_fake, y)
+        logits_leakage = disc_tr.classify_leakage(features_leakage_rec)
+        gen_loss_leakage = gen_leakage_loss_fn(logits_leakage, y)
         
         # update generator parameters
         gen_loss = gen_leakage_coefficient*gen_loss_leakage + (1-gen_leakage_coefficient)*gen_loss_realism
@@ -281,6 +301,8 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         else:
             gen_opt.zero_grad(set_to_none=True)
             gen_loss.backward()
+        if clip_gradients:
+            nn.utils.clip_grad_norm_(gen.parameters(), 1.0)
         if return_grad_norms:
             rv.update({'gen_grad_norm': get_grad_norm(gen)})
         gen_opt.step()
@@ -310,6 +332,7 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         })
     return rv
 
+# To try: use whitened features only as the reference
 @torch.no_grad()
 def eval_step(batch, gen, disc, device,
               return_example=False, whiten_features=False,
@@ -319,7 +342,7 @@ def eval_step(batch, gen, disc, device,
               disc_swa=None, gen_swa=None,
               detached_feature_whitening=False,
               disc_realism_loss_fn=hinge_loss, gen_realism_loss_fn=hinge_realism_loss,
-              disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=stats_l1_loss):
+              disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=stats_l1_loss, **kwargs):
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     if disc_swa is not None:
@@ -330,28 +353,31 @@ def eval_step(batch, gen, disc, device,
     gen.eval()
     
     x_rec = gen(x)
-    features_real = disc.extract_features(x)
-    features_fake = disc.extract_features(x_rec)
-    features_real_mixed = disc.mix_features_for_realism_analysis(features_real)
-    features_fake_mixed = disc.mix_features_for_realism_analysis(features_fake)
-    invariance_penalty = feature_whitening_penalty(features_real_mixed, y)
+    features_orig = disc.extract_features(x)
+    features_rec = disc.extract_features(x_rec)
+    features_realism_orig = disc.get_realism_features(features_orig)
+    features_realism_rec = disc.get_realism_features(features_rec)
+    features_realism_ref = features_realism_orig.clone()
+    features_leakage_orig = disc.get_leakage_features(features_orig)
+    features_leakage_rec = disc.get_leakage_features(features_rec)
+    invariance_penalty = feature_whitening_penalty(features_realism_orig, y)
     if whiten_features:
-        features_real = get_whitened_features(features_real, y)
-    logits_real = disc.classify_realism(features_real_mixed, features_real_mixed)
-    logits_fake = disc.classify_realism(features_real_mixed, features_fake_mixed)
+        features_realism_orig = get_whitened_features(features_realism_orig, y)
+    logits_realism_orig = disc.classify_realism(features_realism_ref, features_realism_orig)
+    logits_realism_rec = disc.classify_realism(features_realism_ref, features_realism_rec)
     disc_loss_realism = \
-        0.5*disc_realism_loss_fn(logits_real, 1) +\
-        0.5*disc_realism_loss_fn(logits_fake, -1) +\
+        0.5*disc_realism_loss_fn(logits_realism_orig, 1) +\
+        0.5*disc_realism_loss_fn(logits_realism_rec, -1) +\
         disc_invariance_coefficient*invariance_penalty
-    leakage_fake = disc.classify_leakage(features_fake)
+    logits_leakage_rec = disc.classify_leakage(features_leakage_rec)
     if train_leakage_disc_on_orig_samples:
-        leakage_real = disc.classify_leakage(features_real)
-        disc_loss_leakage = disc_leakage_loss_fn(leakage_real, y)
+        logits_leakage_orig = disc.classify_leakage(features_leakage_orig)
+        disc_loss_leakage = disc_leakage_loss_fn(logits_leakage_orig, y)
     else:
-        disc_loss_leakage = disc_leakage_loss_fn(leakage_fake, y)
+        disc_loss_leakage = disc_leakage_loss_fn(logits_leakage_rec, y)
     disc_loss = (1-disc_leakage_coefficient)*disc_loss_realism + disc_leakage_coefficient*disc_loss_leakage
-    gen_loss_realism = gen_realism_loss_fn(logits_fake)
-    gen_loss_leakage = gen_leakage_loss_fn(leakage_fake, y)
+    gen_loss_realism = gen_realism_loss_fn(logits_realism_rec)
+    gen_loss_leakage = gen_leakage_loss_fn(logits_leakage_rec, y)
     gen_loss = gen_leakage_coefficient*gen_loss_leakage + (1-gen_leakage_coefficient)*gen_loss_realism
     
     rv = {

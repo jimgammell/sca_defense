@@ -24,7 +24,7 @@ def run_trial(
     disc_opt=optim.Adam,
     disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.9)},
     pretrain_gen_epochs=0,
-    epochs=25,
+    epochs=50,
     posttrain_epochs=25,
     batch_size=256,
     swa_start_epoch=2,
@@ -39,6 +39,7 @@ def run_trial(
     disc_steps_per_gen_step=1.0,
     stochastic_weight_averaging=False,
     detached_feature_whitening=False,
+    clip_gradients=False,
     save_dir=None,
     trial_info=None):
     
@@ -106,6 +107,7 @@ def run_trial(
             'disc_leakage_coefficient': disc_leakage_coefficient,
             'disc_invariance_coefficient': disc_invariance_coefficient,
             'autoencoder_gen': autoencoder_gen,
+            'clip_gradients': clip_gradients,
             'gen_swa': gen_swa if current_epoch >= swa_start_epoch else None,
             'disc_swa': disc_swa if current_epoch >= swa_start_epoch else None
         }
