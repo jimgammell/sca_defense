@@ -9,7 +9,7 @@ import imageio
 import torch
 from torch import nn, optim
 from gan_train import *
-from models.unet_v2 import Generator, Discriminator, Classifier
+from models.unet_v2 import Generator, SanitizingDiscriminator, Classifier
 from datasets.classified_mnist import WatermarkedMNIST, ColoredMNIST, apply_transform
 
 def run_trial(
@@ -19,12 +19,12 @@ def run_trial(
     gen_kwargs={},
     gen_opt=optim.Adam,
     gen_opt_kwargs={'lr': 1e-4, 'betas': (0.0, 0.9)},
-    disc_constructor=Discriminator,
+    disc_constructor=SanitizingDiscriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
     disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.9)},
     pretrain_gen_epochs=0,
-    epochs=50,
+    epochs=25,
     posttrain_epochs=25,
     batch_size=256,
     swa_start_epoch=2,
@@ -86,17 +86,17 @@ def run_trial(
     eval_args = (gen, disc, device)
     
     results = {}
-    def update_results(current_epoch, eval_only=False, autoencoder_gen=False, posttrain=False):
+    def preface_keys(d, preface):
+        for key, item in deepcopy(d).items():
+            d[preface+'_'+key] = item
+            del d[key]
+        return d
+    def print_d(d):
+        for key, item in d.items():
+            if not hasattr(item, '__len__'):
+                print('\t{}: {}'.format(key, item))
+    def update_results(current_epoch, eval_only=False, autoencoder_gen=False, posttrain=False, orig_labels=False):
         nonlocal results, eval_gen, eval_args
-        def preface_keys(d, preface):
-            for key, item in deepcopy(d).items():
-                d[preface+'_'+key] = item
-                del d[key]
-            return d
-        def print_d(d):
-            for key, item in d.items():
-                if not hasattr(item, '__len__'):
-                    print('\t{}: {}'.format(key, item))
         print('\n\n')
         print('Starting epoch {}.'.format(current_epoch))
         
@@ -109,7 +109,8 @@ def run_trial(
             'autoencoder_gen': autoencoder_gen,
             'clip_gradients': clip_gradients,
             'gen_swa': gen_swa if current_epoch >= swa_start_epoch else None,
-            'disc_swa': disc_swa if current_epoch >= swa_start_epoch else None
+            'disc_swa': disc_swa if current_epoch >= swa_start_epoch else None,
+            'original_target': orig_labels
         }
         t0 = time.time()
         if not eval_only:
@@ -143,9 +144,9 @@ def run_trial(
         print_d(test_rv)
         
         if posttrain:
-            preface_keys(train_rv, 'posttrain')
-            preface_keys(val_rv, 'posttrain')
-            preface_keys(test_rv, 'posttrain')
+            preface_keys(train_rv, 'posttrain_{}'.format('leakage' if not orig_labels else 'orig'))
+            preface_keys(val_rv, 'posttrain_{}'.format('leakage' if not orig_labels else 'orig'))
+            preface_keys(test_rv, 'posttrain_{}'.format('leakage' if not orig_labels else 'orig'))
         
         if 'orig_example' in val_rv.keys() and 'rec_example' in val_rv.keys():
             fig, axes = plt.subplots(4, 10, figsize=(40, 16))
@@ -187,18 +188,58 @@ def run_trial(
         update_results(epoch_idx, autoencoder_gen=True)
     for epoch_idx in range(pretrain_gen_epochs+1, pretrain_gen_epochs+epochs+1):
         update_results(epoch_idx)
-        
-    # Train independent discriminator on the transformed datapoints to assess leakage
+    
+    eval_disc = Classifier(dataset.input_shape, leakage_classes=10).to(device)
+    posteval_args = (eval_disc, nn.CrossEntropyLoss(), device)
+    pretrain_dir = os.path.join(save_dir, '..', 'pretrained_models')
+    if os.path.exists(os.path.join(pretrain_dir, 'downstream_disc__{}.pth'.format(dataset.__name__))):
+        print('Loading a discriminator pretrained on the downstream task.')
+        eval_disc.load_state_dict(torch.load(
+            os.path.join(pretrain_dir, 'downstream_disc__{}.pth'.format(dataset.__name__))
+        ))
+    else:
+        os.makedirs(pretrain_dir, exist_ok=True)
+        eval_disc_opt = optim.Adam(eval_disc.parameters())
+        posttrain_args = (eval_disc, eval_disc_opt, nn.CrossEntropyLoss(), device)
+        print('Training a new discriminator for the downstream task.')
+        for epoch_idx in range(1, posttrain_epochs+1):
+            update_results(-epoch_idx, posttrain=True, orig_labels=True)
+        torch.save(eval_disc.state_dict(), os.path.join(pretrain_dir, 'downstream_disc__{}.pth'.format(dataset.__name__)))
     gen.eval()
+    train_is = calculate_inception_score(train_dataloader, gen, eval_disc, device)
+    val_is = calculate_inception_score(val_dataloader, gen, eval_disc, device)
+    test_is = calculate_inception_score(test_dataloader, gen, eval_disc, device)
     apply_transform(train_dataset.dataset.new_data, gen, batch_size, device)
     apply_transform(val_dataset.dataset.new_data, gen, batch_size, device)
-    apply_transform(test_dataset.new_data, gen, batch_size, device)
+    apply_transform(test_dataloader.dataset.new_data, gen, batch_size, device)
+    train_ds_rv = eval_epoch(train_dataloader, *posteval_args, posttrain=True, original_target=True)
+    val_ds_rv = eval_epoch(val_dataloader, *posteval_args, posttrain=True, original_target=True)
+    test_ds_rv = eval_epoch(test_dataloader, *posteval_args, posttrain=True, original_target=True)
+    train_ds_rv.update({'inception_score': float(train_is)})
+    val_ds_rv.update({'inception_score': float(val_is)})
+    test_ds_rv.update({'inception_score': float(test_is)})
+    preface_keys(train_ds_rv, 'downstream')
+    preface_keys(val_ds_rv, 'downstream')
+    preface_keys(test_ds_rv, 'downstream')
+    print('Performance of downstream-trained discriminator on transformed datapoints:')
+    print('Training:')
+    print_d(train_ds_rv)
+    print('Validation:')
+    print_d(val_ds_rv)
+    print('Testing:')
+    print_d(test_ds_rv)
+    with open(os.path.join(results_dir, 'train', 'downstream.pickle'), 'wb') as F:
+        pickle.dump(train_ds_rv, F)
+    with open(os.path.join(results_dir, 'validation', 'downstream.pickle'), 'wb') as F:
+        pickle.dump(val_ds_rv, F)
+    with open(os.path.join(results_dir, 'test', 'downstream.pickle'), 'wb') as F:
+        pickle.dump(test_ds_rv, F)
     eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_classes).to(device)
     eval_disc_opt = optim.Adam(eval_disc.parameters())
     posttrain_args = (eval_disc, eval_disc_opt, nn.CrossEntropyLoss(), device)
     posteval_args = (eval_disc, nn.CrossEntropyLoss(), device)
     for epoch_idx in range(pretrain_gen_epochs+epochs+1, pretrain_gen_epochs+epochs+posttrain_epochs+1):
-        update_results(epoch_idx, posttrain=True)
+        update_results(epoch_idx, posttrain=True, orig_labels=False)
         
 def plot_traces(trial_dir):
     figs_dir = os.path.join(trial_dir, 'figures')
@@ -255,8 +296,8 @@ def plot_traces(trial_dir):
     
     try:
         axes[2].plot(*get_trace('disc_loss_leakage', 'train'), '--', color='red')
-        axes[2].plot(*get_trace('disc_loss_leakage', 'validation'), '-', color='red')
-        axes[2].plot(*get_trace('gen_loss_leakage', 'train'), '--', color='blue', label='Disc loss')
+        axes[2].plot(*get_trace('disc_loss_leakage', 'validation'), '-', color='red', label='Disc loss')
+        axes[2].plot(*get_trace('gen_loss_leakage', 'train'), '--', color='blue')
         axes[2].plot(*get_trace('gen_loss_leakage', 'validation'), '-', color='blue', label='Gen loss')
     except:
         pass
@@ -299,10 +340,15 @@ def plot_traces(trial_dir):
     
     tax6 = axes[6].twinx()
     try:
-        axes[6].plot(*get_trace('posttrain_loss', 'train'), '--', color='green')
-        axes[6].plot(*get_trace('posttrain_loss', 'validation'), '-', color='green', label='Loss')
-        tax6.plot(*get_trace('posttrain_acc', 'train'), '--', color='orange')
-        tax6.plot(*get_trace('posttrain_acc', 'validation'), '-', color='orange', label='Accuracy')
+        epochs = np.arange(1, len(get_trace('posttrain_leakage_loss', 'train')[0])+1)
+        axes[6].plot(epochs, get_trace('posttrain_leakage_loss', 'train')[1], '--', color='red')
+        axes[6].plot(epochs, get_trace('posttrain_leakage_loss', 'validation')[1], '-', color='red', label='Loss (leakage)')
+        tax6.plot(epochs, get_trace('posttrain_leakage_acc', 'train')[1], '--', color='orange')
+        tax6.plot(epochs, get_trace('posttrain_leakage_acc', 'validation')[1], '-', color='orange', label='Accuracy (leakage)')
+        axes[6].plot(epochs, get_trace('posttrain_orig_loss', 'train')[1], '--', color='blue')
+        axes[6].plot(epochs, get_trace('posttrain_orig_loss', 'validation')[1], '-', color='blue', label='Loss (downstream)')
+        tax6.plot(epochs, get_trace('posttrain_orig_acc', 'train')[1], '--', color='green')
+        tax6.plot(epochs, get_trace('posttrain_orig_acc', 'validation')[1], '-', color='green', label='Accuracy (downstream)')
     except:
         pass
     axes[6].set_xlabel('Epoch')

@@ -51,73 +51,79 @@ class DiscriminatorBlock(nn.Module):
         return out
     
 class Discriminator(nn.Module):
-    def __init__(self, input_shape, activation=lambda: nn.LeakyReLU(0.1),
-                 leakage_classes=2, initial_channels=8,
-                 downsample_blocks=2, straight_blocks=2,
-                 fe_groups=3, use_sn=True):
+    def __init__(self, input_channels, activation=lambda: nn.LeakyReLU(0.1),
+                 output_logits=2, initial_channels=8, downsample_blocks=2,
+                 straight_blocks=2, use_sn=True):
         super().__init__()
         
         sn = spectral_norm if use_sn else lambda x: x
         bn = None
-        assert fe_groups in [
-            1, # Realism and leakage classifiers share the same feature extractor
-            2, # Realism and leakage classifiers have independent feature extractors
-            3  # Realism and leakage classifiers have both independent and shared feature extractors
-        ]
-        self.fe_groups = fe_groups
-        initial_channels_cnn = initial_channels if fe_groups==1 else 2*initial_channels if fe_groups==2 else 3*initial_channels//2
         
-        self.input_transform = nn.Sequential(
-            sn(nn.Conv2d(input_shape[0], initial_channels_cnn, kernel_size=1, stride=1, padding=0)),
-            sn(nn.Conv2d(initial_channels_cnn, initial_channels_cnn, kernel_size=3, stride=1, padding=1, groups=fe_groups))
-        )
+        self.input_transform = sn(nn.Conv2d(input_channels, initial_channels, kernel_size=3, stride=1, padding=1))
         self.feature_extractor = []
         for n in range(downsample_blocks):
             self.feature_extractor.append(DiscriminatorBlock(
-                initial_channels_cnn*2**n, initial_channels_cnn*2**(n+1),
-                downsample=True, groups=fe_groups, sn=sn, bn=bn, activation=activation
+                initial_channels*2**n, initial_channels*2**(n+1),
+                downsample=True, sn=sn, bn=bn, activation=activation
             ))
-        for _ in range(straight_blocks):
+        for n in range(straight_blocks):
             self.feature_extractor.append(DiscriminatorBlock(
-                initial_channels_cnn*2**downsample_blocks, initial_channels_cnn*2**downsample_blocks,
-                downsample=False, groups=fe_groups, sn=sn, bn=bn, activation=activation
+                initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks,
+                downsample=False, sn=sn, bn=bn, activation=activation
             ))
         self.feature_extractor.append(GlobalPool2d(pool_fn=torch.sum))
         self.feature_extractor = nn.Sequential(*self.feature_extractor)
-        self.realism_classifier = sn(nn.Linear(2*initial_channels*2**downsample_blocks, 1))
-        self.leakage_classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, leakage_classes))
+        self.classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, output_logits))
         
-    def extract_features(self, x):
+    def extract_features(self, *args):
+        if len(args) == 1:
+            (x,) = args
+        elif len(args) == 2:
+            (x1, x2) = args
+            x = torch.cat((x1, x2), dim=1)
+        else:
+            raise NotImplementedError
+        x_i = self.input_transform(x)
+        out = self.feature_extractor(x_i)
+        return out
+    
+    def classify_features(self, x):
+        return self.classifier(x)
+    
+    def forward(self, *args):
+        if len(args) == 1:
+            (x,) = args
+        elif len(args) == 2:
+            (x1, x2) = args
+            x = torch.cat((x1, x2), dim=1)
+        else:
+            raise NotImplementedError
         x_i = self.input_transform(x)
         x_fe = self.feature_extractor(x_i)
-        return x_fe
-    
-    def get_realism_features(self, x):
-        if self.fe_groups == 1:
-            return x
-        elif self.fe_groups == 2:
-            return x[:, :x.size(1)//2]
-        elif self.fe_groups == 3:
-            return x[:, :2*x.size(1)//3]
-        else:
-            assert False
-    
-    def get_leakage_features(self, x):
-        if self.fe_groups == 1:
-            return x
-        elif self.fe_groups == 2:
-            return x[:, x.size(1)//2:]
-        elif self.fe_groups == 3:
-            return x[:, x.size(1)//3:]
-        else:
-            assert False
-    
-    def classify_realism(self, x1, x2):
-        x = torch.cat((x1, x2), dim=1)
-        return self.realism_classifier(x)
-    
+        out = self.classifier(x_fe)
+        return out
+
+class SanitizingDiscriminator(nn.Module):
+    def __init__(self, input_shape, leakage_classes, 
+                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=8,
+                 downsample_blocks=2, straight_blocks=2, use_sn=True):
+        super().__init__()
+        
+        self.realism_discriminator = Discriminator(2*input_shape[0], activation=activation,
+                                                   output_logits=1, initial_channels=initial_channels,
+                                                   downsample_blocks=downsample_blocks, straight_blocks=straight_blocks,
+                                                   use_sn=use_sn)
+        self.leakage_discriminator = Discriminator(input_shape[0], activation=activation,
+                                                   output_logits=leakage_classes, initial_channels=initial_channels,
+                                                   downsample_blocks=downsample_blocks, straight_blocks=straight_blocks,
+                                                   use_sn=use_sn)
+        
+    def get_realism_features(self, x1, x2):
+        return self.realism_discriminator.extract_features(x1, x2)
+    def classify_realism_features(self, x):
+        return self.realism_discriminator.classify_features(x)
     def classify_leakage(self, x):
-        return self.leakage_classifier(x)
+        return self.leakage_discriminator(x)
         
 class Classifier(nn.Module):
     def __init__(self, input_shape, activation=lambda: nn.ReLU(inplace=True),
