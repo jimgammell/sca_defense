@@ -22,7 +22,7 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main(overwrite=False):
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_x')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xi')
     if os.path.exists(save_dir):
         if overwrite:
             os.remove(save_dir)
@@ -33,17 +33,19 @@ def main(overwrite=False):
                 int(f.split('_')[1]) for f in files if f.split('_')[0] == 'trial'
             ]
             base_trial_idx = np.max(trial_indices)+1
+    else:
+        base_trial_idx = 0
     default_args = {
         'save_dir': save_dir,
     }
     n_repetitions = 3
     args_to_sweep = {
-        'dataset': [WatermarkedMNIST],
-        'clip_gradients': [False],
+        'dataset': [ColoredMNIST],
+        'clip_gradients': [True],
         'whiten_features': [False],
         'disc_invariance_coefficient': [0.0],
         'disc_leakage_coefficient': [0.5],
-        'gen_leakage_coefficient': [0.0, 1e-3, 1e-2, 0.1, 0.3, 0.5, 0.7, 0.9, 1-1e-2, 1-1e-3, 1.0],
+        'gen_leakage_coefficient': [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00],
         'disc_steps_per_gen_step': [5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
