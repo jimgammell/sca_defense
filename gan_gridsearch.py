@@ -23,7 +23,7 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main(overwrite=False):
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xii')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xvi')
     if os.path.exists(save_dir):
         if overwrite:
             shutil.rmtree(save_dir)
@@ -45,8 +45,9 @@ def main(overwrite=False):
         'clip_gradients': [False],
         'whiten_features': [False],
         'disc_invariance_coefficient': [1e2],
+        'separate_leakage_partition': [True],
         'disc_leakage_coefficient': [0.5],
-        'gen_leakage_coefficient': [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00],
+        'gen_leakage_coefficient': [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
         'disc_steps_per_gen_step': [5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
