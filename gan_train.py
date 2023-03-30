@@ -69,14 +69,12 @@ def stats_l1_loss(logits, y):
 def hinge_realism_loss(logits):
     return -logits.mean()
     
-def get_invariance_penalty(f1, f2, y):
+def get_invariance_penalty(f, y):
     invariance_penalty = 0.0
-    f = torch.cat((f1, f2), dim=0)
-    yy = torch.cat((y, y), dim=0)
     for y_A in torch.unique(y):
         for y_B in torch.unique(y):
-            invariance_penalty = invariance_penalty + (f[yy==y_A].mean(0)-f[yy==y_B].mean(0)).norm(p=1)
-            invariance_penalty = invariance_penalty + (f[yy==y_A].std(0)-f[yy==y_B].std(0)).norm(p=1)
+            invariance_penalty = invariance_penalty + (f[y==y_A].mean(0)-f[y==y_B].mean(0)).norm(p=1)
+            invariance_penalty = invariance_penalty + (f[y==y_A].std(0)-f[y==y_B].std(0)).norm(p=1)
     return invariance_penalty
 
 def confusion_loss(logits, y):
@@ -257,7 +255,7 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
             x_rec_lk = gen_tr(x_lk)
         features_realism_orig = disc.get_realism_features(x_lk, x_lk)
         features_realism_rec = disc.get_realism_features(x_lk, x_rec_lk)
-        invariance_penalty = get_mcmatching_penalty(features_realism_orig, y_lk) + get_mcmatching_penalty(features_realism_rec, y_lk)
+        invariance_penalty = feature_whitening_penalty(features_realism_orig, y_lk) + feature_whitening_penalty(features_realism_rec, y_lk)
         if whiten_features:
             features_realism_orig = get_whitened_features(features_realism_orig, y_lk, detach=detached_feature_whitening)
             features_realism_rec = get_whitened_features(features_realism_rec, y_lk, detach=detached_feature_whitening)
@@ -370,7 +368,7 @@ def eval_step(batch, gen, disc, device,
     x_rec = gen(x)
     features_realism_orig = disc.get_realism_features(x, x)
     features_realism_rec = disc.get_realism_features(x, x_rec)
-    invariance_penalty = get_mcmatching_penalty(features_realism_orig, y) + get_mcmatching_penalty(features_realism_rec, y)
+    invariance_penalty = feature_whitening_penalty(features_realism_orig, y) + feature_whitening_penalty(features_realism_rec, y)
     if whiten_features:
         features_orig = get_whitened_features(features_realism_orig, y)
         features_rec = get_whitened_features(features_realism_rec, y)
