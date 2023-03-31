@@ -410,6 +410,7 @@ def train_epoch(dataloader, *step_args, leakage_dataloader=None, return_example_
     if autoencoder_gen:
         glc = step_kwargs['gen_leakage_coefficient']
         step_kwargs['gen_leakage_coefficient'] = 0.0
+        step_kwargs['disc_invariance_coefficient'] = 0.0
         step_kwargs['train_leakage_disc_on_orig_samples'] = True
         disc_steps_per_gen_step = 1.0
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx)==int else return_example_idx
@@ -474,6 +475,7 @@ def eval_epoch(dataloader, *step_args, return_example_idx=None, autoencoder_gen=
     if autoencoder_gen:
         glc = step_kwargs['gen_leakage_coefficient']
         step_kwargs['gen_leakage_coefficient'] = 0.0
+        step_kwargs['disc_invariance_coefficient'] = 0.0
         step_kwargs['train_leakage_disc_on_orig_samples'] = True
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx)==int else return_example_idx
     for bidx, batch in enumerate(dataloader):

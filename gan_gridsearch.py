@@ -47,7 +47,8 @@ def main(overwrite=False):
         'disc_invariance_coefficient': [1e2],
         'separate_leakage_partition': [True],
         'disc_leakage_coefficient': [0.5],
-        'gen_leakage_coefficient': [0.00, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14, 0.15],
+        'pretrain_gen_epochs': [10],
+        'gen_leakage_coefficient': [0.00, 1e-5, 1e-4, 1e-3, 3e-3, 5e-3, 7e-3, 9e-3, 1e-2, 3e-2, 5e-2, 7e-2, 9e-2, 1e-1],
         'disc_steps_per_gen_step': [5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
