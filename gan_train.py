@@ -2,6 +2,14 @@ import numpy as np
 import torch
 from torch import nn, optim
 
+def apply_mixup_to_data(x, y, alpha):
+    lbd = np.random.beta(alpha, alpha)
+    batch_size = x.size(0)
+    index = torch.randperm(batch_size).to(x.device)
+    x = lbd*x + (1-lbd)*x[index, :]
+    y_a, y_b = y, y[index]
+    return x, y_a, y_b, lbd
+
 def val(tensor):
     try:
         return tensor.detach().cpu().numpy()
@@ -76,6 +84,13 @@ def get_invariance_penalty(f, y):
             invariance_penalty = invariance_penalty + (f[y==y_A].mean(0)-f[y==y_B].mean(0)).norm(p=1)
             invariance_penalty = invariance_penalty + (f[y==y_A].std(0)-f[y==y_B].std(0)).norm(p=1)
     return invariance_penalty
+
+def get_covariance_penalty(f):
+    f_mn = f.mean(dim=0, keepdims=True)
+    f_zc = f - f_mn
+    covariance = torch.mm(f_zc.permute(1, 0), f_zc)
+    penalty = (covariance - torch.diagonal(covariance)).norm(p=2) / len(f)
+    return penalty
 
 def confusion_loss(logits, y):
     model_log_probs = nn.functional.log_softmax(logits, dim=-1)
@@ -227,6 +242,7 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
                return_example=False, return_weight_norms=False, return_grad_norms=False,
                whiten_features=False,
                gen_leakage_coefficient=0.5, disc_invariance_coefficient=1.0,
+               mixup_coefficient=0.0,
                train_gen=True, train_disc=True, 
                disc_realism_loss_fn=hinge_loss, gen_realism_loss_fn=hinge_realism_loss,
                disc_leakage_loss_fn=nn.functional.multi_margin_loss, gen_leakage_loss_fn=inv_multiclass_hinge_loss,
@@ -252,24 +268,33 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, project_gen_updates=
         else:
             x_lk, y_lk = x, y
         with torch.no_grad():
+            x_rec = gen(x)
             x_rec_lk = gen_tr(x_lk)
-        features_realism_orig = disc.get_realism_features(x_lk, x_lk)
-        features_realism_rec = disc.get_realism_features(x_lk, x_rec_lk)
-        invariance_penalty = feature_whitening_penalty(features_realism_orig, y_lk) + feature_whitening_penalty(features_realism_rec, y_lk)
+        features_realism_orig = disc.get_realism_features(x, x)
+        features_realism_rec = disc.get_realism_features(x, x_rec)
+        invariance_penalty = 0.5*get_covariance_penalty(features_realism_orig) + 0.5*get_covariance_penalty(features_realism_rec)
         if whiten_features:
-            features_realism_orig = get_whitened_features(features_realism_orig, y_lk, detach=detached_feature_whitening)
-            features_realism_rec = get_whitened_features(features_realism_rec, y_lk, detach=detached_feature_whitening)
+            features_realism_orig = get_whitened_features(features_realism_orig, y, detach=detached_feature_whitening)
+            features_realism_rec = get_whitened_features(features_realism_rec, y, detach=detached_feature_whitening)
         logits_realism_orig = disc.classify_realism_features(features_realism_orig)
         logits_realism_rec = disc.classify_realism_features(features_realism_rec)
         disc_loss_realism = \
             0.5*disc_realism_loss_fn(logits_realism_orig, 1) +\
             0.5*disc_realism_loss_fn(logits_realism_rec, -1) +\
             disc_invariance_coefficient*invariance_penalty
-        if train_leakage_disc_on_orig_samples:
-            leakage_logits = disc.classify_leakage(x_lk)
+        if mixup_coefficient != 0.0:
+            x_rec_lk, y_a, y_b, lbd = apply_mixup_to_data(x_rec_lk, y_lk, mixup_coefficient)
+            leakage_logits = disc.classify_leakage(x_rec_lk)
+            disc_loss_leakage = lbd*disc_leakage_loss_fn(leakage_logits, y_a) + (1-lbd)*disc_leakage_loss_fn(leakage_logits, y_b)
         else:
             leakage_logits = disc.classify_leakage(x_rec_lk)
-        disc_loss_leakage = disc_leakage_loss_fn(leakage_logits, y_lk)
+            disc_loss_leakage = disc_leakage_loss_fn(leakage_logits, y_lk)
+            
+        #if train_leakage_disc_on_orig_samples:
+        #    leakage_logits = disc.classify_leakage(x_lk)
+        #else:
+        #    leakage_logits = disc.classify_leakage(x_rec_lk)
+        #disc_loss_leakage = disc_leakage_loss_fn(leakage_logits, y_lk)
         
         # update discriminator parameters
         disc_loss = disc_loss_realism + disc_loss_leakage
@@ -368,7 +393,7 @@ def eval_step(batch, gen, disc, device,
     x_rec = gen(x)
     features_realism_orig = disc.get_realism_features(x, x)
     features_realism_rec = disc.get_realism_features(x, x_rec)
-    invariance_penalty = feature_whitening_penalty(features_realism_orig, y) + feature_whitening_penalty(features_realism_rec, y)
+    invariance_penalty = 0.5*get_covariance_penalty(features_realism_orig) + 0.5*get_covariance_penalty(features_realism_rec)
     if whiten_features:
         features_orig = get_whitened_features(features_realism_orig, y)
         features_rec = get_whitened_features(features_realism_rec, y)
