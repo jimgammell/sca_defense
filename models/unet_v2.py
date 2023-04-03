@@ -50,16 +50,16 @@ class DiscriminatorBlock(nn.Module):
         out = x_rc + x_sc
         return out
     
-class Discriminator(nn.Module):
-    def __init__(self, input_channels, activation=lambda: nn.LeakyReLU(0.1),
-                 output_logits=2, initial_channels=8, downsample_blocks=2,
-                 straight_blocks=2, use_sn=True):
+class LeakageDiscriminator(nn.Module):
+    def __init__(self, input_shape, leakage_classes,
+                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=8,
+                 downsample_blocks=2, straight_blocks=2, use_sn=True):
         super().__init__()
         
         sn = spectral_norm if use_sn else lambda x: x
         bn = None
         
-        self.input_transform = sn(nn.Conv2d(input_channels, initial_channels, kernel_size=3, stride=1, padding=1))
+        self.input_transform = sn(nn.Conv2d(input_shape[0], initial_channels, kernel_size=3, stride=1, padding=1))
         self.feature_extractor = []
         for n in range(downsample_blocks):
             self.feature_extractor.append(DiscriminatorBlock(
@@ -73,57 +73,18 @@ class Discriminator(nn.Module):
             ))
         self.feature_extractor.append(GlobalPool2d(pool_fn=torch.sum))
         self.feature_extractor = nn.Sequential(*self.feature_extractor)
-        self.classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, output_logits))
-        
-    def extract_features(self, *args):
-        if len(args) == 1:
-            (x,) = args
-        elif len(args) == 2:
-            (x1, x2) = args
-            x = torch.cat((x1, x2), dim=1)
-        else:
-            raise NotImplementedError
-        x_i = self.input_transform(x)
-        out = self.feature_extractor(x_i)
-        return out
+        self.leakage_classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, leakage_classes))
+        self.realism_classifier = sn(nn.Linear(initial_channels*2**downsample_blocks, 1))
     
-    def classify_features(self, x):
-        return self.classifier(x)
-    
-    def forward(self, *args):
-        if len(args) == 1:
-            (x,) = args
-        elif len(args) == 2:
-            (x1, x2) = args
-            x = torch.cat((x1, x2), dim=1)
-        else:
-            raise NotImplementedError
+    def extract_features(self, x):
         x_i = self.input_transform(x)
-        x_fe = self.feature_extractor(x_i)
-        out = self.classifier(x_fe)
-        return out
-
-class SanitizingDiscriminator(nn.Module):
-    def __init__(self, input_shape, leakage_classes, 
-                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=8,
-                 downsample_blocks=2, straight_blocks=2, use_sn=True):
-        super().__init__()
-        
-        self.realism_discriminator = Discriminator(2*input_shape[0], activation=activation,
-                                                   output_logits=1, initial_channels=initial_channels,
-                                                   downsample_blocks=downsample_blocks, straight_blocks=straight_blocks,
-                                                   use_sn=use_sn)
-        self.leakage_discriminator = Discriminator(input_shape[0], activation=activation,
-                                                   output_logits=leakage_classes, initial_channels=initial_channels,
-                                                   downsample_blocks=downsample_blocks, straight_blocks=straight_blocks,
-                                                   use_sn=use_sn)
-        
-    def get_realism_features(self, x1, x2):
-        return self.realism_discriminator.extract_features(x1, x2)
-    def classify_realism_features(self, x):
-        return self.realism_discriminator.classify_features(x)
+        return self.feature_extractor(x_i)
+    
     def classify_leakage(self, x):
-        return self.leakage_discriminator(x)
+        return self.leakage_classifier(x)
+    
+    def classify_realism(self, x):
+        return self.realism_classifier(x)
         
 class Classifier(nn.Module):
     def __init__(self, input_shape, activation=lambda: nn.ReLU(inplace=True),

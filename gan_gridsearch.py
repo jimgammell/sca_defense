@@ -23,7 +23,7 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main(overwrite=False):
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xv')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xvii')
     if os.path.exists(save_dir):
         if overwrite:
             shutil.rmtree(save_dir)
@@ -39,17 +39,13 @@ def main(overwrite=False):
     default_args = {
         'save_dir': save_dir,
     }
-    n_repetitions = 3
+    n_repetitions = 5
     args_to_sweep = {
-        'dataset': [ColoredMNIST],
-        'clip_gradients': [False],
-        'whiten_features': [False],
-        'disc_invariance_coefficient': [0.0],
-        'separate_leakage_partition': [True],
-        'disc_leakage_coefficient': [0.5],
-        'mixup_coefficient': [0.2],
-        'pretrain_gen_epochs': [0],
-        'gen_leakage_coefficient': [2e-1, 3e-1, 4e-1, 5e-1, 6e-1, 7e-1, 8e-1, 9e-1, 1.0],
+        'dataset': [ColoredMNIST, WatermarkedMNIST],
+        'y_clamp': [0],
+        'l1_rec_coefficient': [0.0],
+        'mixup_alpha': [1.0],
+        'average_deviation_penalty': [1e0],
         'disc_steps_per_gen_step': [5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
