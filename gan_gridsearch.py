@@ -23,7 +23,7 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main(overwrite=False):
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xvii')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xx')
     if os.path.exists(save_dir):
         if overwrite:
             shutil.rmtree(save_dir)
@@ -33,19 +33,24 @@ def main(overwrite=False):
             trial_indices = [
                 int(f.split('_')[1]) for f in files if f.split('_')[0] == 'trial'
             ]
-            base_trial_idx = np.max(trial_indices)+1
+            if len(trial_indices) > 0:
+                base_trial_idx = np.max(trial_indices)+1
+            else:
+                base_trial_idx = 0
     else:
         base_trial_idx = 0
     default_args = {
         'save_dir': save_dir,
     }
-    n_repetitions = 5
+    n_repetitions = 2
     args_to_sweep = {
         'dataset': [ColoredMNIST, WatermarkedMNIST],
-        'y_clamp': [0],
+        'gen_leakage_coefficient': [0.5],
+        'y_clamp': [None, 0],
+        'gen_leakage_ramp_duration': [0.0, 0.25],
+        'disc_gradient_penalty': [100.0, 0.0],
         'l1_rec_coefficient': [0.0],
         'mixup_alpha': [1.0],
-        'average_deviation_penalty': [1e0],
         'disc_steps_per_gen_step': [5.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
@@ -57,6 +62,10 @@ def main(overwrite=False):
                 torch.random.manual_seed(repetition)
                 args = deepcopy(default_args)
                 args.update(sweep_config)
+                if args['dataset'] == ColoredMNIST:
+                    args['average_deviation_penalty'] = 1e0
+                elif args['dataset'] == WatermarkedMNIST:
+                    args['average_deviation_penalty'] = 1e-1
                 trial_dir = os.path.join(save_dir, 'trial_{}__rep_{}'.format(trial_idx, repetition))
                 args.update({'save_dir': trial_dir})
                 print('Starting trial {}'.format(trial_idx))
@@ -71,6 +80,7 @@ def main(overwrite=False):
                 print('Done.')
                 print('\n\n')
                 rep_config = {key: str(item) for key, item in sweep_config.items()}
+                rep_config['average_deviation_penalty'] = args['average_deviation_penalty']
                 with open(os.path.join(trial_dir, 'sweep_config.json'), 'w') as F:
                     json.dump(rep_config, F)
         except Exception:

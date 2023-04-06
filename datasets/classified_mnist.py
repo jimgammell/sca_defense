@@ -24,13 +24,17 @@ def add_plus_watermark(image, center, radius):
     return image
 
 @torch.no_grad()
-def apply_transform(data, transform, batch_size, device):
+def apply_transform(data, gen, batch_size, device, y_clamp=None):
     for b_idx in range(len(data)//batch_size):
         batch = data[batch_size*b_idx : batch_size*(b_idx+1)]
         batch = torch.stack([
             torch.from_numpy(x).to(device).to(torch.float) for x in batch
         ]).reshape((batch_size, -1, 28, 28))
-        transformed_batch = transform(batch)
+        if y_clamp is None:
+            y_clamp_ = torch.randint(0, gen.num_leakage_classes, device=device, dtype=torch.long, size=(batch_size,))
+        else:
+            y_clamp_ = y_clamp*torch.ones(batch_size, device=device, dtype=torch.long)
+        transformed_batch = gen(batch, y_clamp_)
         transformed_batch = to_uint8(transformed_batch)
         for x_idx in range(batch_size):
             data[batch_size*b_idx+x_idx] = transformed_batch[x_idx].cpu().numpy()
