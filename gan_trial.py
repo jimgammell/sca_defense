@@ -19,14 +19,14 @@ def run_trial(
     gen_constructor=Generator,
     gen_kwargs={},
     gen_opt=optim.Adam,
-    gen_opt_kwargs={'lr': 1e-4, 'betas': (0.0, 0.9)},
+    gen_opt_kwargs={'lr': 5e-5, 'betas': (0.0, 0.999)},
     disc_constructor=LeakageDiscriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
-    disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.9)},
+    disc_opt_kwargs={'lr': 2e-4, 'betas': (0.0, 0.999)},
     disc_steps_per_gen_step=1.0,
     pretrain_gen_epochs=0,
-    epochs=200,
+    epochs=50,
     posttrain_epochs=25,
     batch_size=128,
     y_clamp=0,
@@ -37,6 +37,7 @@ def run_trial(
     mixup_alpha=0.0,
     average_deviation_penalty=0.0,
     average_update_coefficient=1e-4,
+    cyclical_loss=False,
     calculate_weight_norms=True,
     calculate_grad_norms=True,
     save_dir=None,
@@ -56,7 +57,7 @@ def run_trial(
     
     mnist_loc = os.path.join('.', 'downloads', 'MNIST')
     train_dataset = dataset(train=True, root=mnist_loc, download=True)
-    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, (50000, 10000))
+    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, (len(train_dataset)-len(train_dataset)//6, len(train_dataset)//6))
     test_dataset = dataset(train=False, root=mnist_loc, download=True)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=8)
@@ -66,12 +67,13 @@ def run_trial(
         avg_fn = lambda x1, x2: (1-average_update_coefficient)*x1 + average_update_coefficient*x2
         new_gen_constructor = get_averaged_model(gen_constructor, device, avg_fn=avg_fn)
         gen_constructor = new_gen_constructor
-    gen = gen_constructor(dataset.input_shape, num_leakage_classes=dataset.num_classes if y_clamp is None else 1,
+    gen = gen_constructor(dataset.input_shape, num_leakage_classes=dataset.num_leakage_classes if y_clamp is None else 1,
                           **gen_kwargs).to(device)
+    
     eval_gen = None
     gen_opt = gen_opt(gen.parameters(), **gen_opt_kwargs)
     gen_loss_fn = lambda *args: gen_loss(*args, **gen_loss_kwargs)
-    disc = disc_constructor(dataset.input_shape, leakage_classes=dataset.num_classes, **disc_kwargs).to(device)
+    disc = disc_constructor(dataset.input_shape, num_leakage_classes=dataset.num_leakage_classes, **disc_kwargs).to(device)
     disc_opt = disc_opt(disc.parameters(), **disc_opt_kwargs)
     disc_loss_fn = lambda *args: disc_loss(*args, **disc_loss_kwargs)
     
@@ -103,6 +105,7 @@ def run_trial(
             'l1_rec_coefficient': l1_rec_coefficient,
             'original_target': orig_labels,
             'mixup_alpha': mixup_alpha,
+            'cyclical_loss': cyclical_loss,
             'average_deviation_penalty': average_deviation_penalty
         }
         t0 = time.time()
@@ -180,7 +183,7 @@ def run_trial(
         with open(os.path.join(results_dir, 'trial_info.pickle'), 'wb') as F:
             pickle.dump(trial_info, F)
     
-    leakage_eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_classes).to(device)
+    leakage_eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_leakage_classes).to(device)
     posteval_args = (leakage_eval_disc, nn.CrossEntropyLoss(), device)
     pretrain_dir = os.path.join(save_dir, '..', 'pretrained_models')
     if os.path.exists(os.path.join(pretrain_dir, 'leakage_disc__{}.pth'.format(dataset.__name__))):
@@ -197,7 +200,7 @@ def run_trial(
             update_results(None, posttrain=True)
         torch.save(leakage_eval_disc.state_dict(), os.path.join(pretrain_dir, 'leakage_disc__{}.pth'.format(dataset.__name__)))
     
-    downstream_eval_disc = Classifier(dataset.input_shape, leakage_classes=10).to(device)
+    downstream_eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_downstream_classes).to(device)
     posteval_args = (downstream_eval_disc, nn.CrossEntropyLoss(), device)
     pretrain_dir = os.path.join(save_dir, '..', 'pretrained_models')
     if os.path.exists(os.path.join(pretrain_dir, 'downstream_disc__{}.pth'.format(dataset.__name__))):
@@ -209,7 +212,7 @@ def run_trial(
         os.makedirs(pretrain_dir, exist_ok=True)
         downstream_eval_disc_opt = optim.Adam(downstream_eval_disc.parameters(), lr=2e-4)
         posttrain_args = (downstream_eval_disc, downstream_eval_disc_opt, nn.CrossEntropyLoss(), device)
-        print('Pretraining a leakage evaluation classifier.')
+        print('Pretraining a downstream evaluation classifier.')
         for epoch_idx in range(1, posttrain_epochs+1):
             update_results(None, posttrain=True, orig_labels=True)
         torch.save(downstream_eval_disc.state_dict(), os.path.join(pretrain_dir, 'downstream_disc__{}.pth'.format(dataset.__name__)))
@@ -225,7 +228,7 @@ def run_trial(
     apply_transform(train_dataset.dataset.new_data, gen, batch_size, device, y_clamp=y_clamp)
     apply_transform(val_dataset.dataset.new_data, gen, batch_size, device, y_clamp=y_clamp)
     apply_transform(test_dataloader.dataset.new_data, gen, batch_size, device, y_clamp=y_clamp)
-    eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_classes).to(device)
+    eval_disc = Classifier(dataset.input_shape, leakage_classes=dataset.num_leakage_classes).to(device)
     eval_disc_opt = optim.Adam(eval_disc.parameters(), lr=2e-4)
     posttrain_args = (eval_disc, eval_disc_opt, nn.CrossEntropyLoss(), device)
     posteval_args = (eval_disc, nn.CrossEntropyLoss(), device)
@@ -358,11 +361,11 @@ def plot_traces(trial_dir):
     
     tax8 = axes[8].twinx()
     try:
-        epochs = np.arange(1, len(get_trace('posttrain_loss', 'train')[0])+1)
-        axes[8].plot(epochs, get_trace('posttrain_loss', 'train')[1], '--', color='red')
-        axes[8].plot(epochs, get_trace('posttrain_loss', 'validation')[1], '-', color='red', label='Loss')
-        tax8.plot(epochs, get_trace('posttrain_acc', 'train')[1], '--', color='orange')
-        tax8.plot(epochs, get_trace('posttrain_acc', 'validation')[1], '-', color='orange', label='Accuracy')
+        epochs = np.arange(1, len(get_trace('posttrain_leakage_loss', 'train')[0])+1)
+        axes[8].plot(epochs, get_trace('posttrain_leakage_loss', 'train')[1], '--', color='red')
+        axes[8].plot(epochs, get_trace('posttrain_leakage_loss', 'validation')[1], '-', color='red', label='Loss')
+        tax8.plot(epochs, get_trace('posttrain_leakage_acc', 'train')[1], '--', color='orange')
+        tax8.plot(epochs, get_trace('posttrain_leakage_acc', 'validation')[1], '-', color='orange', label='Accuracy')
     except:
         pass
     axes[8].set_xlabel('Epoch')
@@ -370,7 +373,7 @@ def plot_traces(trial_dir):
     tax8.set_ylabel('Accuracy')
     axes[8].set_title('Performance of independent discriminator')
     axes[8].set_yscale('log')
-    tax8.set_ylim(0.0, 1.0)
+    tax8.set_ylim(-0.1, 1.1)
     axes[8].legend(loc='upper right')
     tax8.legend(loc='lower left')
     
@@ -396,7 +399,7 @@ def plot_traces(trial_dir):
     axes[10].set_xlabel('Epoch')
     axes[10].set_ylabel('Accuracy')
     axes[10].set_title('Discriminator accuracy over time')
-    axes[10].set_ylim(0, 1)
+    axes[10].set_ylim(-0.1, 1.1)
     axes[10].legend()
     
     plt.tight_layout()

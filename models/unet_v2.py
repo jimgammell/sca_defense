@@ -21,20 +21,17 @@ class GlobalPool2d(nn.Module):
 # Based on implementation here:
 #   https://github.com/t-vi/pytorch-tvmisc/blob/master/wasserstein-distance/sn_projection_cgan_64x64_143c.ipynb
 class ConditionalBatchNorm2d(nn.Module):
-    def __init__(self, num_features, num_classes, eps=2e-5, momentum=0.1, affine=True, track_running_stats=True):
+    def __init__(self, num_features, class_embedding_size, eps=1e-4, momentum=0.1, affine=True, track_running_stats=True):
         super().__init__()
         self.num_features = num_features
-        self.num_classes = num_classes
+        self.class_embedding_size = class_embedding_size
         self.eps = eps
         self.momentum = momentum
         self.affine = affine
         self.track_running_stats = track_running_stats
         if self.affine:
-            self.weight = nn.Parameter(torch.Tensor(num_classes, num_features))
-            self.bias = nn.Parameter(torch.Tensor(num_classes, num_features))
-        else:
-            self.register_parameter('weight', None)
-            self.register_parameter('bias', None)
+            self.class_to_weight_transform = spectral_norm(nn.Linear(class_embedding_size, num_features), eps=1e-4)
+            self.class_to_bias_transform = spectral_norm(nn.Linear(class_embedding_size, num_features), eps=1e-4)
         if self.track_running_stats:
             self.register_buffer('running_mean', torch.zeros(num_features))
             self.register_buffer('running_var', torch.ones(num_features))
@@ -53,9 +50,6 @@ class ConditionalBatchNorm2d(nn.Module):
     
     def reset_parameters(self):
         self.reset_running_stats()
-        if self.affine:
-            self.weight.data.fill_(1.0)
-            self.bias.data.zero_()
     
     def forward(self, x, y):
         exponential_average_factor = 0.0
@@ -73,13 +67,13 @@ class ConditionalBatchNorm2d(nn.Module):
             exponential_average_factor, self.eps)
         if self.affine:
             shape = [x.size(0), self.num_features] + (x.dim()-2)*[1]
-            weight = self.weight.index_select(0, y).view(shape)
-            bias = self.bias.index_select(0, y).view(shape)
+            weight = self.class_to_weight_transform(y).view(shape)
+            bias = self.class_to_bias_transform(y).view(shape)
             out = out*weight + bias
         return out
     
     def extra_repr(self):
-        return '{num_features}, num_classes={num_classes}, momentum={momentum}, affine={affine}, track_running_stats={track_running_stats}'.format(**self.__dict__)
+        return '{num_features}, class_embedding_size={class_embedding_size}, momentum={momentum}, affine={affine}, track_running_stats={track_running_stats}'.format(**self.__dict__)
 
 class DiscriminatorBlock(nn.Module):
     def __init__(self, in_channels, out_channels, downsample=False, groups=1,
@@ -115,30 +109,41 @@ class DiscriminatorBlock(nn.Module):
         return out
     
 class LeakageDiscriminator(nn.Module):
-    def __init__(self, input_shape, leakage_classes,
-                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=8,
-                 downsample_blocks=2, straight_blocks=2, use_sn=True):
+    def __init__(self, input_shape, num_leakage_classes,
+                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=32,
+                 downsample_blocks=3, straight_blocks=3, use_sn=True):
         super().__init__()
         
-        sn = spectral_norm if use_sn else lambda x: x
+        sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         bn = None
         
-        self.input_transform = sn(nn.Conv2d(input_shape[0], 3*initial_channels, kernel_size=3, stride=1, padding=1))
+        self.channels_per_group = initial_channels//2
+        total_channels = 3*self.channels_per_group
+        self.num_leakage_classes = num_leakage_classes
+        if num_leakage_classes == np.inf:
+            self.class_embedding = nn.Sequential(
+                sn(nn.Linear(1, self.channels_per_group*2**downsample_blocks)),
+                nn.ReLU(inplace=True),
+                sn(nn.Linear(self.channels_per_group*2**downsample_blocks, 2*self.channels_per_group*2**downsample_blocks))
+            )
+        else:
+            self.class_embedding = sn(nn.Linear(num_leakage_classes, 2*self.channels_per_group*2**downsample_blocks))
+        self.input_transform = sn(nn.Conv2d(input_shape[0], total_channels, kernel_size=3, stride=1, padding=1))
         self.feature_extractor = []
         for n in range(downsample_blocks):
             self.feature_extractor.append(DiscriminatorBlock(
-                initial_channels*2**n, initial_channels*2**(n+1),
-                downsample=True, sn=sn, bn=bn, activation=activation, groups=3
+                total_channels*2**n, total_channels*2**(n+1),
+                downsample=True, sn=sn, bn=bn, activation=activation
             ))
         for n in range(straight_blocks):
             self.feature_extractor.append(DiscriminatorBlock(
-                initial_channels*2**downsample_blocks, initial_channels*2**downsample_blocks,
+                self.channels_per_group*2**downsample_blocks, self.channels_per_group*2**downsample_blocks,
                 downsample=False, sn=sn, bn=bn, activation=activation, groups=3
             ))
         self.feature_extractor.append(GlobalPool2d(pool_fn=torch.sum))
         self.feature_extractor = nn.Sequential(*self.feature_extractor)
-        self.leakage_classifier = sn(nn.Linear(2*initial_channels*2**downsample_blocks, leakage_classes))
-        self.realism_classifier = sn(nn.Linear(2*initial_channels*2**downsample_blocks, 1))
+        self.realism_classifier = sn(nn.Linear(2*self.channels_per_group*2**downsample_blocks, 1))
+        self.leakage_classifier = sn(nn.Linear(2*self.channels_per_group*2**downsample_blocks, num_leakage_classes))
     
     def extract_features(self, x):
         x_i = self.input_transform(x)
@@ -147,13 +152,17 @@ class LeakageDiscriminator(nn.Module):
     def classify_leakage(self, x):
         return self.leakage_classifier(x[:, :2*x.size(1)//3])
     
-    def classify_realism(self, x):
-        return self.realism_classifier(x[:, x.size(1)//3:])
+    def classify_realism(self, x, y):
+        if y.dtype == torch.long:
+            y = nn.functional.one_hot(y, num_classes=self.num_leakage_classes).to(torch.float)
+        embedded_y = self.class_embedding(y)
+        out = self.realism_classifier(x[:, x.size(1)//3:]) + (x[:, x.size(1)//3:]*embedded_y).sum(dim=1)
+        return out
         
 class Classifier(nn.Module):
     def __init__(self, input_shape, activation=lambda: nn.ReLU(inplace=True),
-                 leakage_classes=2, initial_channels=8,
-                 downsample_blocks=2, straight_blocks=2):
+                 leakage_classes=2, initial_channels=32,
+                 downsample_blocks=3, straight_blocks=3):
         super().__init__()
         
         sn = lambda x: x
@@ -181,7 +190,7 @@ class Classifier(nn.Module):
         return out
         
 class ConditionalGeneratorBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, num_classes,
+    def __init__(self, in_channels, out_channels, class_embedding_size,
                  downsample=False, upsample=False, sn=spectral_norm,
                  activation=lambda: nn.ReLU(inplace=True)):
         super().__init__()
@@ -190,10 +199,10 @@ class ConditionalGeneratorBlock(nn.Module):
             conv2d = nn.ConvTranspose2d if transpose else nn.Conv2d
             return sn(conv2d(in_channels, out_channels, **kwargs))
         
-        self.rc_bn0 = ConditionalBatchNorm2d(in_channels, num_classes)
+        self.rc_bn0 = ConditionalBatchNorm2d(in_channels, class_embedding_size)
         self.rc_act0 = activation()
         self.rc_cv0 = gb_conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
-        self.rc_bn1 = ConditionalBatchNorm2d(out_channels, num_classes)
+        self.rc_bn1 = ConditionalBatchNorm2d(out_channels, class_embedding_size)
         self.rc_act1 = activation()
         if upsample or downsample:
             self.rc_cv1 = gb_conv2d(out_channels, out_channels, kernel_size=2, stride=2, padding=0, transpose=upsample)
@@ -256,17 +265,17 @@ class GeneratorBlock(nn.Module):
         return out
 
 class WrapWithResampler(nn.Module):
-    def __init__(self, submodule, submodule_in_channels, submodule_out_channels, num_classes, straight_blocks,
+    def __init__(self, submodule, submodule_in_channels, submodule_out_channels, class_embedding_size, straight_blocks,
                  sn=spectral_norm, activation=lambda: nn.ReLU(inplace=True)):
         super().__init__()
         
-        self.rp_i = ConditionalGeneratorBlock(submodule_in_channels//2, submodule_in_channels, num_classes,
+        self.rp_i = ConditionalGeneratorBlock(submodule_in_channels//2, submodule_in_channels, class_embedding_size,
                                               downsample=True, sn=sn, activation=activation)
         self.rp_sm = submodule
-        self.rp_o = ConditionalGeneratorBlock(submodule_out_channels, submodule_in_channels//2, num_classes,
+        self.rp_o = ConditionalGeneratorBlock(submodule_out_channels, submodule_in_channels//2, class_embedding_size,
                                               upsample=True, sn=sn, activation=activation)
         self.sp = nn.ModuleList([
-            ConditionalGeneratorBlock(submodule_in_channels//2, submodule_in_channels//2, num_classes,
+            ConditionalGeneratorBlock(submodule_in_channels//2, submodule_in_channels//2, class_embedding_size,
                            sn=sn, activation=activation) for _ in range(straight_blocks)
         ])
         
@@ -281,42 +290,63 @@ class WrapWithResampler(nn.Module):
         return out
 
 class Generator(nn.Module):
-    def __init__(self, input_shape, num_leakage_classes=1, initial_channels=16, resamples=2, 
-                 straight_blocks_per_res=1, post_straight_blocks=1, use_sn=True, use_bn=True):
+    def __init__(self, input_shape, num_leakage_classes=1, class_embedding_size=128, initial_channels=32, resamples=3, 
+                 straight_blocks_per_res=1, post_straight_blocks=3, use_sn=True, use_bn=True):
         super().__init__()
         self.num_leakage_classes = num_leakage_classes
+        self.class_embedding_size = class_embedding_size
         
-        sn = spectral_norm if use_sn else lambda x: x
+        sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         activation = lambda: nn.ReLU(inplace=True)
         
-        if self.num_leakage_classes > 1:
-            self.context_transform = sn(nn.ConvTranspose2d(self.num_leakage_classes, 1,
-                                                           kernel_size=input_shape[1], stride=1, padding=0))
-        self.input_transform = sn(nn.Conv2d(input_shape[0] + (1 if self.num_leakage_classes>1 else 0),
+        if num_leakage_classes == np.inf:
+            self.class_embedding = nn.Sequential(
+                sn(nn.Linear(1, class_embedding_size//2)),
+                nn.ReLU(inplace=True),
+                sn(nn.Linear(class_embedding_size//2, class_embedding_size))
+            )
+        else:
+            self.class_embedding = sn(nn.Linear(num_leakage_classes, class_embedding_size))
+        self.class_conditional_bias = sn(nn.ConvTranspose2d(
+            class_embedding_size, input_shape[0], kernel_size=input_shape[1], stride=1, padding=0
+        ))
+        self.input_transform = sn(nn.Conv2d(input_shape[0],
                                             initial_channels, kernel_size=3, stride=1, padding=1))
-        self.resampler = ConditionalGeneratorBlock(initial_channels*2**resamples, initial_channels*2**resamples, num_leakage_classes,
+        self.resampler = ConditionalGeneratorBlock(initial_channels*2**resamples, initial_channels*2**resamples, class_embedding_size,
                                                    sn=sn, activation=activation)
         for n in range(resamples):
             self.resampler = WrapWithResampler(
                 self.resampler, initial_channels*2**(resamples-n), (1 if n==0 else 2)*initial_channels*2**(resamples-n),
-                num_leakage_classes, straight_blocks=straight_blocks_per_res, sn=sn, activation=activation
+                class_embedding_size, straight_blocks=straight_blocks_per_res, sn=sn, activation=activation
             )
-        self.reconstructor = nn.ModuleList([
-            ConditionalGeneratorBlock(2*initial_channels, initial_channels, num_leakage_classes, sn=sn, activation=activation)
-            for _ in range(post_straight_blocks-1)] + [
-            ConditionalGeneratorBlock((2 if post_straight_blocks==1 else 1)*initial_channels, input_shape[0], num_leakage_classes, sn=sn, activation=activation)
-        ])
+        self.reconstructor = nn.ModuleList()
+        if post_straight_blocks == 1:
+            self.reconstructor = nn.ModuleList([
+                ConditionalGeneratorBlock(2*initial_channels, input_shape[0], class_embedding_size, sn=sn, activation=activation)
+            ])
+        elif post_straight_blocks == 2:
+            self.reconstructor = nn.ModuleList([
+                ConditionalGeneratorBlock(2*initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation),
+                ConditionalGeneratorBlock(initial_channels, input_shape[0], class_embedding_size, sn=sn, activation=activation)
+            ])
+        elif post_straight_blocks > 2:
+            self.reconstructor = nn.ModuleList([
+                ConditionalGeneratorBlock(2*initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation),
+              *[ConditionalGeneratorBlock(initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation)
+                for _ in range(post_straight_blocks-2)],
+                ConditionalGeneratorBlock(initial_channels, input_shape[0], class_embedding_size, sn=sn, activation=activation)
+            ])
+        else:
+            assert False
         
     def forward(self, x, y):
-        if self.num_leakage_classes > 1:
-            context = torch.tensor([[1.0 if j==y_b else 0.0 for j in range(self.num_leakage_classes)]
-                                    for y_b in y], dtype=torch.float, device=y.device).view(y.size(0), self.num_leakage_classes, 1, 1)
-            context = self.context_transform(context)
-            x_i = self.input_transform(torch.cat((x, context), dim=1))
-        else:
-            x_i = self.input_transform(x)
-        x_resampled = self.resampler(x_i, y)
+        if y.dtype == torch.long:
+            y = nn.functional.one_hot(y, num_classes=self.num_leakage_classes).to(torch.float)
+        embedded_y = self.class_embedding(y)
+        class_conditional_bias = self.class_conditional_bias(embedded_y.view(x.size(0), self.class_embedding_size, 1, 1))
+        x_i = self.input_transform(x + class_conditional_bias)
+        x_resampled = self.resampler(x_i, embedded_y)
         for rec_mod in self.reconstructor:
-            x_resampled = rec_mod(x_resampled, y)
+            x_resampled = rec_mod(x_resampled, embedded_y)
         out = torch.tanh(x_resampled)
         return out

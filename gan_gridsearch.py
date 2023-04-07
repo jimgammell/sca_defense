@@ -10,6 +10,7 @@ import json
 import numpy as np
 from torch import nn, optim
 from datasets.classified_mnist import ColoredMNIST, WatermarkedMNIST
+from datasets.domainbed_datasets import OfficeHome
 from gan_trial import run_trial, generate_animation, plot_traces
 
 def unwrap_config_dict(config_dict):
@@ -23,7 +24,7 @@ def unwrap_config_dict(config_dict):
     return unwrapped_dicts
 
 def main(overwrite=False):
-    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xx')
+    save_dir = os.path.join('.', 'results', 'gan_gridsearch_xxiv')
     if os.path.exists(save_dir):
         if overwrite:
             shutil.rmtree(save_dir)
@@ -42,16 +43,18 @@ def main(overwrite=False):
     default_args = {
         'save_dir': save_dir,
     }
-    n_repetitions = 2
+    n_repetitions = 1
     args_to_sweep = {
-        'dataset': [ColoredMNIST, WatermarkedMNIST],
+        'dataset': [OfficeHome],
         'gen_leakage_coefficient': [0.5],
-        'y_clamp': [None, 0],
-        'gen_leakage_ramp_duration': [0.0, 0.25],
-        'disc_gradient_penalty': [100.0, 0.0],
+        'cyclical_loss': [False],
+        'y_clamp': [None],
+        'gen_leakage_ramp_duration': [0.0],
+        'disc_gradient_penalty': [0.0],
+        'average_deviation_penalty': [0.0],
         'l1_rec_coefficient': [0.0],
         'mixup_alpha': [1.0],
-        'disc_steps_per_gen_step': [5.0]
+        'disc_steps_per_gen_step': [2.0]
     }
     for trial_idx, sweep_config in enumerate(unwrap_config_dict(args_to_sweep)):
         trial_idx += base_trial_idx
@@ -62,10 +65,6 @@ def main(overwrite=False):
                 torch.random.manual_seed(repetition)
                 args = deepcopy(default_args)
                 args.update(sweep_config)
-                if args['dataset'] == ColoredMNIST:
-                    args['average_deviation_penalty'] = 1e0
-                elif args['dataset'] == WatermarkedMNIST:
-                    args['average_deviation_penalty'] = 1e-1
                 trial_dir = os.path.join(save_dir, 'trial_{}__rep_{}'.format(trial_idx, repetition))
                 args.update({'save_dir': trial_dir})
                 print('Starting trial {}'.format(trial_idx))

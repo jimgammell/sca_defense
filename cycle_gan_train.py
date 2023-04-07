@@ -53,17 +53,25 @@ def kl_div(logits_p, logits_q):
     out = (p*(logp-logq)).sum(dim=-1).mean()
     return out
 
-def gradient_penalty(real_data, fake_data, disc, device):
-    alpha = torch.rand(real_data.size(0), 1, 1, 1, device=device)
-    interpolated_data = alpha*real_data + (1-alpha)*fake_data
-    interpolated_data.requires_grad_(True)
-    interpolated_features = disc.extract_features(interpolated_data)
-    realism_logits = disc.classify_realism(interpolated_features)
-    grads = torch.autograd.grad(outputs=realism_logits, inputs=interpolated_data,
-                                grad_outputs=torch.ones(realism_logits.size()).to(device),
+def gradient_penalty(x, x_rec, y, disc, device):
+    alpha_rf = torch.rand(x.size(0), 1, 1, 1, device=device)
+    rf_interpolation = alpha_rf*x + (1-alpha_rf)*x_rec
+    alpha_lk = torch.rand(x.size(0), 1, 1, 1, device=device)
+    mixup_indices = torch.randperm(x.size(0), device=x.device)
+    rflk_interpolation = alpha_lk*rf_interpolation + (1-alpha_lk)*rf_interpolation[mixup_indices, :]
+    rflk_interpolation.requires_grad_(True)
+    if y.dtype == torch.long:
+        y = nn.functional.one_hot(y, num_classes=disc.num_leakage_classes).to(torch.float)
+    y_interpolation = alpha_lk*y + (1-alpha_lk)*y[mixup_indices, :]
+    features = disc.extract_features(rflk_interpolation)
+    realism_logits = disc.classify_realism(features, y_interpolation)
+    leakage_logits = disc.classify_leakage(features)
+    logits = torch.cat((realism_logits, leakage_logits), dim=1)
+    grads = torch.autograd.grad(outputs=logits, inputs=rfkl_interpolation,
+                                grad_outputs=torch.ones(logits.size()).to(device),
                                 create_graph=True, retain_graph=True, only_inputs=True)[0]
-    gradient_penalty = (grads.norm(2, dim=1)**2).mean()
-    return gradient_penalty
+    grad_penalty = (grads.norm(2, dim=1)**2).mean()
+    return grad_penalty
 
 @torch.no_grad()
 def calculate_mean_accuracy(dataloader, gen, disc, device, downstream=False, y_clamp=None):
@@ -191,90 +199,85 @@ def eval_single_step(batch, model, loss_fn, device, original_target=False):
 
 def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_coefficient=0.0, gen_leakage_coefficient=0.5,
                return_example=False, return_weight_norms=False, return_grad_norms=False, pretrain=False, disc_grad_penalty=0.0,
-               mixup_alpha=0.0, average_deviation_penalty=0.0, train_gen=True, train_disc=True, **kwargs):
+               cyclical_l1_loss=False, mixup_alpha=0.0, average_deviation_penalty=0.0, train_gen=True, train_disc=True, **kwargs):
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
+    batch_size = x.size(0)
     if y_clamp is None:
-        y_clamp = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=y.dtype, device=y.device)
+        y_rec = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
     else:
-        y_clamp *= torch.ones_like(y)
+        y_rec = y_clamp*torch.ones_like(y)
     disc.train()
     gen.train()
     rv = {}
     
     if train_disc:
         with torch.no_grad():
-            x_rec = gen(x, y_clamp)
-        x_leakage, x_rec_leakage = x[:len(x)//2], x_rec[:len(x_rec)//2]
-        x_realism, x_rec_realism = x[len(x)//2:], x_rec[len(x_rec)//2:]
+            x_rec = gen(x, y_rec)
+        disc_features_orig = disc.extract_features(x)
+        disc_features_rec = disc.extract_features(x_rec)
         if mixup_alpha > 0:
-            x_leakage, y_orig_leakage_a, y_orig_leakage_b, lbd_orig = apply_mixup_to_data(x_leakage, y[:len(x)//2], mixup_alpha)
-            x_rec_leakage, y_rec_leakage_a, y_rec_leakage_b, lbd_rec = apply_mixup_to_data(x_rec_leakage, y[:len(x)//2], mixup_alpha)
-            
-        disc_features = disc.extract_features(torch.cat((x_leakage, x_realism, x_rec_leakage, x_rec_realism), dim=0))
-        disc_features_orig_leakage = disc_features[:len(x)//2]
-        disc_features_orig_realism = disc_features[len(x)//2:len(x)]
-        disc_features_rec_leakage = disc_features[len(x):len(x)+len(x)//2]
-        disc_features_rec_realism = disc_features[len(x)+len(x)//2:]
+            x_mu, y_a, y_b, lbd = apply_mixup_to_data(x, y, mixup_alpha)
+            disc_features_mu = disc.extract_features(x_mu)
         
-        disc_logits_leakage = disc.classify_leakage(torch.cat((disc_features_orig_leakage, disc_features_rec_leakage), dim=0))
-        disc_logits_orig_leakage = disc_logits_leakage[:len(x)//2]
-        disc_logits_rec_leakage = disc_logits_leakage[len(x)//2:]
         if mixup_alpha > 0:
-            disc_leakage_loss_orig = apply_mixup_to_criterion(
-                nn.functional.multi_margin_loss, disc_logits_orig_leakage, y_orig_leakage_a, y_orig_leakage_b, lbd_orig
-            )
-            disc_leakage_loss_rec = apply_mixup_to_criterion(
-                nn.functional.multi_margin_loss, disc_logits_rec_leakage, y_rec_leakage_a, y_rec_leakage_b, lbd_rec
+            disc_logits_orig_leakage = disc.classify_leakage(disc_features_mu)
+        else:
+            disc_logits_orig_leakage = disc.classify_leakage(disc_features_orig)
+        disc_logits_rec_leakage = disc.classify_leakage(disc_features_rec)
+        if mixup_alpha > 0:
+            disc_loss_orig_leakage = apply_mixup_to_criterion(
+                nn.functional.multi_margin_loss, disc_logits_orig_leakage, y_a, y_b, lbd
             )
         else:
-            disc_leakage_loss_orig = nn.functional.multi_margin_loss(disc_logits_orig_leakage, y[:len(x)//2])
-            disc_leakage_loss_rec = nn.functional.multi_margin_loss(disc_logits_rec_leakage, y[:len(x)//2])
-        disc_leakage_loss = 0.5*disc_leakage_loss_orig + 0.5*disc_leakage_loss_rec
+            disc_loss_orig_leakage = nn.functional.multi_margin_loss(disc_logits_orig_leakage, y)
+        disc_loss_rec_leakage = nn.functional.multi_margin_loss(disc_logits_rec_leakage, y)
+        disc_loss_leakage = 0.5*disc_loss_orig_leakage + 0.5*disc_loss_rec_leakage
         
-        disc_logits_realism = disc.classify_realism(torch.cat((disc_features_orig_realism, disc_features_rec_realism), dim=0))
-        disc_logits_orig_realism = disc_logits_realism[:len(x)//2]
-        disc_logits_rec_realism = disc_logits_realism[len(x)//2:]
-        disc_realism_loss_orig = hinge_loss(disc_logits_orig_realism, 1)
-        disc_realism_loss_rec = hinge_loss(disc_logits_rec_realism, -1)
-        disc_realism_loss = 0.5*disc_realism_loss_orig + 0.5*disc_realism_loss_rec
+        disc_logits_orig_realism = disc.classify_realism(disc_features_orig, y)
+        disc_logits_rec_realism = disc.classify_realism(disc_features_rec, y_rec)
+        disc_loss_orig_realism = hinge_loss(disc_logits_orig_realism, 1)
+        disc_loss_rec_realism = hinge_loss(disc_logits_rec_realism, -1)
+        disc_loss_realism = 0.5*disc_loss_orig_realism + 0.5*disc_loss_rec_realism
         
-        disc_loss = 0.5*disc_leakage_loss + 0.5*disc_realism_loss
+        disc_loss = 0.5*disc_loss_leakage + 0.5*disc_loss_realism
         if disc_grad_penalty != 0.0:
-            disc_gp = gradient_penalty(x, x_rec, disc, device)
-            disc_loss = disc_loss + disc_grad_penalty*disc_gp
+            disc_grad = gradient_penalty(x, x_rec, disc, device)
+            disc_loss = disc_loss + disc_grad_penalty*disc_grad
         disc_opt.zero_grad(set_to_none=True)
         disc_loss.backward()
         if return_grad_norms:
             rv.update({'disc_grad_norm': get_grad_norm(disc)})
         disc_opt.step()
     else:
-        disc_loss = disc_leakage_loss = disc_realism_loss = None
-    
+        disc_loss = disc_loss_leakage = disc_loss_realism = None
+        
     if train_gen:
-        x_rec = gen(x, y_clamp)
+        x_rec = gen(x, y_rec)
         disc_features_rec = disc.extract_features(x_rec)
         
-        disc_leakage_predictions_rec = disc.classify_leakage(disc_features_rec)
-        gen_leakage_loss_neg = torch.gather(disc_leakage_predictions_rec, 1, y_clamp.unsqueeze(1)).mean()
-        gen_leakage_loss_pos = torch.gather(
-            disc_leakage_predictions_rec, 1,
-            torch.tensor([[j for j in range(disc_leakage_predictions_rec.size(1)) if j!=yy] for yy in y_clamp],
-                         dtype=torch.long, device=y_clamp.device)).mean()
-        gen_leakage_loss = gen_leakage_loss_pos - gen_leakage_loss_neg
+        disc_logits_rec_leakage_ = disc.classify_leakage(disc_features_rec)
+        gen_loss_rec_leakage_neg = torch.gather(disc_logits_rec_leakage_, 1, y_rec.unsqueeze(1)).mean()
+        gen_loss_rec_leakage_pos = torch.gather(
+            disc_logits_rec_leakage_, 1,
+            torch.tensor([[j for j in range(disc_logits_rec_leakage_.size(1)) if j!=yy] for yy in y_rec],
+                         dtype=torch.long, device=y_rec.device)).mean()
+        gen_loss_rec_leakage = gen_loss_rec_leakage_pos - gen_loss_rec_leakage_neg
         
-        disc_realism_predictions_rec = disc.classify_realism(disc_features_rec)
-        gen_realism_loss = -disc_realism_predictions_rec.mean()
-        gen_l1_reconstruction_loss = nn.functional.l1_loss(x_rec, x)
+        disc_logits_rec_realism_ = disc.classify_realism(disc_features_rec, y_rec)
+        gen_loss_rec_realism = -disc_logits_rec_realism_.mean()
         
-        if not pretrain:
-            gen_loss = gen_leakage_coefficient*gen_leakage_loss + \
-                       (1-gen_leakage_coefficient)*gen_realism_loss + \
-                       l1_rec_coefficient*gen_l1_reconstruction_loss
-            if average_deviation_penalty != 0.0:
-                gen_loss = gen_loss + average_deviation_penalty*gen.get_avg_departure_penalty()
+        if cyclical_l1_loss:
+            x_crec = gen(x_rec, y)
+            gen_loss_l1 = nn.functional.l1_loss(x, x_crec)
         else:
-            gen_loss = gen_l1_reconstruction_loss
+            gen_loss_leakage = gen_loss_rec_leakage
+            gen_loss_realism = gen_loss_rec_realism
+            gen_loss_l1 = nn.functional.l1_loss(x, x_rec)
+            
+        gen_loss = 0.5*gen_loss_leakage + 0.5*gen_loss_realism + l1_rec_coefficient*gen_loss_l1
+        if average_deviation_penalty != 0.0:
+            gen_loss = gen_loss + average_deviation_penalty*gen.get_avg_departure_penalty()
         gen_opt.zero_grad(set_to_none=True)
         gen_loss.backward()
         if return_grad_norms:
@@ -285,21 +288,21 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
         elif average_deviation_penalty != 0.0:
             gen.reset_avg()
     else:
-        gen_loss = gen_leakage_loss = gen_realism_loss = gen_l1_reconstruction_loss = None
-    
+        gen_loss = gen_loss_leakage = gen_loss_realism = gen_loss_l1 = None
+        
     rv.update({
-        'disc_realism_loss': val(disc_realism_loss),
-        'disc_leakage_loss': val(disc_leakage_loss),
+        'disc_realism_loss': val(disc_loss_realism),
+        'disc_leakage_loss': val(disc_loss_leakage),
         'disc_loss': val(disc_loss),
         'disc_realism_acc_orig': hinge_acc(disc_logits_orig_realism, 1),
         'disc_realism_acc_rec': hinge_acc(disc_logits_rec_realism, -1),
         'disc_realism_acc': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
-        'disc_leakage_acc_orig': acc(disc_logits_orig_leakage, y[:len(x)//2]),
-        'disc_leakage_acc_rec': acc(disc_logits_rec_leakage, y[:len(x)//2]),
-        'disc_leakage_acc': 0.5*acc(disc_logits_orig_leakage, y[:len(x)//2]) + 0.5*acc(disc_logits_rec_leakage, y[:len(x)//2]),
-        'gen_realism_loss': val(gen_realism_loss),
-        'gen_leakage_loss': val(gen_leakage_loss),
-        'gen_l1_reconstruction_loss': val(gen_l1_reconstruction_loss),
+        'disc_leakage_acc_orig': acc(disc_logits_orig_leakage, y),
+        'disc_leakage_acc_rec': acc(disc_logits_rec_leakage, y),
+        'disc_leakage_acc': 0.5*acc(disc_logits_orig_leakage, y) + 0.5*acc(disc_logits_rec_leakage, y),
+        'gen_realism_loss': val(gen_loss_realism),
+        'gen_leakage_loss': val(gen_loss_leakage),
+        'gen_l1_reconstruction_loss': val(gen_loss_l1),
         'gen_loss': val(gen_loss)
     })
     if return_example:
@@ -307,6 +310,8 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
             'orig_example': 0.5*val(to_uint8(x))+0.5,
             'rec_example': 0.5*val(to_uint8(x_rec))+0.5
         })
+        if cyclical_l1_loss:
+            rv.update({'crec_example': 0.5*val(to_uint8(x_crec))})
     if return_weight_norms:
         rv.update({
             'disc_weight_norm': get_weight_norm(disc),
@@ -315,19 +320,19 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
     return rv
 
 @torch.no_grad()
-def eval_step(batch, gen, disc, device, y_clamp=0, l1_rec_coefficient=0.0,
+def eval_step(batch, gen, disc, device, y_clamp=0, l1_rec_coefficient=0.0, cyclical_l1_loss=False,
               gen_leakage_coefficient=0.5, return_example=False, **kwargs):
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     if y_clamp is None:
-        y_clamp = torch.randint(0, gen.num_leakage_classes, dtype=y.dtype, device=y.device, size=y.size())
+        y_rec = torch.randint(0, gen.num_leakage_classes, dtype=y.dtype, device=y.device, size=y.size())
     else:
-        y_clamp *= torch.ones_like(y)
+        y_rec = y_clamp*torch.ones_like(y)
     disc.eval()
     gen.eval()
     rv = {}
     
-    x_rec = gen(x, y_clamp)
+    x_rec = gen(x, y_rec)
     disc_features_orig = disc.extract_features(x)
     disc_features_rec = disc.extract_features(x_rec)
     
@@ -336,20 +341,24 @@ def eval_step(batch, gen, disc, device, y_clamp=0, l1_rec_coefficient=0.0,
     disc_leakage_loss_orig = nn.functional.multi_margin_loss(disc_leakage_predictions_orig, y)
     disc_leakage_loss_rec = nn.functional.multi_margin_loss(disc_leakage_predictions_rec, y)
     disc_leakage_loss = 0.5*disc_leakage_loss_orig + 0.5*disc_leakage_loss_rec
-    gen_leakage_loss_neg = torch.gather(disc_leakage_predictions_rec, 1, y_clamp.unsqueeze(1)).mean()
+    gen_leakage_loss_neg = torch.gather(disc_leakage_predictions_rec, 1, y_rec.unsqueeze(1)).mean()
     gen_leakage_loss_pos = torch.gather(
         disc_leakage_predictions_rec, 1,
-        torch.tensor([[j for j in range(disc_leakage_predictions_rec.size(1)) if j!=yy] for yy in y_clamp],
-                     device=y_clamp.device, dtype=torch.long)).mean()
+        torch.tensor([[j for j in range(disc_leakage_predictions_rec.size(1)) if j!=yy] for yy in y_rec],
+                     device=y_rec.device, dtype=torch.long)).mean()
     gen_leakage_loss = gen_leakage_loss_pos - gen_leakage_loss_neg
     
-    disc_realism_predictions_orig = disc.classify_realism(disc_features_orig)
-    disc_realism_predictions_rec = disc.classify_realism(disc_features_rec)
+    disc_realism_predictions_orig = disc.classify_realism(disc_features_orig, y)
+    disc_realism_predictions_rec = disc.classify_realism(disc_features_rec, y_rec)
     disc_realism_loss_orig = hinge_loss(disc_realism_predictions_orig, 1)
     disc_realism_loss_rec = hinge_loss(disc_realism_predictions_rec, -1)
     disc_realism_loss = 0.5*disc_realism_loss_orig + 0.5*disc_realism_loss_rec
     gen_realism_loss = -disc_realism_predictions_rec.mean()
-    gen_l1_reconstruction_loss = nn.functional.l1_loss(x_rec, x)
+    if cyclical_l1_loss:
+        x_crec = gen(x_rec, y)
+        gen_l1_reconstruction_loss = nn.functional.l1_loss(x, x_crec)
+    else:
+        gen_l1_reconstruction_loss = nn.functional.l1_loss(x, x_rec)
     
     disc_loss = 0.5*disc_leakage_loss + 0.5*disc_realism_loss
     gen_loss = gen_leakage_coefficient*gen_leakage_loss + \
@@ -381,6 +390,9 @@ def eval_step(batch, gen, disc, device, y_clamp=0, l1_rec_coefficient=0.0,
             'orig_example': 0.5*val(to_uint8(orig_examples))+0.5,
             'rec_example': 0.5*val(to_uint8(rec_examples))+0.5
         })
+        if cyclical_l1_loss:
+            crec_examples = gen(rec_examples, y[:gen.num_leakage_classes*examples_per_class])
+            rv.update({'crec_example': 0.5*val(to_uint8(crec_examples))})
     return rv
 
 def train_epoch(dataloader, *step_args, return_example_idx=None, disc_steps_per_gen_step=1.0, pretrain=False, posttrain=False, **step_kwargs):
