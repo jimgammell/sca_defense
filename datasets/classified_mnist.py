@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torchvision
+from torchvision import transforms
 from tqdm import tqdm
 from gan_train import to_uint8
 
@@ -41,7 +42,8 @@ def apply_transform(data, gen, batch_size, device, y_clamp=None):
 
 class ColoredMNIST(torchvision.datasets.MNIST):
     input_shape = (3, 28, 28)
-    num_classes = 2
+    num_leakage_classes = 2
+    num_downstream_classes = 10
     
     def __init__(self, *args, num_colors=4, normalize=True, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,7 +84,8 @@ class ColoredMNIST(torchvision.datasets.MNIST):
 
 class WatermarkedMNIST(torchvision.datasets.MNIST):
     input_shape = (1, 28, 28)
-    num_classes = 2
+    num_leakage_classes = 2
+    num_downstream_classes = 10
     
     def __init__(self, *args, deterministic_position=False, deterministic_radius=False, normalize=True, **kwargs):
         super().__init__(*args, **kwargs)
@@ -119,3 +122,40 @@ class WatermarkedMNIST(torchvision.datasets.MNIST):
             data = self.transform(data)
         watermark_target = torch.tensor(self.watermark_targets[idx]).to(torch.long)
         return data, watermark_target, {'orig_image': orig_data, 'target': target}
+
+class RotatedMNIST(torchvision.datasets.MNIST):
+    input_shape = (1, 28, 28)
+    num_leakage_classes = np.inf
+    num_downstream_classes = 10
+    
+    def __init__(self, *args, normalize=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        def rotate_image(x, angle):
+            rotation_transform = transforms.Compose([
+                transforms.ToPILImage(),
+                transforms.Lambda(lambda x: np.array(transforms.functional.rotate(
+                    img=x, angle=angle, fill=(0,), interpolation=transforms.InterpolationMode.BILINEAR)))
+            ])
+            return rotation_transform(x)
+        
+        self.orig_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
+        self.new_data = len(self.data)*[np.zeros((1, 28, 28), dtype=np.float)]
+        self.rotation_targets = [np.random.uniform(-1, 1) for _ in range(len(self.data))]
+        for idx, data in enumerate(self.data):
+            data = np.array(data)
+            rotation_target = self.rotation_targets[idx]
+            new_data = rotate_image(data, 360.0*(0.5*rotation_target+0.5))
+            data = normalize_tensor(data.astype(np.float))
+            new_data = normalize_tensor(new_data.astype(np.float))
+            self.orig_data[idx] = data
+            self.new_data[idx] = new_data
+    
+    def __getitem__(self, idx):
+        _, target = super().__getitem__(idx)
+        orig_data = self.orig_data[idx]
+        data = torch.from_numpy(np.array(orig_data)).to(torch.float)
+        if self.transform is not None:
+            data = self.transform(data)
+        rotation_target = torch.tensor(rotation_targets[idx], dtype=torch.long)
+        return data, rotation_target, {'orig_image': orig_data, 'target': target}

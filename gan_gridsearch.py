@@ -9,7 +9,7 @@ import torch
 import json
 import numpy as np
 from torch import nn, optim
-from datasets.classified_mnist import ColoredMNIST, WatermarkedMNIST
+from datasets.classified_mnist import RotatedMNIST, ColoredMNIST, WatermarkedMNIST
 from datasets.domainbed_datasets import OfficeHome
 from gan_trial import run_trial, generate_animation, plot_traces
 
@@ -45,11 +45,11 @@ def main(overwrite=False):
     }
     n_repetitions = 1
     args_to_sweep = {
-        'dataset': [OfficeHome],
+        'dataset': [WatermarkedMNIST, ColoredMNIST],
         'gen_leakage_coefficient': [0.5],
         'cyclical_loss': [False],
         'y_clamp': [None],
-        'gen_leakage_ramp_duration': [0.0],
+        'gen_leakage_ramp_duration': [0],
         'disc_gradient_penalty': [0.0],
         'average_deviation_penalty': [0.0],
         'l1_rec_coefficient': [0.0],

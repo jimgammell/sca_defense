@@ -19,14 +19,14 @@ def run_trial(
     gen_constructor=Generator,
     gen_kwargs={},
     gen_opt=optim.Adam,
-    gen_opt_kwargs={'lr': 5e-5, 'betas': (0.0, 0.999)},
+    gen_opt_kwargs={'lr': 1e-4, 'betas': (0.0, 0.999)},
     disc_constructor=LeakageDiscriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
-    disc_opt_kwargs={'lr': 2e-4, 'betas': (0.0, 0.999)},
+    disc_opt_kwargs={'lr': 4e-4, 'betas': (0.0, 0.999)},
     disc_steps_per_gen_step=1.0,
     pretrain_gen_epochs=0,
-    epochs=50,
+    epochs=100,
     posttrain_epochs=25,
     batch_size=128,
     y_clamp=0,
@@ -76,6 +76,8 @@ def run_trial(
     disc = disc_constructor(dataset.input_shape, num_leakage_classes=dataset.num_leakage_classes, **disc_kwargs).to(device)
     disc_opt = disc_opt(disc.parameters(), **disc_opt_kwargs)
     disc_loss_fn = lambda *args: disc_loss(*args, **disc_loss_kwargs)
+    gen_opt_scheduler = optim.lr_scheduler.MultiStepLR(gen_opt, milestones=[20, 40, 60, 80], gamma=0.5)
+    disc_opt_scheduler = optim.lr_scheduler.MultiStepLR(disc_opt, milestones=[20, 40, 60, 80], gamma=0.5)
     
     results = {}
     def preface_keys(d, preface):
@@ -92,12 +94,18 @@ def run_trial(
         print('\n\n')
         print('Starting epoch {}.'.format(current_epoch))
         
-        if (current_epoch is not None) and (current_epoch/epochs < gen_leakage_ramp_duration):
-            _gen_leakage_coefficient = gen_leakage_coefficient + \
-                (1-gen_leakage_coefficient)*(0.5+0.5*np.cos(current_epoch*np.pi/int(gen_leakage_ramp_duration*epochs)))
+        #if (current_epoch is not None) and (current_epoch/epochs < gen_leakage_ramp_duration):
+        #    _gen_leakage_coefficient = gen_leakage_coefficient + \
+        #        (1-gen_leakage_coefficient)*(0.5+0.5*np.cos(current_epoch*np.pi/int(gen_leakage_ramp_duration*epochs)))
+        #else:
+        #    _gen_leakage_coefficient = gen_leakage_coefficient
+        if (current_epoch is not None) and (gen_leakage_ramp_duration == 'sigmoid'):
+            _gen_leakage_coefficient = 1/(1+np.exp(
+                2 - 4*(current_epoch/epochs)
+            ))
         else:
             _gen_leakage_coefficient = gen_leakage_coefficient
-            
+        
         kwargs = {
             'y_clamp': y_clamp,
             'disc_grad_penalty': disc_gradient_penalty,
@@ -116,6 +124,9 @@ def run_trial(
                                    disc_steps_per_gen_step=disc_steps_per_gen_step,
                                    pretrain=pretrain, posttrain=posttrain,
                                    **kwargs)
+            if not posttrain:
+                gen_opt_scheduler.step()
+                disc_opt_scheduler.step()
         else:
             train_rv = eval_epoch(train_dataloader, *(eval_args if not posttrain else posteval_args), posttrain=posttrain, **kwargs)
         train_rv['time'] = time.time()-t0

@@ -87,7 +87,10 @@ def calculate_mean_accuracy(dataloader, gen, disc, device, downstream=False, y_c
         y_orig = mdata['target']
         x, y, y_orig = x.to(device), y.to(device), y_orig.to(device)
         if y_clamp is None:
-            y_clamp_ = torch.randint(0, gen.num_leakage_classes, dtype=y.dtype, device=y.device, size=y.size())
+            if gen.num_leakage_classes < np.inf:
+                y_clamp_ = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
+            else:
+                y_clamp_ = -1 + 2*torch.rand(size=y.size(), dtype=torch.float, device=y.device)
         else:
             y_clamp_ = y_clamp*torch.ones_like(y)
         x_rec = to_uint8(gen(x, y_clamp_))
@@ -114,7 +117,10 @@ def calculate_class_conditional_inception_score(dataloader, gen, disc, device, y
         x, y, _ = batch
         x, y = x.to(device), y.to(device)
         if y_clamp is None:
-            y_clamp_ = torch.randint(0, gen.num_leakage_classes, dtype=y.dtype, device=y.device, size=y.size())
+            if gen.num_leakage_classes < np.inf:
+                y_clamp_ = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
+            else:
+                y_clamp_ = -1 + 2*torch.rand(size=y.size(), dtype=torch.float, device=y.device)
         else:
             y_clamp_ = y_clamp*torch.ones_like(y)
         x_rec = to_uint8(gen(x, y_clamp_))
@@ -204,7 +210,10 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
     x, y = x.to(device), y.to(device)
     batch_size = x.size(0)
     if y_clamp is None:
-        y_rec = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
+        if gen.num_leakage_classes < np.inf:
+            y_rec = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
+        else:
+            y_rec = -1 + 2*torch.rand(size=y.size(), dtype=torch.float, device=y.device)
     else:
         y_rec = y_clamp*torch.ones_like(y)
     disc.train()
@@ -216,23 +225,25 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
             x_rec = gen(x, y_rec)
         disc_features_orig = disc.extract_features(x)
         disc_features_rec = disc.extract_features(x_rec)
-        if mixup_alpha > 0:
-            x_mu, y_a, y_b, lbd = apply_mixup_to_data(x, y, mixup_alpha)
-            disc_features_mu = disc.extract_features(x_mu)
+        #if mixup_alpha > 0:
+        #    x_mu, y_a, y_b, lbd = apply_mixup_to_data(x, y, mixup_alpha)
+        #    disc_features_mu = disc.extract_features(x_mu)
         
-        if mixup_alpha > 0:
-            disc_logits_orig_leakage = disc.classify_leakage(disc_features_mu)
-        else:
-            disc_logits_orig_leakage = disc.classify_leakage(disc_features_orig)
+        #if mixup_alpha > 0:
+        #    disc_logits_orig_leakage = disc.classify_leakage(disc_features_mu)
+        #else:
+        #    disc_logits_orig_leakage = disc.classify_leakage(disc_features_orig)
         disc_logits_rec_leakage = disc.classify_leakage(disc_features_rec)
-        if mixup_alpha > 0:
-            disc_loss_orig_leakage = apply_mixup_to_criterion(
-                nn.functional.multi_margin_loss, disc_logits_orig_leakage, y_a, y_b, lbd
-            )
-        else:
-            disc_loss_orig_leakage = nn.functional.multi_margin_loss(disc_logits_orig_leakage, y)
-        disc_loss_rec_leakage = nn.functional.multi_margin_loss(disc_logits_rec_leakage, y)
-        disc_loss_leakage = 0.5*disc_loss_orig_leakage + 0.5*disc_loss_rec_leakage
+        #if mixup_alpha > 0:
+        #    disc_loss_orig_leakage = apply_mixup_to_criterion(
+        #        nn.functional.multi_margin_loss, disc_logits_orig_leakage, y_a, y_b, lbd
+        #    )
+        #else:
+        #    disc_loss_orig_leakage = nn.functional.multi_margin_loss(disc_logits_orig_leakage, y)
+        disc_loss_rec_leakage = nn.functional.cross_entropy(disc_logits_rec_leakage, y)  
+          #nn.functional.multi_margin_loss(disc_logits_rec_leakage, y)
+        disc_loss_orig_leakage = 0.0 ##
+        disc_loss_leakage = disc_loss_rec_leakage#0.5*disc_loss_orig_leakage + 0.5*disc_loss_rec_leakage
         
         disc_logits_orig_realism = disc.classify_realism(disc_features_orig, y)
         disc_logits_rec_realism = disc.classify_realism(disc_features_rec, y_rec)
@@ -257,12 +268,13 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
         disc_features_rec = disc.extract_features(x_rec)
         
         disc_logits_rec_leakage_ = disc.classify_leakage(disc_features_rec)
-        gen_loss_rec_leakage_neg = torch.gather(disc_logits_rec_leakage_, 1, y_rec.unsqueeze(1)).mean()
-        gen_loss_rec_leakage_pos = torch.gather(
-            disc_logits_rec_leakage_, 1,
-            torch.tensor([[j for j in range(disc_logits_rec_leakage_.size(1)) if j!=yy] for yy in y_rec],
-                         dtype=torch.long, device=y_rec.device)).mean()
-        gen_loss_rec_leakage = gen_loss_rec_leakage_pos - gen_loss_rec_leakage_neg
+        gen_loss_rec_leakage = kl_div(disc_logits_rec_leakage_, torch.zeros_like(disc_logits_rec_leakage_))
+        #gen_loss_rec_leakage_neg = torch.gather(disc_logits_rec_leakage_, 1, y_rec.unsqueeze(1)).mean()
+        #gen_loss_rec_leakage_pos = torch.gather(
+        #    disc_logits_rec_leakage_, 1,
+        #    torch.tensor([[j for j in range(disc_logits_rec_leakage_.size(1)) if j!=yy] for yy in y_rec],
+        #                 dtype=torch.long, device=y_rec.device)).mean()
+        #gen_loss_rec_leakage = gen_loss_rec_leakage_pos - gen_loss_rec_leakage_neg
         
         disc_logits_rec_realism_ = disc.classify_realism(disc_features_rec, y_rec)
         gen_loss_rec_realism = -disc_logits_rec_realism_.mean()
@@ -297,9 +309,9 @@ def train_step(batch, gen, gen_opt, disc, disc_opt, device, y_clamp=0, l1_rec_co
         'disc_realism_acc_orig': hinge_acc(disc_logits_orig_realism, 1),
         'disc_realism_acc_rec': hinge_acc(disc_logits_rec_realism, -1),
         'disc_realism_acc': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
-        'disc_leakage_acc_orig': acc(disc_logits_orig_leakage, y),
+        #'disc_leakage_acc_orig': acc(disc_logits_orig_leakage, y),
         'disc_leakage_acc_rec': acc(disc_logits_rec_leakage, y),
-        'disc_leakage_acc': 0.5*acc(disc_logits_orig_leakage, y) + 0.5*acc(disc_logits_rec_leakage, y),
+        'disc_leakage_acc': acc(disc_logits_rec_leakage, y),#0.5*acc(disc_logits_orig_leakage, y) + 0.5*acc(disc_logits_rec_leakage, y),
         'gen_realism_loss': val(gen_loss_realism),
         'gen_leakage_loss': val(gen_loss_leakage),
         'gen_l1_reconstruction_loss': val(gen_loss_l1),
@@ -325,7 +337,10 @@ def eval_step(batch, gen, disc, device, y_clamp=0, l1_rec_coefficient=0.0, cycli
     x, y, _ = batch
     x, y = x.to(device), y.to(device)
     if y_clamp is None:
-        y_rec = torch.randint(0, gen.num_leakage_classes, dtype=y.dtype, device=y.device, size=y.size())
+        if gen.num_leakage_classes < np.inf:
+            y_rec = torch.randint(0, gen.num_leakage_classes, size=y.size(), dtype=torch.long, device=y.device)
+        else:
+            y_rec = -1 + 2*torch.rand(size=y.size(), dtype=torch.float, device=y.device)
     else:
         y_rec = y_clamp*torch.ones_like(y)
     disc.eval()

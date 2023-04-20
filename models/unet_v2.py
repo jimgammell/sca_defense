@@ -110,8 +110,8 @@ class DiscriminatorBlock(nn.Module):
     
 class LeakageDiscriminator(nn.Module):
     def __init__(self, input_shape, num_leakage_classes,
-                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=32,
-                 downsample_blocks=3, straight_blocks=3, use_sn=True):
+                 activation=lambda: nn.LeakyReLU(0.1), initial_channels=16,
+                 downsample_blocks=2, straight_blocks=2, use_sn=True):
         super().__init__()
         
         sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
@@ -120,7 +120,7 @@ class LeakageDiscriminator(nn.Module):
         self.channels_per_group = initial_channels//2
         total_channels = 3*self.channels_per_group
         self.num_leakage_classes = num_leakage_classes
-        if num_leakage_classes == np.inf:
+        if not np.isfinite(num_leakage_classes):
             self.class_embedding = nn.Sequential(
                 sn(nn.Linear(1, self.channels_per_group*2**downsample_blocks)),
                 nn.ReLU(inplace=True),
@@ -161,8 +161,8 @@ class LeakageDiscriminator(nn.Module):
         
 class Classifier(nn.Module):
     def __init__(self, input_shape, activation=lambda: nn.ReLU(inplace=True),
-                 leakage_classes=2, initial_channels=32,
-                 downsample_blocks=3, straight_blocks=3):
+                 leakage_classes=2, initial_channels=16,
+                 downsample_blocks=2, straight_blocks=2):
         super().__init__()
         
         sn = lambda x: x
@@ -290,8 +290,8 @@ class WrapWithResampler(nn.Module):
         return out
 
 class Generator(nn.Module):
-    def __init__(self, input_shape, num_leakage_classes=1, class_embedding_size=128, initial_channels=32, resamples=3, 
-                 straight_blocks_per_res=1, post_straight_blocks=3, use_sn=True, use_bn=True):
+    def __init__(self, input_shape, num_leakage_classes=1, class_embedding_size=128, initial_channels=16, resamples=2, 
+                 straight_blocks_per_res=1, post_straight_blocks=2, use_sn=True, use_bn=True):
         super().__init__()
         self.num_leakage_classes = num_leakage_classes
         self.class_embedding_size = class_embedding_size
@@ -299,7 +299,7 @@ class Generator(nn.Module):
         sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         activation = lambda: nn.ReLU(inplace=True)
         
-        if num_leakage_classes == np.inf:
+        if not np.isfinite(num_leakage_classes):
             self.class_embedding = nn.Sequential(
                 sn(nn.Linear(1, class_embedding_size//2)),
                 nn.ReLU(inplace=True),
