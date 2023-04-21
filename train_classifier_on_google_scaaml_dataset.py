@@ -41,11 +41,11 @@ class SignalTransform(nn.Module):
 
 def main(
     target_repr='bytes', #'bits',
-    target_bytes=0, #'all',
-    target_attack_pts='sub_bytes_in', #['sub_bytes_in', 'sub_bytes_out'],
+    target_bytes='all',
+    target_attack_pts=['sub_bytes_in', 'sub_bytes_out'],
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.00,
     #signal_length=25000, crop_length=20000, noise_scale=0.01,
-    num_epochs=50, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
+    num_epochs=100, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
     device=None
 ):
     if target_repr == 'all':
@@ -90,10 +90,11 @@ def main(
                 head_name = '{}__{}__{}'.format(tr, tap, tb)
                 head_sizes[head_name] = 8 if tr == 'bits' else 256
     classifier = Classifier((1, crop_length), head_sizes, dense_dropout=dropout).to(device)
-    optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=weight_decay)
-    lr_scheduler = optim.lr_scheduler.OneCycleLR(
-        optimizer, max_lr, epochs=num_epochs, steps_per_epoch=len(train_dataloader), pct_start=pct_start
-    )
+    optimizer = optim.Adam(classifier.parameters(), lr=max_lr, weight_decay=weight_decay)
+    #lr_scheduler = optim.lr_scheduler.OneCycleLR(
+    #    optimizer, max_lr, epochs=num_epochs, steps_per_epoch=len(train_dataloader), pct_start=pct_start
+    #)
+    lr_scheduler = None
     print('Model:')
     print(classifier)
     print('\n\n')
