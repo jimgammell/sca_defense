@@ -59,8 +59,8 @@ class GoogleScaamlDataset(Dataset):
                     shard = dict(np.load(os.path.join(save_dir, 'extracted', 'datasets', 'tinyaes', self.phase, f)))
                     traces = torch.from_numpy(shard['traces']).to(torch.float)
                     if whiten_traces:
-                        traces -= torch.mean(traces)
-                        traces /= torch.std(traces)
+                        traces /= 0.5*(traces.max() - traces.min())
+                        traces -= 0.5*(traces.max() + traces.min())
                     traces = traces[:, interval_to_use[0]:interval_to_use[1]].permute(0, 2, 1)
                     traces = nn.functional.max_pool1d(traces, kernel_size=downsample_ratio, stride=downsample_ratio)
                     shard['traces'] = traces.numpy()
