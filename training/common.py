@@ -50,6 +50,10 @@ def get_weight_norm(model):
 def get_grad_norm(model):
     total_norm = 0.0
     for p in model.parameters():
+        if not p.requires_grad:
+            continue
+        if type(p.grad) == type(None):
+            continue
         param_norm = p.grad.detach().norm(2)
         total_norm += param_norm.item()**2
     total_norm = total_norm**0.5

@@ -115,7 +115,8 @@ class DiscriminatorBlock(nn.Module):
         if x_sc.size(-1) > x_rc.size(-1):
             x_sc = x_sc[:, :, :x_rc.size(-1)]
         elif x_sc.size(-1) < x_rc.size(-1):
-            x_sc = nn.functional.pad(x_sc, x_rc.size(-1)-x_sc.size(-1), mode='constant', value=0)
+            pad_size = x_rc.size(-1)-x_sc.size(-1)
+            x_sc = nn.functional.pad(x_sc, (pad_size//2, pad_size-pad_size//2), mode='constant', value=x_sc.mean().detach().item())
         out = x_rc + x_sc
         return out
 
@@ -155,7 +156,7 @@ class LeakageDiscriminator(nn.Module):
             head = sn(nn.Linear(1024, head_size))
             self.classifier_heads.update({str(head_key): head})
             
-        self.realism_head = sn(nn.Linear(total_channels*2**downsample_blocks, 1))
+        self.realism_head = sn(nn.Linear(1024, 1))
         
     def extract_features(self, x):
         x_i = self.input_transform(x)
@@ -168,9 +169,10 @@ class LeakageDiscriminator(nn.Module):
         return out
     
     def classify_realism(self, x, y):
-        y = torch.cat([y[key] for key in self.classifier_heads.values()], dim=1)
+        x = self.shared_head(x)
+        y = torch.cat(list(y.values()), dim=-1).to(torch.float)
         embedded_y = self.class_embedding(y)
-        out = self.realism_classifier(x) + (x*embedded_y).sum(dim=1)
+        out = self.realism_head(x) + (x*embedded_y).sum(dim=-1, keepdim=True)
         return out
     
 class ConditionalGeneratorBlock(nn.Module):
@@ -208,15 +210,16 @@ class ConditionalGeneratorBlock(nn.Module):
         x_rc = self.rc_cv0(x_rc)
         x_rc = self.rc_bn1(x_rc, y)
         x_rc = self.rc_act1(x_rc)
-        x_rc = self.cv1(x_rc)
-        x_rc = self.bn2(x_rc, y)
-        x_rc = self.act2(x_rc)
-        x_rc = self.cv2(x_rc)
+        x_rc = self.rc_cv1(x_rc)
+        x_rc = self.rc_bn2(x_rc, y)
+        x_rc = self.rc_act2(x_rc)
+        x_rc = self.rc_cv2(x_rc)
         x_sc = self.sc(x)
         if x_sc.size(-1) > x_rc.size(-1):
             x_sc = x_sc[:, :, :x_rc.size(-1)]
         elif x_sc.size(-1) < x_rc.size(-1):
-            x_sc = nn.functional.pad(x_sc, x_rc.size(-1)-x_sc.size(-1), mode='constant', value=0)
+            pad_size = x_rc.size(-1)-x_sc.size(-1)
+            x_sc = nn.functional.pad(x_sc, (pad_size//2, pad_size-pad_size//2), mode='constant', value=x_sc.mean().detach().item())
         out = x_rc + x_sc
         return out
 
@@ -235,14 +238,15 @@ class WrapWithResampler(nn.Module):
                                       sn=sn, activation=activation) for _ in range(straight_blocks)
         ])
         
-    def forward(self, x):
+    def forward(self, x, y):
         x_rp = self.rp_i(x, y)
         x_rp = self.rp_sm(x_rp, y)
         x_rp = self.rp_o(x_rp, y)
         if x_rp.size(-1) > x.size(-1):
             x_rp = x_rp[:, :, :x.size(-1)]
         elif x_rp.size(-1) < x.size(-1):
-            x_rp = nn.functional.pad(x_sc, x.size(-1)-x_rp.size(-1), mode='constant', value=0)
+            pad_size = x.size(-1)-x_rp.size(-1)
+            x_rp = nn.functional.pad(x_rp, (pad_size//2, pad_size-pad_size//2), mode='constant', value=x_rp.mean().detach().item())
         x_sp = x
         for sp_mod in self.sp:
             x_sp = sp_mod(x_sp, y)
@@ -253,6 +257,12 @@ class Generator(nn.Module):
     def __init__(self, input_shape, head_sizes, initial_channels=32, resamples=4,
                  straight_blocks_per_resample=3, post_straight_blocks=3, use_sn=True, use_bn=True):
         super().__init__()
+        
+        class Seq2i(nn.Sequential):
+            def forward(self, x, y):
+                for module in self:
+                    x = module(x, y)
+                return x
         
         sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         activation = lambda: nn.ReLU(inplace=True)
@@ -266,7 +276,7 @@ class Generator(nn.Module):
         self.input_transform = sn(nn.Conv1d(
             input_shape[0], initial_channels, kernel_size=3, stride=1, padding=1
         ))
-        self.resampler = nn.Sequential(*[
+        self.resampler = Seq2i(*[
             ConditionalGeneratorBlock(
                 initial_channels*2**resamples, initial_channels*2**resamples,
                 class_embedding_size, sn=sn, activation=activation
@@ -277,30 +287,22 @@ class Generator(nn.Module):
                 self.resampler, initial_channels*2**(resamples-n), (1 if n==0 else 2)*initial_channels*2**(resamples-n),
                 class_embedding_size, straight_blocks=straight_blocks_per_resample, sn=sn, activation=activation
             )
-        self.reconstructor = nn.ModuleList()
-        if post_straight_blocks == 1:
-            self.reconstructor = nn.ModuleList([
-                ConditionalGeneratorBlock(2*initial_channels, input_shape[0], class_embedding_size, sn=sn, activation=activation)
-            ])
-        elif post_straight_blocks >= 2:
-            self.reconstructor = nn.ModuleList([
-                ConditionalGeneratorBlock(2*initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation),
-              *[ConditionalGeneratorBlock(initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation)
-                for _ in range(post_straight_blocks-2)],
-                ConditionalGeneratorBlock(initial_channels, input_shape[0], class_embedding_size, sn=sn, activation=activation)
-            ])
-        else:
-            raise NotImplementedError
+        self.reconstructor = nn.ModuleList([
+            ConditionalGeneratorBlock(2*initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation),
+          *[ConditionalGeneratorBlock(initial_channels, initial_channels, class_embedding_size, sn=sn, activation=activation)
+            for _ in range(post_straight_blocks-1)]
+        ])
+        self.output_transform = sn(nn.Conv1d(initial_channels, input_shape[0], kernel_size=1, stride=1, padding=0))
     
     def forward(self, x, y):
-        y = torch.cat(y.values(), dim=1)
+        y = torch.cat(list(y.values()), dim=-1).to(torch.float)
         embedded_y = self.class_embedding(y)
         class_conditional_bias = self.class_conditional_bias(embedded_y.view(x.size(0), self.class_embedding_size, 1))
         x_i = self.input_transform(x + class_conditional_bias)
         x_resampled = self.resampler(x_i, embedded_y)
         for rec_mod in self.reconstructor:
             x_resampled = rec_mod(x_resampled, embedded_y)
-        out = torch.tanh(x_resampled)
+        out = torch.tanh(self.output_transform(x_resampled))
         return out
     
 class ResidualBlock(nn.Module):

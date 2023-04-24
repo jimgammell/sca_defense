@@ -13,7 +13,7 @@ def val(x):
 @torch.no_grad()
 def int_to_binary(x):
     assert x.dtype == torch.long
-    out = torch.zeros(x.size(0), 8, dtype=torch.long, device=x.device)
+    out = torch.zeros(x.size(0), 8, dtype=torch.float, device=x.device)
     for n in range(7, -1, -1):
         high = torch.ge(x, 2**n)
         out[:, n] = high
@@ -46,7 +46,25 @@ def calculate_mean_accuracy(dataloader, gen, disc, device):
     acc_rec_labels /= len(dataloader)
     return acc_orig_labels, acc_rec_labels
 
+def mean_val(d):
+    return torch.mean(torch.tensor(list(d.values())))
+
+def apply_elementwise(fn, logits, labels):
+    rv = {}
+    for key in labels.keys():
+        attack_pt, byte = key.split('__')
+        for head_key in logits.keys():
+            _, attack_pt_, byte_ = head_key.split('__')
+            if attack_pt_ == attack_pt and byte_ == byte:
+                break
+        rv[key] = fn(logits[head_key], labels[key])
+    return rv
+
+def leakage_loss(logits, labels):
+    return apply_elementwise(lambda x, y: nn.functional.binary_cross_entropy(torch.sigmoid(x), y), logits, labels)
+
 def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
+                        gen_opt_scheduler=None, disc_opt_scheduler=None,
                         l1_rec_coefficient=0.0, gen_classification_coefficient=1.0,
                         return_example=False, return_weight_norms=False, return_grad_norms=False,
                         average_deviation_penalty=0.0, train_gen=True, train_disc=True, **kwargs):
@@ -54,7 +72,7 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
     trace, labels = trace.to(device), {key: item.to(device) for key, item in labels.items()}
     labels_rec = {key: torch.randint_like(item, 256) for key, item in labels.items()}
     labels = {key: int_to_binary(item) for key, item in labels.items()}
-    labels_rec = {key: int_to_binary(item) for key, item in labels.items()}
+    labels_rec = {key: int_to_binary(item) for key, item in labels_rec.items()}
     gen.train()
     disc.train()
     rv = {}
@@ -67,13 +85,9 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
         
         disc_logits_orig_leakage = disc.classify_leakage(disc_features_orig)
         disc_logits_rec_leakage = disc.classify_leakage(disc_features_rec)
-        disc_loss_orig_leakage = {key:
-            nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_orig_leakage[key]), labels[key])
-            for key in labels.keys()}
-        disc_loss_rec_leakage = {key: 
-            nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_rec_leakage[key]), labels[key])
-            for key in labels.keys()}
-        disc_loss_leakage = 0.5*torch.cat(disc_loss_orig_leakage.values(), dim=-1).mean() + 0.5*torch.cat(disc_loss_rec_leakage.values(), dim=-1).mean()
+        disc_loss_orig_leakage = leakage_loss(disc_logits_orig_leakage, labels)
+        disc_loss_rec_leakage = leakage_loss(disc_logits_rec_leakage, labels)
+        disc_loss_leakage = 0.5*mean_val(disc_loss_orig_leakage) + 0.5*mean_val(disc_loss_rec_leakage)
         
         disc_logits_orig_realism = disc.classify_realism(disc_features_orig, labels)
         disc_logits_rec_realism = disc.classify_realism(disc_features_rec, labels_rec)
@@ -95,22 +109,20 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
             'disc_loss_rec_leakage': val(disc_loss_rec_leakage),
             'disc_loss': val(disc_loss),
             'disc_acc_realism': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
-            'disc_acc_orig_leakage': {key: bin_acc(disc_logits_orig_leakage[key], labels[key]) for key in labels.keys()},
-            'disc_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels[key]) for key in labels.keys()}
+            'disc_acc_orig_leakage': apply_elementwise(bin_acc, disc_logits_orig_leakage, labels),
+            'disc_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels)
         })
-        rv.update({'disc_acc_leakage': 0.5*torch.cat(rv['disc_acc_orig_leakage'].values(), dim=-1).mean() + 0.5*torch.cat(rv['disc_acc_rec_leakage'].values().mean(), dim=-1)})
+        rv.update({'disc_acc_leakage': 0.5*mean_val(rv['disc_acc_orig_leakage']) + 0.5*mean_val(rv['disc_acc_rec_leakage'])})
     
     if train_gen:
         trace_rec = gen(trace, labels_rec)
         disc_features_rec = disc.extract_features(trace_rec)
         
         disc_logits_rec_leakage = disc.classify_leakage(disc_features_rec)
-        gen_loss_rec_leakage = {key: 
-            nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_rec_leakage[key]), labels_rec[key])
-            for key in labels_rec.keys()}
-        gen_loss_leakage = torch.cat(gen_loss_rec_leakage.values(), dim=-1).mean()
+        gen_loss_rec_leakage = leakage_loss(disc_logits_rec_leakage, labels_rec)
+        gen_loss_leakage = mean_val(gen_loss_rec_leakage)
         
-        disc_logits_rec_realism = disc.classify_realism(disc_features_rec, y_rec)
+        disc_logits_rec_realism = disc.classify_realism(disc_features_rec, labels_rec)
         gen_loss_realism = -disc_logits_rec_realism.mean()
         
         if l1_rec_coefficient > 0:
@@ -121,11 +133,12 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
         if average_deviation_penalty != 0.0:
             gen_avg_departure_penalty = gen.get_avg_departure_penalty()
             gen_loss += average_deviation_penalty*gen_avg_departure_penalty
-        gen_loss.backward(set_to_none=True)
+        gen_opt.zero_grad(set_to_none=True)
+        gen_loss.backward()
         if return_grad_norms:
             rv.update({'gen_grad_norm': get_grad_norm(gen)})
         gen_opt.step()
-        if not_pretrain and average_deviation_penalty != 0.0:
+        if average_deviation_penalty != 0.0:
             gen.update_avg()
         elif average_deviation_penalty != 0.0:
             gen.reset_avg()
@@ -133,15 +146,15 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
         rv.update({
             'gen_loss_realism': val(gen_loss_realism),
             'gen_loss_leakage': val(gen_loss_leakage),
-            'gen_loss_rec_leakage': {key: val(item) for key, item in gen_loss_reg_leakage.items()},
+            'gen_loss_rec_leakage': {key: val(item) for key, item in gen_loss_rec_leakage.items()},
             'gen_l1_loss': val(gen_l1_loss),
             'gen_avg_departure_loss': val(gen_avg_departure_penalty),
             'gen_loss': val(gen_loss),
             'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
-            'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels_rec[key]) for key in labels_rec.keys()},
-            'reconstruction_diff_l1': val((trace-trace-rec).norm(p=1))
+            'gen_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels_rec),
+            'reconstruction_diff_l1': val((trace-trace_rec).norm(p=1))
         })
-        rv.update({'gen_acc_leakage': torch.cat(rv['gen_acc_rec_leakage'].values(), dim=-1).mean()})
+        rv.update({'gen_acc_leakage': mean_val(rv['gen_acc_rec_leakage'])})
     if return_example:
         rv.update({
             'orig_example': val(trace),
@@ -154,6 +167,10 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
             'disc_weight_norm': get_weight_norm(disc),
             'gen_weight_norm': get_weight_norm(gen)
         })
+    if gen_opt_scheduler is not None:
+        gen_opt_scheduler.step()
+    if disc_opt_scheduler is not None:
+        disc_opt_scheduler.step()
     return rv
 
 @torch.no_grad()
@@ -162,7 +179,7 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     trace, labels = trace.to(device), {key: item.to(device) for key, item in labels.items()}
     labels_rec = {key: torch.randint_like(item, 256) for key, item in labels.items()}
     labels = {key: int_to_binary(item) for key, item in labels.items()}
-    labels_rec = {key: int_to_binary(item) for key, item in labels.items()}
+    labels_rec = {key: int_to_binary(item) for key, item in labels_rec.items()}
     gen.eval()
     disc.eval()
     rv = {}
@@ -173,13 +190,9 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     
     disc_logits_orig_leakage = disc.classify_leakage(disc_features_orig)
     disc_logits_rec_leakage = disc.classify_leakage(disc_features_rec)
-    disc_loss_orig_leakage = {key:
-        nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_orig_leakage[key]), labels[key])
-        for key in labels.keys()}
-    disc_loss_rec_leakage = {key: 
-        nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_rec_leakage[key]), labels[key])
-        for key in labels.keys()}
-    disc_loss_leakage = 0.5*torch.cat(disc_loss_orig_leakage.values(), dim=-1).mean() + 0.5*torch.cat(disc_loss_rec_leakage.values(), dim=-1).mean()
+    disc_loss_orig_leakage = leakage_loss(disc_logits_orig_leakage, labels)
+    disc_loss_rec_leakage = leakage_loss(disc_logits_rec_leakage, labels)
+    disc_loss_leakage = 0.5*mean_val(disc_loss_orig_leakage) + 0.5*mean_val(disc_loss_rec_leakage)
     
     disc_logits_orig_realism = disc.classify_realism(disc_features_orig, labels)
     disc_logits_rec_realism = disc.classify_realism(disc_features_rec, labels_rec)
@@ -189,10 +202,8 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     
     disc_loss = 0.5*disc_loss_leakage + 0.5*disc_loss_realism
     
-    gen_loss_rec_leakage = {key: 
-        nn.functional.binary_cross_entropy(torch.sigmoid(disc_logits_rec_leakage[key]), labels_rec[key])
-        for key in labels_rec.keys()}
-    gen_loss_leakage = torch.cat(gen_loss_rec_leakage.values(), dim=-1).mean()
+    gen_loss_rec_leakage = leakage_loss(disc_logits_rec_leakage, labels_rec)
+    gen_loss_leakage = mean_val(gen_loss_rec_leakage)
     
     gen_loss_realism = -disc_logits_rec_realism.mean()
     
@@ -209,10 +220,10 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
         'disc_loss_rec_leakage': val(disc_loss_rec_leakage),
         'disc_loss': val(disc_loss),
         'disc_acc_realism': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
-        'disc_acc_orig_leakage': {key: bin_acc(disc_logits_orig_leakage[key], labels[key]) for key in labels.keys()},
-        'disc_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels[key]) for key in labels.keys()}
+        'disc_acc_orig_leakage': apply_elementwise(bin_acc, disc_logits_orig_leakage, labels),
+        'disc_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels)
     })
-    rv.update({'disc_acc_leakage': 0.5*torch.cat(rv['disc_acc_orig_leakage'].values(), dim=-1).mean() + 0.5*torch.cat(rv['disc_acc_rec_leakage'].values().mean(), dim=-1)})
+    rv.update({'disc_acc_leakage': 0.5*mean_val(rv['disc_acc_orig_leakage']) + 0.5*mean_val(rv['disc_acc_rec_leakage'])})
     rv.update({
         'gen_loss_realism': val(gen_loss_realism),
         'gen_loss_leakage': val(gen_loss_leakage),
@@ -221,10 +232,10 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
         'gen_avg_departure_loss': val(gen_avg_departure_penalty),
         'gen_loss': val(gen_loss),
         'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
-        'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels_rec[key]) for key in labels_rec.keys()},
+        'gen_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels_rec),
         'reconstruction_diff_l1': val((trace-trace-rec).norm(p=1))
     })
-    rv.update({'gen_acc_leakage': torch.cat(rv['gen_acc_rec_leakage'].values(), dim=-1).mean()})
+    rv.update({'gen_acc_leakage': mean_val(rv['gen_acc_rec_leakage'])})
     if return_example:
         rv.update({
             'orig_example': val(trace),
@@ -332,7 +343,7 @@ def train_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, disc_s
                 gen_steps -= 1/disc_steps_per_gen_step
         else:
             train_disc = train_gen = True
-        step_rv = train_step(
+        step_rv = train_step_cyclegan(
             batch, *step_args,
             return_example=bidx in re_indices, train_gen=train_gen, train_disc=train_disc, **step_kwargs
         )
@@ -346,11 +357,11 @@ def train_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, disc_s
     return rv
 
 def eval_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, posttrain=False,
-                        leakage_eval_disc=None, downstream_eval_disc=None, **step_kwargs):
+                        leakage_eval_disc=None, **step_kwargs):
     rv = {}
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx) == int else return_example_idx
     for bidx, batch in enumerate(dataloader):
-        step_rv = eval_step(batch, *step_args, return_example_idx=bidx in re_indices, **step_kwargs)
+        step_rv = eval_step_cyclegan(batch, *step_args, return_example_idx=bidx in re_indices, **step_kwargs)
         for key, item in step_rv.items():
             if not key in rv.keys():
                 rv[key] = []
