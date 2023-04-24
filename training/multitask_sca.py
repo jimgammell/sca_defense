@@ -138,7 +138,7 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
             'gen_avg_departure_loss': val(gen_avg_departure_penalty),
             'gen_loss': val(gen_loss),
             'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
-            'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key]), labels_rec[key] for key in labels_rec.keys()},
+            'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels_rec[key]) for key in labels_rec.keys()},
             'reconstruction_diff_l1': val((trace-trace-rec).norm(p=1))
         })
         rv.update({'gen_acc_leakage': torch.cat(rv['gen_acc_rec_leakage'].values(), dim=-1).mean()})
@@ -221,7 +221,7 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
         'gen_avg_departure_loss': val(gen_avg_departure_penalty),
         'gen_loss': val(gen_loss),
         'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
-        'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key]), labels_rec[key] for key in labels_rec.keys()},
+        'gen_acc_rec_leakage': {key: bin_acc(disc_logits_rec_leakage[key], labels_rec[key]) for key in labels_rec.keys()},
         'reconstruction_diff_l1': val((trace-trace-rec).norm(p=1))
     })
     rv.update({'gen_acc_leakage': torch.cat(rv['gen_acc_rec_leakage'].values(), dim=-1).mean()})

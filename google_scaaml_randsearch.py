@@ -7,10 +7,10 @@ import argparse
 from train_classifier_on_google_scaaml_dataset import main as run_trial
 
 HPARAM_SAMPLERS = {
-    'noise_scale':       lambda: 10**np.random.uniform(-3, -1),
-    'weight_decay':      lambda: np.random.choice([0, 10**np.random.uniform(-7, -3)]),
-    'max_lr':            lambda: 10**np.random.uniform(-5, -3),
-    'dropout':           lambda: np.random.uniform(0, 0.2),
+    'noise_scale':       lambda: 0.0, #10**np.random.uniform(-3, -1),
+    'weight_decay':      lambda: 5e-7, #np.random.choice([0, 10**np.random.uniform(-7, -3)]),
+    'max_lr':            lambda: 2e-4, #10**np.random.uniform(-5, -3),
+    'dropout':           lambda: 0.1 #np.random.uniform(0, 0.2),
 }
 
 def main():

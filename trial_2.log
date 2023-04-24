@@ -1,0 +1,3468 @@
+Starting trial 0 with seed 2 and device cuda:2.
+Hyperparameters:
+{'noise_scale': 0.007447144904083069, 'weight_decay': 0.0, 'max_lr': 0.0007860700020143727, 'dropout': 0.09694981935675114}
+Train dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: train
+	Trace shape: torch.Size([1, 5000])
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: SignalTransform()
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Test dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: test
+	Trace shape: (1, 5000)
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: None
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Model:
+Classifier(
+  (input_transform): Conv1d(1, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+  (feature_extractor): Sequential(
+    (0): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(16, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (1): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (2): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 128, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (3): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(256, 256, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+  )
+  (shared_head): Sequential(
+    (0): Dropout(p=0.09694981935675114, inplace=False)
+    (1): Linear(in_features=256, out_features=256, bias=False)
+    (2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (3): ReLU(inplace=True)
+  )
+  (heads): ModuleDict(
+    (bytes__sub_bytes_in__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__15): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__15): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+
+
+Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.0007860700020143727
+    weight_decay: 0.0
+)
+
+
+
+Learning rate scheduler:
+None
+
+
+
+Epoch 0 done in 494.9003655910492 seconds.
+	train acc: 0.0031280517578125 -- 0.0041351318359375
+	train loss: 5.565201282501221 -- 5.567230224609375
+	test acc: 0.00390625 -- 0.00390625
+	test loss: 5.545577526092529 -- 5.54578971862793
+New best model found.
+Epoch 1 done in 494.1947362422943 seconds.
+	train acc: 0.0032958984375 -- 0.00439453125
+	train loss: 5.544179916381836 -- 5.54770565032959
+	test acc: 0.00390625 -- 0.00390625
+	test loss: 5.545379638671875 -- 5.545459747314453
+Epochs without improvement: 1.
+Epoch 2 done in 492.046749830246 seconds.
+	train acc: 0.0033111572265625 -- 0.006500244140625
+	train loss: 5.449333667755127 -- 5.549048900604248
+	test acc: 0.003570556640625 -- 0.009674072265625
+	test loss: 5.43480110168457 -- 5.5458760261535645
+New best model found.
+Epoch 3 done in 499.431676864624 seconds.
+	train acc: 0.00335693359375 -- 0.01068115234375
+	train loss: 5.175848007202148 -- 5.550765037536621
+	test acc: 0.0033721923828125 -- 0.0146484375
+	test loss: 5.1042351722717285 -- 5.548348426818848
+New best model found.
+Epoch 4 done in 500.44440960884094 seconds.
+	train acc: 0.0035552978515625 -- 0.016998291015625
+	train loss: 4.77778434753418 -- 5.554512977600098
+	test acc: 0.003692626953125 -- 0.0232696533203125
+	test loss: 4.62947940826416 -- 5.568111419677734
+New best model found.
+Epoch 5 done in 500.2072114944458 seconds.
+	train acc: 0.0038299560546875 -- 0.0214996337890625
+	train loss: 4.565581321716309 -- 5.554073810577393
+	test acc: 0.0037689208984375 -- 0.0219573974609375
+	test loss: 4.523467063903809 -- 5.553838729858398
+New best model found.
+Epoch 6 done in 499.91847109794617 seconds.
+	train acc: 0.0046234130859375 -- 0.0224761962890625
+	train loss: 4.481402397155762 -- 5.551555156707764
+	test acc: 0.0037994384765625 -- 0.025634765625
+	test loss: 4.3783955574035645 -- 5.557358741760254
+New best model found.
+Epoch 7 done in 495.12172651290894 seconds.
+	train acc: 0.0047454833984375 -- 0.0244293212890625
+	train loss: 4.440528869628906 -- 5.5491623878479
+	test acc: 0.0036468505859375 -- 0.023956298828125
+	test loss: 4.3550262451171875 -- 5.569878578186035
+Epochs without improvement: 1.
+Epoch 8 done in 494.14651584625244 seconds.
+	train acc: 0.0045166015625 -- 0.0253753662109375
+	train loss: 4.399104118347168 -- 5.5480546951293945
+	test acc: 0.0039520263671875 -- 0.0264434814453125
+	test loss: 4.470175743103027 -- 5.562155246734619
+New best model found.
+Epoch 9 done in 493.94129157066345 seconds.
+	train acc: 0.00469970703125 -- 0.0276031494140625
+	train loss: 4.346352577209473 -- 5.549313068389893
+	test acc: 0.0041351318359375 -- 0.0288848876953125
+	test loss: 4.302342414855957 -- 5.568411350250244
+New best model found.
+Epoch 10 done in 497.87716460227966 seconds.
+	train acc: 0.004608154296875 -- 0.0311737060546875
+	train loss: 4.294220924377441 -- 5.550601482391357
+	test acc: 0.0038604736328125 -- 0.0226593017578125
+	test loss: 4.561969757080078 -- 5.582235813140869
+New best model found.
+Epoch 11 done in 500.63028025627136 seconds.
+	train acc: 0.00506591796875 -- 0.0322418212890625
+	train loss: 4.266121864318848 -- 5.54807186126709
+	test acc: 0.0042877197265625 -- 0.0296478271484375
+	test loss: 4.221985816955566 -- 5.598410129547119
+New best model found.
+Epoch 12 done in 499.9670910835266 seconds.
+	train acc: 0.005828857421875 -- 0.032745361328125
+	train loss: 4.248758316040039 -- 5.541152477264404
+	test acc: 0.0041351318359375 -- 0.0279083251953125
+	test loss: 4.5260491371154785 -- 5.60172176361084
+New best model found.
+Epoch 13 done in 498.6261224746704 seconds.
+	train acc: 0.00579833984375 -- 0.0349273681640625
+	train loss: 4.229668140411377 -- 5.539434909820557
+	test acc: 0.0038909912109375 -- 0.02838134765625
+	test loss: 4.370389938354492 -- 5.617454528808594
+New best model found.
+Epoch 14 done in 500.5374639034271 seconds.
+	train acc: 0.006591796875 -- 0.0386962890625
+	train loss: 4.218136787414551 -- 5.534300327301025
+	test acc: 0.0037384033203125 -- 0.0359954833984375
+	test loss: 4.221660614013672 -- 5.639688968658447
+New best model found.
+Epoch 15 done in 498.0523569583893 seconds.
+	train acc: 0.0069122314453125 -- 0.0431671142578125
+	train loss: 4.201874732971191 -- 5.5274457931518555
+	test acc: 0.00390625 -- 0.040130615234375
+	test loss: 4.230193138122559 -- 5.649308204650879
+New best model found.
+Epoch 16 done in 492.6284158229828 seconds.
+	train acc: 0.0077362060546875 -- 0.0465850830078125
+	train loss: 4.198086738586426 -- 5.520040035247803
+	test acc: 0.0042877197265625 -- 0.0415191650390625
+	test loss: 4.198463439941406 -- 5.638144493103027
+New best model found.
+Epoch 17 done in 493.14634108543396 seconds.
+	train acc: 0.0079803466796875 -- 0.0485076904296875
+	train loss: 4.182181358337402 -- 5.51458740234375
+	test acc: 0.004302978515625 -- 0.039764404296875
+	test loss: 4.226467609405518 -- 5.694141864776611
+Epochs without improvement: 1.
+Epoch 18 done in 497.51354908943176 seconds.
+	train acc: 0.00872802734375 -- 0.0517120361328125
+	train loss: 4.158034324645996 -- 5.505780220031738
+	test acc: 0.004119873046875 -- 0.0401458740234375
+	test loss: 4.216958045959473 -- 5.667218208312988
+New best model found.
+Epoch 19 done in 497.3284842967987 seconds.
+	train acc: 0.0087890625 -- 0.0611572265625
+	train loss: 4.1626081466674805 -- 5.50730562210083
+	test acc: 0.0039215087890625 -- 0.056304931640625
+	test loss: 4.154073715209961 -- 5.687197208404541
+New best model found.
+Epoch 20 done in 494.40725111961365 seconds.
+	train acc: 0.0088653564453125 -- 0.083953857421875
+	train loss: 3.958293914794922 -- 5.504011154174805
+	test acc: 0.004119873046875 -- 0.0654144287109375
+	test loss: 4.020745754241943 -- 5.692749977111816
+New best model found.
+Epoch 21 done in 495.716117143631 seconds.
+	train acc: 0.0099945068359375 -- 0.1021728515625
+	train loss: 3.741546392440796 -- 5.4976301193237305
+	test acc: 0.004150390625 -- 0.084747314453125
+	test loss: 3.7905383110046387 -- 5.719243049621582
+New best model found.
+Epoch 22 done in 498.248676776886 seconds.
+	train acc: 0.0100860595703125 -- 0.1172943115234375
+	train loss: 3.583354949951172 -- 5.492371559143066
+	test acc: 0.0039215087890625 -- 0.106475830078125
+	test loss: 3.5740294456481934 -- 5.714509010314941
+New best model found.
+Epoch 23 done in 497.31856083869934 seconds.
+	train acc: 0.0101318359375 -- 0.1263275146484375
+	train loss: 3.4754934310913086 -- 5.4833173751831055
+	test acc: 0.004150390625 -- 0.1024017333984375
+	test loss: 3.5444514751434326 -- 5.716020107269287
+New best model found.
+Epoch 24 done in 497.52952814102173 seconds.
+	train acc: 0.0113372802734375 -- 0.134735107421875
+	train loss: 3.3966240882873535 -- 5.478488922119141
+	test acc: 0.004547119140625 -- 0.09661865234375
+	test loss: 3.5377957820892334 -- 5.72443151473999
+Epochs without improvement: 1.
+Epoch 25 done in 500.12147974967957 seconds.
+	train acc: 0.0113983154296875 -- 0.141937255859375
+	train loss: 3.334105968475342 -- 5.4703216552734375
+	test acc: 0.00445556640625 -- 0.1192474365234375
+	test loss: 3.4010322093963623 -- 5.727358818054199
+New best model found.
+Epoch 26 done in 494.7942180633545 seconds.
+	train acc: 0.0117645263671875 -- 0.144622802734375
+	train loss: 3.2935352325439453 -- 5.464205741882324
+	test acc: 0.0041351318359375 -- 0.1184844970703125
+	test loss: 3.352534294128418 -- 5.748575687408447
+New best model found.
+Epoch 27 done in 499.92327547073364 seconds.
+	train acc: 0.0126495361328125 -- 0.1486968994140625
+	train loss: 3.246763229370117 -- 5.4566650390625
+	test acc: 0.0044708251953125 -- 0.1217803955078125
+	test loss: 3.2501978874206543 -- 5.760981559753418
+New best model found.
+Epoch 28 done in 499.571151971817 seconds.
+	train acc: 0.0127716064453125 -- 0.1533660888671875
+	train loss: 3.212226390838623 -- 5.452012062072754
+	test acc: 0.0044708251953125 -- 0.1272430419921875
+	test loss: 3.252983570098877 -- 5.741003036499023
+New best model found.
+Epoch 29 done in 497.5116777420044 seconds.
+	train acc: 0.01361083984375 -- 0.16070556640625
+	train loss: 3.1681582927703857 -- 5.445126533508301
+	test acc: 0.00433349609375 -- 0.136871337890625
+	test loss: 3.151587963104248 -- 5.752713203430176
+New best model found.
+Epoch 30 done in 496.62695837020874 seconds.
+	train acc: 0.0128173828125 -- 0.163909912109375
+	train loss: 3.1257519721984863 -- 5.440275192260742
+	test acc: 0.0041046142578125 -- 0.1275634765625
+	test loss: 3.175833225250244 -- 5.761428356170654
+Epochs without improvement: 1.
+Epoch 31 done in 499.3902323246002 seconds.
+	train acc: 0.0139923095703125 -- 0.16766357421875
+	train loss: 3.0852532386779785 -- 5.432552337646484
+	test acc: 0.0043487548828125 -- 0.132965087890625
+	test loss: 3.175759792327881 -- 5.771665573120117
+New best model found.
+Epoch 32 done in 492.81085205078125 seconds.
+	train acc: 0.013763427734375 -- 0.1699066162109375
+	train loss: 3.0684871673583984 -- 5.431582927703857
+	test acc: 0.0044708251953125 -- 0.1357879638671875
+	test loss: 3.152808666229248 -- 5.774362564086914
+Epochs without improvement: 1.
+Epoch 33 done in 492.5978169441223 seconds.
+	train acc: 0.01483154296875 -- 0.171875
+	train loss: 3.0460429191589355 -- 5.430059432983398
+	test acc: 0.004150390625 -- 0.135498046875
+	test loss: 3.133307933807373 -- 5.8046722412109375
+Epochs without improvement: 2.
+Epoch 34 done in 491.32710814476013 seconds.
+	train acc: 0.01483154296875 -- 0.1751251220703125
+	train loss: 3.02718448638916 -- 5.427985191345215
+	test acc: 0.0043182373046875 -- 0.13311767578125
+	test loss: 3.13312029838562 -- 5.825262069702148
+New best model found.
+Epoch 35 done in 500.9889109134674 seconds.
+	train acc: 0.014678955078125 -- 0.181365966796875
+	train loss: 2.9897267818450928 -- 5.422418594360352
+	test acc: 0.00421142578125 -- 0.1265411376953125
+	test loss: 3.242619276046753 -- 5.804535865783691
+Epochs without improvement: 1.
+Epoch 36 done in 495.06666016578674 seconds.
+	train acc: 0.0144195556640625 -- 0.181243896484375
+	train loss: 2.9861035346984863 -- 5.415908336639404
+	test acc: 0.0041961669921875 -- 0.1388092041015625
+	test loss: 3.079379081726074 -- 5.814873695373535
+Epochs without improvement: 2.
+Epoch 37 done in 493.482937335968 seconds.
+	train acc: 0.0160980224609375 -- 0.1822357177734375
+	train loss: 2.970986843109131 -- 5.399418354034424
+	test acc: 0.004608154296875 -- 0.1465606689453125
+	test loss: 3.028538465499878 -- 5.784847259521484
+New best model found.
+Epoch 38 done in 486.1912581920624 seconds.
+	train acc: 0.01678466796875 -- 0.1846466064453125
+	train loss: 2.958156108856201 -- 5.387154579162598
+	test acc: 0.004364013671875 -- 0.1443939208984375
+	test loss: 3.064209222793579 -- 5.8753342628479
+Epochs without improvement: 1.
+Epoch 39 done in 483.5121576786041 seconds.
+	train acc: 0.018035888671875 -- 0.187835693359375
+	train loss: 2.9489364624023438 -- 5.361299514770508
+	test acc: 0.0052032470703125 -- 0.1370086669921875
+	test loss: 3.0938031673431396 -- 5.772772789001465
+Epochs without improvement: 2.
+Epoch 40 done in 488.23014545440674 seconds.
+	train acc: 0.0194854736328125 -- 0.1895294189453125
+	train loss: 2.935572385787964 -- 5.329329490661621
+	test acc: 0.00567626953125 -- 0.1465606689453125
+	test loss: 3.002060890197754 -- 5.746370315551758
+New best model found.
+Epoch 41 done in 488.91455364227295 seconds.
+	train acc: 0.0216064453125 -- 0.191253662109375
+	train loss: 2.9179093837738037 -- 5.268340587615967
+	test acc: 0.00738525390625 -- 0.1416015625
+	test loss: 3.0487112998962402 -- 5.673558235168457
+Epochs without improvement: 1.
+Epoch 42 done in 499.3917443752289 seconds.
+	train acc: 0.0252532958984375 -- 0.1879730224609375
+	train loss: 2.9376397132873535 -- 5.184595108032227
+	test acc: 0.007354736328125 -- 0.1519775390625
+	test loss: 2.955301523208618 -- 5.590533256530762
+Epochs without improvement: 2.
+Epoch 43 done in 493.9730589389801 seconds.
+	train acc: 0.0272369384765625 -- 0.1922149658203125
+	train loss: 2.9079666137695312 -- 5.091285228729248
+	test acc: 0.0077667236328125 -- 0.14935302734375
+	test loss: 2.991267442703247 -- 5.569101333618164
+New best model found.
+Epoch 44 done in 490.93869495391846 seconds.
+	train acc: 0.02764892578125 -- 0.1949310302734375
+	train loss: 2.897718906402588 -- 5.031373977661133
+	test acc: 0.008941650390625 -- 0.1446533203125
+	test loss: 3.0227763652801514 -- 5.518316268920898
+Epochs without improvement: 1.
+Epoch 45 done in 493.6456685066223 seconds.
+	train acc: 0.028564453125 -- 0.1976470947265625
+	train loss: 2.8853907585144043 -- 4.984573841094971
+	test acc: 0.0095367431640625 -- 0.1518402099609375
+	test loss: 3.008375644683838 -- 5.4195356369018555
+New best model found.
+Epoch 46 done in 495.683705329895 seconds.
+	train acc: 0.0293121337890625 -- 0.193145751953125
+	train loss: 2.9031805992126465 -- 4.963813781738281
+	test acc: 0.0092620849609375 -- 0.156707763671875
+	test loss: 2.93959379196167 -- 5.389897346496582
+Epochs without improvement: 1.
+Epoch 47 done in 498.1862144470215 seconds.
+	train acc: 0.029510498046875 -- 0.19744873046875
+	train loss: 2.883366584777832 -- 4.962274074554443
+	test acc: 0.0094451904296875 -- 0.1561431884765625
+	test loss: 2.9294955730438232 -- 5.407820701599121
+Epochs without improvement: 2.
+Epoch 48 done in 495.77552223205566 seconds.
+	train acc: 0.0305023193359375 -- 0.1985015869140625
+	train loss: 2.866065502166748 -- 4.951133728027344
+	test acc: 0.00970458984375 -- 0.146087646484375
+	test loss: 3.0407228469848633 -- 5.429292678833008
+Epochs without improvement: 3.
+Epoch 49 done in 493.56921577453613 seconds.
+	train acc: 0.030181884765625 -- 0.197357177734375
+	train loss: 2.88927960395813 -- 4.946296691894531
+	test acc: 0.0093536376953125 -- 0.1517791748046875
+	test loss: 2.9633944034576416 -- 5.423602104187012
+New best model found.
+Epoch 50 done in 492.75625109672546 seconds.
+	train acc: 0.029205322265625 -- 0.1990509033203125
+	train loss: 2.8703601360321045 -- 4.935423851013184
+	test acc: 0.0101165771484375 -- 0.1492767333984375
+	test loss: 3.0098187923431396 -- 5.408748626708984
+Epochs without improvement: 1.
+Epoch 51 done in 493.2795350551605 seconds.
+	train acc: 0.0302734375 -- 0.19866943359375
+	train loss: 2.8569469451904297 -- 4.927448272705078
+	test acc: 0.009918212890625 -- 0.14434814453125
+	test loss: 3.0416994094848633 -- 5.476029396057129
+Epochs without improvement: 2.
+Epoch 52 done in 499.60058307647705 seconds.
+	train acc: 0.0312957763671875 -- 0.2028045654296875
+	train loss: 2.851396322250366 -- 4.919547080993652
+	test acc: 0.0099029541015625 -- 0.14569091796875
+	test loss: 3.0516793727874756 -- 5.479045867919922
+Epochs without improvement: 3.
+Epoch 53 done in 496.44872283935547 seconds.
+	train acc: 0.031829833984375 -- 0.200958251953125
+	train loss: 2.8586673736572266 -- 4.914759635925293
+	test acc: 0.0097503662109375 -- 0.1507110595703125
+	test loss: 2.962790012359619 -- 5.476993560791016
+Epochs without improvement: 4.
+Epoch 54 done in 502.1102273464203 seconds.
+	train acc: 0.0318756103515625 -- 0.2040557861328125
+	train loss: 2.8523006439208984 -- 4.90690279006958
+	test acc: 0.010589599609375 -- 0.1576690673828125
+	test loss: 2.9193286895751953 -- 5.374843597412109
+Epochs without improvement: 5.
+Epoch 55 done in 497.977153301239 seconds.
+	train acc: 0.0330047607421875 -- 0.203155517578125
+	train loss: 2.841005802154541 -- 4.902263164520264
+	test acc: 0.0103759765625 -- 0.15362548828125
+	test loss: 2.9397339820861816 -- 5.360842704772949
+New best model found.
+Epoch 56 done in 493.6406629085541 seconds.
+	train acc: 0.0329437255859375 -- 0.2024078369140625
+	train loss: 2.8563504219055176 -- 4.897298336029053
+	test acc: 0.0100250244140625 -- 0.1500244140625
+	test loss: 2.973569393157959 -- 5.400906085968018
+New best model found.
+Epoch 57 done in 490.1807658672333 seconds.
+	train acc: 0.03424072265625 -- 0.20550537109375
+	train loss: 2.8472471237182617 -- 4.894635200500488
+	test acc: 0.010498046875 -- 0.1569061279296875
+	test loss: 2.9233055114746094 -- 5.3853631019592285
+New best model found.
+Epoch 58 done in 483.4344563484192 seconds.
+	train acc: 0.033660888671875 -- 0.2028961181640625
+	train loss: 2.8442819118499756 -- 4.887380599975586
+	test acc: 0.01019287109375 -- 0.1471710205078125
+	test loss: 3.0335135459899902 -- 5.4386162757873535
+Epochs without improvement: 1.
+Epoch 59 done in 492.309588432312 seconds.
+	train acc: 0.0337982177734375 -- 0.204620361328125
+	train loss: 2.835874080657959 -- 4.878532886505127
+	test acc: 0.01068115234375 -- 0.149200439453125
+	test loss: 2.9865753650665283 -- 5.388146877288818
+New best model found.
+Epoch 60 done in 494.83836245536804 seconds.
+	train acc: 0.0338592529296875 -- 0.2050933837890625
+	train loss: 2.8301661014556885 -- 4.876378059387207
+	test acc: 0.010284423828125 -- 0.1564483642578125
+	test loss: 2.9215102195739746 -- 5.394213676452637
+Epochs without improvement: 1.
+Epoch 61 done in 492.81858253479004 seconds.
+	train acc: 0.0348968505859375 -- 0.2065582275390625
+	train loss: 2.8319811820983887 -- 4.874431610107422
+	test acc: 0.00970458984375 -- 0.142852783203125
+	test loss: 3.004822254180908 -- 5.457228660583496
+Epochs without improvement: 2.
+Epoch 62 done in 498.05367636680603 seconds.
+	train acc: 0.034912109375 -- 0.205718994140625
+	train loss: 2.8345606327056885 -- 4.869354724884033
+	test acc: 0.0106048583984375 -- 0.15460205078125
+	test loss: 2.934782028198242 -- 5.381115436553955
+Epochs without improvement: 3.
+Epoch 63 done in 496.18794417381287 seconds.
+	train acc: 0.0352935791015625 -- 0.2069549560546875
+	train loss: 2.830458402633667 -- 4.8604936599731445
+	test acc: 0.0108795166015625 -- 0.1566619873046875
+	test loss: 2.9088001251220703 -- 5.378957748413086
+New best model found.
+Epoch 64 done in 490.8558347225189 seconds.
+	train acc: 0.0358734130859375 -- 0.2092132568359375
+	train loss: 2.8222720623016357 -- 4.858371734619141
+	test acc: 0.0115814208984375 -- 0.151153564453125
+	test loss: 2.979462146759033 -- 5.387633323669434
+Epochs without improvement: 1.
+Epoch 65 done in 492.98729372024536 seconds.
+	train acc: 0.0364227294921875 -- 0.209381103515625
+	train loss: 2.822476387023926 -- 4.850369930267334
+	test acc: 0.0110015869140625 -- 0.157958984375
+	test loss: 2.878511905670166 -- 5.410638332366943
+New best model found.
+Epoch 66 done in 496.17438316345215 seconds.
+	train acc: 0.0377197265625 -- 0.2135162353515625
+	train loss: 2.80301570892334 -- 4.846005916595459
+	test acc: 0.01275634765625 -- 0.1474151611328125
+	test loss: 3.0396690368652344 -- 5.3670549392700195
+Epochs without improvement: 1.
+Epoch 67 done in 497.4317638874054 seconds.
+	train acc: 0.0370635986328125 -- 0.2097320556640625
+	train loss: 2.8046531677246094 -- 4.84165096282959
+	test acc: 0.0114593505859375 -- 0.1546478271484375
+	test loss: 2.948948860168457 -- 5.353926658630371
+New best model found.
+Epoch 68 done in 497.83516550064087 seconds.
+	train acc: 0.037139892578125 -- 0.207489013671875
+	train loss: 2.8185172080993652 -- 4.832995414733887
+	test acc: 0.01123046875 -- 0.1621246337890625
+	test loss: 2.881744384765625 -- 5.377983570098877
+New best model found.
+Epoch 69 done in 496.6390075683594 seconds.
+	train acc: 0.037872314453125 -- 0.207794189453125
+	train loss: 2.82741117477417 -- 4.833288192749023
+	test acc: 0.01116943359375 -- 0.15142822265625
+	test loss: 2.9594969749450684 -- 5.446239471435547
+Epochs without improvement: 1.
+Epoch 70 done in 498.01479482650757 seconds.
+	train acc: 0.0381927490234375 -- 0.20989990234375
+	train loss: 2.8055317401885986 -- 4.823046684265137
+	test acc: 0.011322021484375 -- 0.1569061279296875
+	test loss: 2.9300332069396973 -- 5.332213401794434
+New best model found.
+Epoch 71 done in 490.90473222732544 seconds.
+	train acc: 0.0390472412109375 -- 0.2112884521484375
+	train loss: 2.806145191192627 -- 4.817194938659668
+	test acc: 0.011810302734375 -- 0.155029296875
+	test loss: 2.934825897216797 -- 5.39224100112915
+Epochs without improvement: 1.
+Epoch 72 done in 491.0861566066742 seconds.
+	train acc: 0.0386810302734375 -- 0.2159423828125
+	train loss: 2.7899489402770996 -- 4.807741165161133
+	test acc: 0.0123291015625 -- 0.1541595458984375
+	test loss: 2.94795560836792 -- 5.333378791809082
+New best model found.
+Epoch 73 done in 493.7835388183594 seconds.
+	train acc: 0.0401153564453125 -- 0.2127532958984375
+	train loss: 2.807380437850952 -- 4.802295207977295
+	test acc: 0.0120697021484375 -- 0.155426025390625
+	test loss: 2.932629108428955 -- 5.344819068908691
+New best model found.
+Epoch 74 done in 493.57879281044006 seconds.
+	train acc: 0.0406341552734375 -- 0.2139892578125
+	train loss: 2.7922310829162598 -- 4.788791179656982
+	test acc: 0.013275146484375 -- 0.1492462158203125
+	test loss: 2.946685791015625 -- 5.31105899810791
+Epochs without improvement: 1.
+Epoch 75 done in 500.5105195045471 seconds.
+	train acc: 0.041351318359375 -- 0.2123870849609375
+	train loss: 2.7981796264648438 -- 4.784165382385254
+	test acc: 0.011962890625 -- 0.16033935546875
+	test loss: 2.908755302429199 -- 5.410788536071777
+Epochs without improvement: 2.
+Epoch 76 done in 501.6580865383148 seconds.
+	train acc: 0.0422210693359375 -- 0.214508056640625
+	train loss: 2.80086088180542 -- 4.776097297668457
+	test acc: 0.01409912109375 -- 0.158538818359375
+	test loss: 2.899406909942627 -- 5.305002212524414
+Epochs without improvement: 3.
+Epoch 77 done in 500.2699387073517 seconds.
+	train acc: 0.0416107177734375 -- 0.2154388427734375
+	train loss: 2.7884182929992676 -- 4.767512321472168
+	test acc: 0.0136260986328125 -- 0.164794921875
+	test loss: 2.8584415912628174 -- 5.286524772644043
+New best model found.
+Epoch 78 done in 497.5502076148987 seconds.
+	train acc: 0.0432891845703125 -- 0.2140960693359375
+	train loss: 2.79382586479187 -- 4.750714302062988
+	test acc: 0.0143585205078125 -- 0.1598358154296875
+	test loss: 2.881511688232422 -- 5.282210350036621
+Epochs without improvement: 1.
+Epoch 79 done in 496.34622025489807 seconds.
+	train acc: 0.0427703857421875 -- 0.2173919677734375
+	train loss: 2.77583646774292 -- 4.74921178817749
+	test acc: 0.0146026611328125 -- 0.1571502685546875
+	test loss: 2.91682767868042 -- 5.272706985473633
+New best model found.
+Epoch 80 done in 491.69397377967834 seconds.
+	train acc: 0.0443115234375 -- 0.218231201171875
+	train loss: 2.7789204120635986 -- 4.730562686920166
+	test acc: 0.01409912109375 -- 0.16021728515625
+	test loss: 2.897113561630249 -- 5.294220447540283
+Epochs without improvement: 1.
+Epoch 81 done in 495.3934886455536 seconds.
+	train acc: 0.0456390380859375 -- 0.217193603515625
+	train loss: 2.778698682785034 -- 4.7243452072143555
+	test acc: 0.014068603515625 -- 0.1571502685546875
+	test loss: 2.8981103897094727 -- 5.300699234008789
+New best model found.
+Epoch 82 done in 495.3799488544464 seconds.
+	train acc: 0.0454864501953125 -- 0.2147369384765625
+	train loss: 2.7725296020507812 -- 4.7089385986328125
+	test acc: 0.014862060546875 -- 0.1605987548828125
+	test loss: 2.8885765075683594 -- 5.299083709716797
+Epochs without improvement: 1.
+Epoch 83 done in 496.7818715572357 seconds.
+	train acc: 0.047698974609375 -- 0.21673583984375
+	train loss: 2.787811279296875 -- 4.691148281097412
+	test acc: 0.0157470703125 -- 0.1629180908203125
+	test loss: 2.890214443206787 -- 5.2092132568359375
+Epochs without improvement: 2.
+Epoch 84 done in 494.25030064582825 seconds.
+	train acc: 0.050262451171875 -- 0.21697998046875
+	train loss: 2.776909351348877 -- 4.670218467712402
+	test acc: 0.0179595947265625 -- 0.153350830078125
+	test loss: 2.9338793754577637 -- 5.178760528564453
+New best model found.
+Epoch 85 done in 489.39175152778625 seconds.
+	train acc: 0.05010986328125 -- 0.219390869140625
+	train loss: 2.7670907974243164 -- 4.656739234924316
+	test acc: 0.0170135498046875 -- 0.1644134521484375
+	test loss: 2.8763484954833984 -- 5.177901744842529
+New best model found.
+Epoch 86 done in 494.4058253765106 seconds.
+	train acc: 0.05145263671875 -- 0.2205963134765625
+	train loss: 2.7864367961883545 -- 4.637901306152344
+	test acc: 0.0185089111328125 -- 0.1600799560546875
+	test loss: 2.8982882499694824 -- 5.166956424713135
+New best model found.
+Epoch 87 done in 495.47123098373413 seconds.
+	train acc: 0.0523834228515625 -- 0.219696044921875
+	train loss: 2.77154278755188 -- 4.615076065063477
+	test acc: 0.0179901123046875 -- 0.1563262939453125
+	test loss: 2.9455513954162598 -- 5.202931880950928
+Epochs without improvement: 1.
+Epoch 88 done in 498.73089385032654 seconds.
+	train acc: 0.0544586181640625 -- 0.22308349609375
+	train loss: 2.7761754989624023 -- 4.587640285491943
+	test acc: 0.0199432373046875 -- 0.16082763671875
+	test loss: 2.853473663330078 -- 5.116539478302002
+New best model found.
+Epoch 89 done in 501.28689789772034 seconds.
+	train acc: 0.0555267333984375 -- 0.222076416015625
+	train loss: 2.7680532932281494 -- 4.567702293395996
+	test acc: 0.0217437744140625 -- 0.159393310546875
+	test loss: 2.896589517593384 -- 5.081182956695557
+New best model found.
+Epoch 90 done in 501.1712157726288 seconds.
+	train acc: 0.056610107421875 -- 0.224395751953125
+	train loss: 2.763124942779541 -- 4.532922744750977
+	test acc: 0.02166748046875 -- 0.1519927978515625
+	test loss: 2.95998215675354 -- 5.078503608703613
+Epochs without improvement: 1.
+Epoch 91 done in 496.59412145614624 seconds.
+	train acc: 0.0589447021484375 -- 0.2250823974609375
+	train loss: 2.7757630348205566 -- 4.489981651306152
+	test acc: 0.0236053466796875 -- 0.16119384765625
+	test loss: 2.9455485343933105 -- 5.041908264160156
+New best model found.
+Epoch 92 done in 497.29008984565735 seconds.
+	train acc: 0.0637054443359375 -- 0.22509765625
+	train loss: 2.7691493034362793 -- 4.425358772277832
+	test acc: 0.02471923828125 -- 0.1601715087890625
+	test loss: 2.885990619659424 -- 4.921867370605469
+Epochs without improvement: 1.
+Epoch 93 done in 493.2059557437897 seconds.
+	train acc: 0.06842041015625 -- 0.2250823974609375
+	train loss: 2.7874233722686768 -- 4.369566917419434
+	test acc: 0.0301971435546875 -- 0.1561279296875
+	test loss: 2.9249088764190674 -- 4.851194381713867
+New best model found.
+Epoch 94 done in 485.8393728733063 seconds.
+	train acc: 0.067413330078125 -- 0.22735595703125
+	train loss: 2.7783069610595703 -- 4.299198150634766
+	test acc: 0.0261383056640625 -- 0.155029296875
+	test loss: 3.017505645751953 -- 4.780550003051758
+New best model found.
+Epoch 95 done in 495.71783089637756 seconds.
+	train acc: 0.070831298828125 -- 0.2303619384765625
+	train loss: 2.7648892402648926 -- 4.230973243713379
+	test acc: 0.0277099609375 -- 0.157684326171875
+	test loss: 2.9105443954467773 -- 4.738077640533447
+Epochs without improvement: 1.
+Epoch 96 done in 499.9668004512787 seconds.
+	train acc: 0.0723114013671875 -- 0.225616455078125
+	train loss: 2.777853012084961 -- 4.1608428955078125
+	test acc: 0.0305328369140625 -- 0.16094970703125
+	test loss: 2.897697687149048 -- 4.679426193237305
+New best model found.
+Epoch 97 done in 499.58391666412354 seconds.
+	train acc: 0.072357177734375 -- 0.2295074462890625
+	train loss: 2.769866466522217 -- 4.143026351928711
+	test acc: 0.0296478271484375 -- 0.156036376953125
+	test loss: 3.0046310424804688 -- 4.650406837463379
+Epochs without improvement: 1.
+Epoch 98 done in 498.77890491485596 seconds.
+	train acc: 0.0705718994140625 -- 0.23114013671875
+	train loss: 2.7564518451690674 -- 4.149208068847656
+	test acc: 0.024169921875 -- 0.158111572265625
+	test loss: 2.9031314849853516 -- 4.739335060119629
+Epochs without improvement: 2.
+Epoch 99 done in 494.77783012390137 seconds.
+	train acc: 0.07196044921875 -- 0.2310943603515625
+	train loss: 2.7551403045654297 -- 4.137395858764648
+	test acc: 0.0294647216796875 -- 0.1589813232421875
+	test loss: 2.9339776039123535 -- 4.576887607574463
+Epochs without improvement: 3.
+Starting trial 1 with seed 2 and device cuda:2.
+Hyperparameters:
+{'noise_scale': 0.004375955271336425, 'weight_decay': 4.1467389147593725e-07, 'max_lr': 0.00017319762512417756, 'dropout': 0.05993093473490463}
+Train dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: train
+	Trace shape: torch.Size([1, 5000])
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: SignalTransform()
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Test dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: test
+	Trace shape: (1, 5000)
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: None
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Model:
+Classifier(
+  (input_transform): Conv1d(1, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+  (feature_extractor): Sequential(
+    (0): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(16, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (1): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (2): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 128, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (3): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(256, 256, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+  )
+  (shared_head): Sequential(
+    (0): Dropout(p=0.05993093473490463, inplace=False)
+    (1): Linear(in_features=256, out_features=256, bias=False)
+    (2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (3): ReLU(inplace=True)
+  )
+  (heads): ModuleDict(
+    (bytes__sub_bytes_in__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__15): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__15): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+
+
+Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.00017319762512417756
+    weight_decay: 4.1467389147593725e-07
+)
+
+
+
+Learning rate scheduler:
+None
+
+
+
+Epoch 0 done in 506.01384949684143 seconds.
+	train acc: 0.00347900390625 -- 0.004638671875
+	train loss: 5.565903663635254 -- 5.581849098205566
+	test acc: 0.003448486328125 -- 0.0069580078125
+	test loss: 5.474627494812012 -- 5.5538740158081055
+New best model found.
+Epoch 1 done in 502.9837474822998 seconds.
+	train acc: 0.0032806396484375 -- 0.0077056884765625
+	train loss: 5.428829193115234 -- 5.562650680541992
+	test acc: 0.003570556640625 -- 0.0086517333984375
+	test loss: 5.3860673904418945 -- 5.586651802062988
+New best model found.
+Epoch 2 done in 505.5131938457489 seconds.
+	train acc: 0.003936767578125 -- 0.0114288330078125
+	train loss: 5.234884262084961 -- 5.567856788635254
+	test acc: 0.0038299560546875 -- 0.01220703125
+	test loss: 5.188677787780762 -- 5.572049617767334
+New best model found.
+Epoch 3 done in 502.3298201560974 seconds.
+	train acc: 0.0043182373046875 -- 0.0174560546875
+	train loss: 4.997344970703125 -- 5.562168121337891
+	test acc: 0.0041961669921875 -- 0.018463134765625
+	test loss: 4.910418510437012 -- 5.58671760559082
+New best model found.
+Epoch 4 done in 499.0921149253845 seconds.
+	train acc: 0.005340576171875 -- 0.0265350341796875
+	train loss: 4.7529778480529785 -- 5.553096771240234
+	test acc: 0.004119873046875 -- 0.025909423828125
+	test loss: 4.65666389465332 -- 5.579465866088867
+New best model found.
+Epoch 5 done in 498.0217397212982 seconds.
+	train acc: 0.006439208984375 -- 0.033966064453125
+	train loss: 4.575854301452637 -- 5.5373430252075195
+	test acc: 0.005035400390625 -- 0.033447265625
+	test loss: 4.522468566894531 -- 5.595894813537598
+New best model found.
+Epoch 6 done in 497.24885153770447 seconds.
+	train acc: 0.0084686279296875 -- 0.0425567626953125
+	train loss: 4.458849906921387 -- 5.511432647705078
+	test acc: 0.0053863525390625 -- 0.048492431640625
+	test loss: 4.410591125488281 -- 5.576501846313477
+New best model found.
+Epoch 7 done in 499.35587430000305 seconds.
+	train acc: 0.0088043212890625 -- 0.0632171630859375
+	train loss: 4.283926963806152 -- 5.495664596557617
+	test acc: 0.005340576171875 -- 0.04644775390625
+	test loss: 4.296260833740234 -- 5.593559741973877
+Epochs without improvement: 1.
+Epoch 8 done in 504.1935429573059 seconds.
+	train acc: 0.0088348388671875 -- 0.0819854736328125
+	train loss: 4.037856101989746 -- 5.491766929626465
+	test acc: 0.0056610107421875 -- 0.06829833984375
+	test loss: 4.011329174041748 -- 5.589718341827393
+New best model found.
+Epoch 9 done in 500.5682621002197 seconds.
+	train acc: 0.0097808837890625 -- 0.0992889404296875
+	train loss: 3.8308234214782715 -- 5.474454879760742
+	test acc: 0.005157470703125 -- 0.0931854248046875
+	test loss: 3.786379098892212 -- 5.593114852905273
+New best model found.
+Epoch 10 done in 498.51318359375 seconds.
+	train acc: 0.01116943359375 -- 0.115020751953125
+	train loss: 3.678520679473877 -- 5.4532270431518555
+	test acc: 0.0058441162109375 -- 0.1048126220703125
+	test loss: 3.6378133296966553 -- 5.627799987792969
+New best model found.
+Epoch 11 done in 501.65339040756226 seconds.
+	train acc: 0.01214599609375 -- 0.1255340576171875
+	train loss: 3.5743162631988525 -- 5.441867828369141
+	test acc: 0.0064849853515625 -- 0.101226806640625
+	test loss: 3.627511978149414 -- 5.582688331604004
+New best model found.
+Epoch 12 done in 499.70231533050537 seconds.
+	train acc: 0.0146484375 -- 0.1329193115234375
+	train loss: 3.4928219318389893 -- 5.3769378662109375
+	test acc: 0.00799560546875 -- 0.116729736328125
+	test loss: 3.4886670112609863 -- 5.483050346374512
+New best model found.
+Epoch 13 done in 497.88283371925354 seconds.
+	train acc: 0.0204925537109375 -- 0.14251708984375
+	train loss: 3.420504093170166 -- 5.232861518859863
+	test acc: 0.011077880859375 -- 0.1067657470703125
+	test loss: 3.5287699699401855 -- 5.35237455368042
+New best model found.
+Epoch 14 done in 500.87174820899963 seconds.
+	train acc: 0.025909423828125 -- 0.14697265625
+	train loss: 3.365384101867676 -- 5.075262069702148
+	test acc: 0.0137176513671875 -- 0.115234375
+	test loss: 3.4382684230804443 -- 5.213805198669434
+New best model found.
+Epoch 15 done in 500.6060380935669 seconds.
+	train acc: 0.030548095703125 -- 0.1521759033203125
+	train loss: 3.3171565532684326 -- 4.926089286804199
+	test acc: 0.0145263671875 -- 0.1084136962890625
+	test loss: 3.466094970703125 -- 5.159601211547852
+New best model found.
+Epoch 16 done in 497.6378254890442 seconds.
+	train acc: 0.03759765625 -- 0.1609344482421875
+	train loss: 3.2623348236083984 -- 4.783823013305664
+	test acc: 0.020355224609375 -- 0.1015472412109375
+	test loss: 3.5110983848571777 -- 4.959828853607178
+Epochs without improvement: 1.
+Epoch 17 done in 497.9516746997833 seconds.
+	train acc: 0.0453338623046875 -- 0.1627960205078125
+	train loss: 3.2322068214416504 -- 4.638504981994629
+	test acc: 0.022918701171875 -- 0.1266632080078125
+	test loss: 3.298865795135498 -- 4.896697044372559
+New best model found.
+Epoch 18 done in 496.4259693622589 seconds.
+	train acc: 0.0529937744140625 -- 0.1671905517578125
+	train loss: 3.197667121887207 -- 4.5046257972717285
+	test acc: 0.0283966064453125 -- 0.1035614013671875
+	test loss: 3.5243477821350098 -- 4.7013678550720215
+Epochs without improvement: 1.
+Epoch 19 done in 498.02893352508545 seconds.
+	train acc: 0.0595550537109375 -- 0.172576904296875
+	train loss: 3.1601691246032715 -- 4.393536567687988
+	test acc: 0.0242767333984375 -- 0.1337890625
+	test loss: 3.2664008140563965 -- 4.786280632019043
+New best model found.
+Epoch 20 done in 499.25075602531433 seconds.
+	train acc: 0.0654144287109375 -- 0.1763458251953125
+	train loss: 3.129960536956787 -- 4.298801422119141
+	test acc: 0.0344390869140625 -- 0.122344970703125
+	test loss: 3.3946762084960938 -- 4.552764892578125
+New best model found.
+Epoch 21 done in 495.20158767700195 seconds.
+	train acc: 0.0699462890625 -- 0.179046630859375
+	train loss: 3.100299119949341 -- 4.222178936004639
+	test acc: 0.037139892578125 -- 0.1042938232421875
+	test loss: 3.437901496887207 -- 4.480208396911621
+Epochs without improvement: 1.
+Epoch 22 done in 503.2468421459198 seconds.
+	train acc: 0.07550048828125 -- 0.1824188232421875
+	train loss: 3.080305576324463 -- 4.156168460845947
+	test acc: 0.040679931640625 -- 0.132965087890625
+	test loss: 3.225040912628174 -- 4.430670738220215
+New best model found.
+Epoch 23 done in 506.1640875339508 seconds.
+	train acc: 0.0818939208984375 -- 0.1871490478515625
+	train loss: 3.0486340522766113 -- 4.089626312255859
+	test acc: 0.0432891845703125 -- 0.129547119140625
+	test loss: 3.219412088394165 -- 4.411611557006836
+Epochs without improvement: 1.
+Epoch 24 done in 502.9130423069 seconds.
+	train acc: 0.08612060546875 -- 0.1880645751953125
+	train loss: 3.032311201095581 -- 4.028349876403809
+	test acc: 0.0366058349609375 -- 0.1407928466796875
+	test loss: 3.13920521736145 -- 4.443508625030518
+New best model found.
+Epoch 25 done in 500.2882556915283 seconds.
+	train acc: 0.092803955078125 -- 0.193206787109375
+	train loss: 3.010443687438965 -- 3.9740195274353027
+	test acc: 0.042999267578125 -- 0.131378173828125
+	test loss: 3.2090485095977783 -- 4.302488803863525
+Epochs without improvement: 1.
+Epoch 26 done in 503.4403762817383 seconds.
+	train acc: 0.0961761474609375 -- 0.1941680908203125
+	train loss: 2.993726968765259 -- 3.916182518005371
+	test acc: 0.02801513671875 -- 0.13055419921875
+	test loss: 3.2194790840148926 -- 4.657036781311035
+Epochs without improvement: 2.
+Epoch 27 done in 501.04539036750793 seconds.
+	train acc: 0.09735107421875 -- 0.198150634765625
+	train loss: 2.97682523727417 -- 3.8667359352111816
+	test acc: 0.0483551025390625 -- 0.139556884765625
+	test loss: 3.113072395324707 -- 4.32369327545166
+New best model found.
+Epoch 28 done in 499.336927652359 seconds.
+	train acc: 0.10101318359375 -- 0.2017974853515625
+	train loss: 2.9562225341796875 -- 3.817864418029785
+	test acc: 0.050384521484375 -- 0.120513916015625
+	test loss: 3.2980899810791016 -- 4.252425193786621
+Epochs without improvement: 1.
+Epoch 29 done in 504.40768027305603 seconds.
+	train acc: 0.1048126220703125 -- 0.202301025390625
+	train loss: 2.9432687759399414 -- 3.7762670516967773
+	test acc: 0.0484466552734375 -- 0.141754150390625
+	test loss: 3.101688861846924 -- 4.281068801879883
+New best model found.
+Epoch 30 done in 500.74347472190857 seconds.
+	train acc: 0.1088714599609375 -- 0.206207275390625
+	train loss: 2.928049087524414 -- 3.736325740814209
+	test acc: 0.04730224609375 -- 0.1393585205078125
+	test loss: 3.1190013885498047 -- 4.380516052246094
+New best model found.
+Epoch 31 done in 499.1871380805969 seconds.
+	train acc: 0.112274169921875 -- 0.206390380859375
+	train loss: 2.9126758575439453 -- 3.7022266387939453
+	test acc: 0.046630859375 -- 0.1403350830078125
+	test loss: 3.0976767539978027 -- 4.252588272094727
+Epochs without improvement: 1.
+Epoch 32 done in 498.2429413795471 seconds.
+	train acc: 0.1167449951171875 -- 0.2103729248046875
+	train loss: 2.889719247817993 -- 3.6779932975769043
+	test acc: 0.050201416015625 -- 0.140045166015625
+	test loss: 3.0953688621520996 -- 4.262506008148193
+Epochs without improvement: 2.
+Epoch 33 done in 498.0333948135376 seconds.
+	train acc: 0.1229095458984375 -- 0.2126922607421875
+	train loss: 2.8802576065063477 -- 3.639235496520996
+	test acc: 0.0641021728515625 -- 0.144775390625
+	test loss: 3.068242311477661 -- 4.03373384475708
+New best model found.
+Epoch 34 done in 503.7001123428345 seconds.
+	train acc: 0.12713623046875 -- 0.22174072265625
+	train loss: 2.8736913204193115 -- 3.6177690029144287
+	test acc: 0.03790283203125 -- 0.149505615234375
+	test loss: 3.1143980026245117 -- 4.75565242767334
+Epochs without improvement: 1.
+Epoch 35 done in 503.7719495296478 seconds.
+	train acc: 0.129608154296875 -- 0.2370147705078125
+	train loss: 2.815764904022217 -- 3.5872511863708496
+	test acc: 0.058349609375 -- 0.152008056640625
+	test loss: 3.0781445503234863 -- 4.091760635375977
+New best model found.
+Epoch 36 done in 508.3527340888977 seconds.
+	train acc: 0.1290740966796875 -- 0.248046875
+	train loss: 2.760056972503662 -- 3.5641427040100098
+	test acc: 0.063568115234375 -- 0.1670684814453125
+	test loss: 3.004931926727295 -- 3.9649405479431152
+New best model found.
+Epoch 37 done in 508.82431864738464 seconds.
+	train acc: 0.1322784423828125 -- 0.263397216796875
+	train loss: 2.681586742401123 -- 3.5497682094573975
+	test acc: 0.0655364990234375 -- 0.1605987548828125
+	test loss: 3.014943838119507 -- 4.008570671081543
+Epochs without improvement: 1.
+Epoch 38 done in 504.14342737197876 seconds.
+	train acc: 0.1350250244140625 -- 0.275634765625
+	train loss: 2.6124982833862305 -- 3.516731023788452
+	test acc: 0.069000244140625 -- 0.14898681640625
+	test loss: 3.1135034561157227 -- 4.049393653869629
+New best model found.
+Epoch 39 done in 505.6453800201416 seconds.
+	train acc: 0.1360626220703125 -- 0.2845916748046875
+	train loss: 2.557244300842285 -- 3.4928054809570312
+	test acc: 0.0545654296875 -- 0.1675872802734375
+	test loss: 3.0042483806610107 -- 4.199662208557129
+Epochs without improvement: 1.
+Epoch 40 done in 505.79968428611755 seconds.
+	train acc: 0.1395111083984375 -- 0.295166015625
+	train loss: 2.508000373840332 -- 3.4782588481903076
+	test acc: 0.0697479248046875 -- 0.217041015625
+	test loss: 2.681668519973755 -- 4.0898542404174805
+New best model found.
+Epoch 41 done in 508.99061155319214 seconds.
+	train acc: 0.1424713134765625 -- 0.2970123291015625
+	train loss: 2.4811172485351562 -- 3.4590773582458496
+	test acc: 0.06976318359375 -- 0.209442138671875
+	test loss: 2.7103142738342285 -- 4.157851219177246
+New best model found.
+Epoch 42 done in 506.65611267089844 seconds.
+	train acc: 0.1421051025390625 -- 0.304107666015625
+	train loss: 2.4489221572875977 -- 3.4429662227630615
+	test acc: 0.0717926025390625 -- 0.21868896484375
+	test loss: 2.6584625244140625 -- 3.8525073528289795
+New best model found.
+Epoch 43 done in 506.86770391464233 seconds.
+	train acc: 0.145477294921875 -- 0.30767822265625
+	train loss: 2.4306812286376953 -- 3.4330363273620605
+	test acc: 0.06756591796875 -- 0.211273193359375
+	test loss: 2.7243497371673584 -- 4.071567535400391
+Epochs without improvement: 1.
+Epoch 44 done in 502.026771068573 seconds.
+	train acc: 0.146453857421875 -- 0.3159027099609375
+	train loss: 2.3876869678497314 -- 3.4232406616210938
+	test acc: 0.0757904052734375 -- 0.1592864990234375
+	test loss: 2.986668109893799 -- 3.9056074619293213
+Epochs without improvement: 2.
+Epoch 45 done in 502.82054686546326 seconds.
+	train acc: 0.14947509765625 -- 0.321075439453125
+	train loss: 2.364682674407959 -- 3.405766487121582
+	test acc: 0.0699920654296875 -- 0.2288818359375
+	test loss: 2.6104540824890137 -- 3.911912202835083
+New best model found.
+Epoch 46 done in 502.0587000846863 seconds.
+	train acc: 0.1513519287109375 -- 0.324127197265625
+	train loss: 2.3480172157287598 -- 3.389143228530884
+	test acc: 0.076873779296875 -- 0.2168121337890625
+	test loss: 2.645416021347046 -- 3.8045811653137207
+New best model found.
+Epoch 47 done in 502.6082866191864 seconds.
+	train acc: 0.1573638916015625 -- 0.326080322265625
+	train loss: 2.3389415740966797 -- 3.3667259216308594
+	test acc: 0.071502685546875 -- 0.21063232421875
+	test loss: 2.679671287536621 -- 4.220733165740967
+Epochs without improvement: 1.
+Epoch 48 done in 501.41764760017395 seconds.
+	train acc: 0.16058349609375 -- 0.3267059326171875
+	train loss: 2.324284315109253 -- 3.3485257625579834
+	test acc: 0.0653533935546875 -- 0.21319580078125
+	test loss: 2.702456474304199 -- 4.184898376464844
+New best model found.
+Epoch 49 done in 505.99394512176514 seconds.
+	train acc: 0.16265869140625 -- 0.329315185546875
+	train loss: 2.3029978275299072 -- 3.325930595397949
+	test acc: 0.0788116455078125 -- 0.2226104736328125
+	test loss: 2.6522960662841797 -- 3.8182783126831055
+Epochs without improvement: 1.
+Epoch 50 done in 503.31048560142517 seconds.
+	train acc: 0.165740966796875 -- 0.3361053466796875
+	train loss: 2.290210247039795 -- 3.302295207977295
+	test acc: 0.087005615234375 -- 0.2528228759765625
+	test loss: 2.4973344802856445 -- 3.6977643966674805
+New best model found.
+Epoch 51 done in 510.6262812614441 seconds.
+	train acc: 0.1721038818359375 -- 0.33599853515625
+	train loss: 2.2861759662628174 -- 3.2614541053771973
+	test acc: 0.085479736328125 -- 0.186798095703125
+	test loss: 2.845107078552246 -- 3.837822437286377
+Epochs without improvement: 1.
+Epoch 52 done in 502.9277195930481 seconds.
+	train acc: 0.1760101318359375 -- 0.334686279296875
+	train loss: 2.285649299621582 -- 3.243008613586426
+	test acc: 0.0931243896484375 -- 0.175445556640625
+	test loss: 2.983621835708618 -- 3.820169448852539
+Epochs without improvement: 2.
+Epoch 53 done in 508.9112572669983 seconds.
+	train acc: 0.1796417236328125 -- 0.337493896484375
+	train loss: 2.2746810913085938 -- 3.2207679748535156
+	test acc: 0.0706329345703125 -- 0.2020416259765625
+	test loss: 2.7671051025390625 -- 4.067740440368652
+New best model found.
+Epoch 54 done in 505.5223984718323 seconds.
+	train acc: 0.18341064453125 -- 0.343231201171875
+	train loss: 2.260422468185425 -- 3.187371253967285
+	test acc: 0.08868408203125 -- 0.2152862548828125
+	test loss: 2.693937301635742 -- 3.7406749725341797
+New best model found.
+Epoch 55 done in 495.641273021698 seconds.
+	train acc: 0.185882568359375 -- 0.3442535400390625
+	train loss: 2.2512059211730957 -- 3.174344062805176
+	test acc: 0.0969696044921875 -- 0.259033203125
+	test loss: 2.4452338218688965 -- 3.7432804107666016
+New best model found.
+Epoch 56 done in 502.8406822681427 seconds.
+	train acc: 0.188720703125 -- 0.3437652587890625
+	train loss: 2.2388112545013428 -- 3.1453628540039062
+	test acc: 0.0800933837890625 -- 0.1917572021484375
+	test loss: 2.910167694091797 -- 3.8622326850891113
+Epochs without improvement: 1.
+Epoch 57 done in 498.2392864227295 seconds.
+	train acc: 0.1923370361328125 -- 0.3511962890625
+	train loss: 2.2223269939422607 -- 3.130368232727051
+	test acc: 0.1029205322265625 -- 0.2099609375
+	test loss: 2.76248836517334 -- 3.584373712539673
+New best model found.
+Epoch 58 done in 496.6262996196747 seconds.
+	train acc: 0.193206787109375 -- 0.3489837646484375
+	train loss: 2.2199690341949463 -- 3.1224637031555176
+	test acc: 0.09368896484375 -- 0.24420166015625
+	test loss: 2.54038667678833 -- 3.7253732681274414
+New best model found.
+Epoch 59 done in 504.5444815158844 seconds.
+	train acc: 0.1968231201171875 -- 0.3494873046875
+	train loss: 2.216681957244873 -- 3.108790874481201
+	test acc: 0.10333251953125 -- 0.2360992431640625
+	test loss: 2.6025781631469727 -- 3.5493338108062744
+Epochs without improvement: 1.
+Epoch 60 done in 508.65921211242676 seconds.
+	train acc: 0.19976806640625 -- 0.35546875
+	train loss: 2.1971795558929443 -- 3.079740047454834
+	test acc: 0.087310791015625 -- 0.2506256103515625
+	test loss: 2.503636360168457 -- 3.7126998901367188
+New best model found.
+Epoch 61 done in 504.2268297672272 seconds.
+	train acc: 0.2015533447265625 -- 0.3516998291015625
+	train loss: 2.2053065299987793 -- 3.067753791809082
+	test acc: 0.0977935791015625 -- 0.2174835205078125
+	test loss: 2.7245993614196777 -- 3.695282459259033
+New best model found.
+Epoch 62 done in 505.813809633255 seconds.
+	train acc: 0.2048797607421875 -- 0.358245849609375
+	train loss: 2.184633493423462 -- 3.0450439453125
+	test acc: 0.09466552734375 -- 0.263641357421875
+	test loss: 2.4240517616271973 -- 3.746598243713379
+New best model found.
+Epoch 63 done in 501.41185307502747 seconds.
+	train acc: 0.2090301513671875 -- 0.3547210693359375
+	train loss: 2.189542770385742 -- 3.027540683746338
+	test acc: 0.112548828125 -- 0.2142333984375
+	test loss: 2.7060296535491943 -- 3.632662296295166
+New best model found.
+Epoch 64 done in 506.72480487823486 seconds.
+	train acc: 0.2120513916015625 -- 0.35638427734375
+	train loss: 2.1772923469543457 -- 2.997673511505127
+	test acc: 0.09820556640625 -- 0.2452850341796875
+	test loss: 2.537057399749756 -- 3.6977477073669434
+New best model found.
+Epoch 65 done in 505.0932676792145 seconds.
+	train acc: 0.219970703125 -- 0.3551483154296875
+	train loss: 2.190023899078369 -- 2.9545774459838867
+	test acc: 0.114837646484375 -- 0.2737274169921875
+	test loss: 2.3736228942871094 -- 3.6765198707580566
+New best model found.
+Epoch 66 done in 499.04259395599365 seconds.
+	train acc: 0.22125244140625 -- 0.359466552734375
+	train loss: 2.167759418487549 -- 2.9385390281677246
+	test acc: 0.1147613525390625 -- 0.2256927490234375
+	test loss: 2.6300759315490723 -- 3.628103733062744
+Epochs without improvement: 1.
+Epoch 67 done in 502.3120813369751 seconds.
+	train acc: 0.230987548828125 -- 0.3601837158203125
+	train loss: 2.159879684448242 -- 2.904710292816162
+	test acc: 0.108062744140625 -- 0.26666259765625
+	test loss: 2.4170937538146973 -- 3.479172468185425
+Epochs without improvement: 2.
+Epoch 68 done in 502.05662846565247 seconds.
+	train acc: 0.2314453125 -- 0.359344482421875
+	train loss: 2.1604971885681152 -- 2.8801321983337402
+	test acc: 0.11492919921875 -- 0.2731170654296875
+	test loss: 2.3747196197509766 -- 3.7138075828552246
+New best model found.
+Epoch 69 done in 497.8488230705261 seconds.
+	train acc: 0.23175048828125 -- 0.3635101318359375
+	train loss: 2.1603236198425293 -- 2.8753609657287598
+	test acc: 0.0842742919921875 -- 0.2091217041015625
+	test loss: 2.7774767875671387 -- 3.761446475982666
+Epochs without improvement: 1.
+Epoch 70 done in 506.0525658130646 seconds.
+	train acc: 0.23583984375 -- 0.3648834228515625
+	train loss: 2.148167133331299 -- 2.8563575744628906
+	test acc: 0.1205596923828125 -- 0.267974853515625
+	test loss: 2.3969154357910156 -- 3.4915497303009033
+Epochs without improvement: 2.
+Epoch 71 done in 509.16328048706055 seconds.
+	train acc: 0.2373504638671875 -- 0.3622894287109375
+	train loss: 2.1551618576049805 -- 2.8364570140838623
+	test acc: 0.1076507568359375 -- 0.260498046875
+	test loss: 2.4452476501464844 -- 3.6396067142486572
+New best model found.
+Epoch 72 done in 501.5183198451996 seconds.
+	train acc: 0.2393798828125 -- 0.3650665283203125
+	train loss: 2.1462626457214355 -- 2.827207326889038
+	test acc: 0.0993804931640625 -- 0.2355194091796875
+	test loss: 2.597601890563965 -- 3.667311668395996
+Epochs without improvement: 1.
+Epoch 73 done in 496.68747544288635 seconds.
+	train acc: 0.2402191162109375 -- 0.3638153076171875
+	train loss: 2.1446874141693115 -- 2.8154830932617188
+	test acc: 0.1210479736328125 -- 0.220672607421875
+	test loss: 2.6975531578063965 -- 3.5365853309631348
+Epochs without improvement: 2.
+Epoch 74 done in 497.24934363365173 seconds.
+	train acc: 0.2403717041015625 -- 0.36572265625
+	train loss: 2.1343140602111816 -- 2.8167061805725098
+	test acc: 0.1161346435546875 -- 0.2405853271484375
+	test loss: 2.5983829498291016 -- 3.518246650695801
+New best model found.
+Epoch 75 done in 503.2211637496948 seconds.
+	train acc: 0.2404937744140625 -- 0.3658294677734375
+	train loss: 2.139939308166504 -- 2.8024749755859375
+	test acc: 0.1168060302734375 -- 0.2667236328125
+	test loss: 2.401977777481079 -- 3.5685882568359375
+New best model found.
+Epoch 76 done in 497.47092485427856 seconds.
+	train acc: 0.2425079345703125 -- 0.3664398193359375
+	train loss: 2.1326427459716797 -- 2.7950286865234375
+	test acc: 0.103240966796875 -- 0.2451934814453125
+	test loss: 2.56003475189209 -- 3.610234260559082
+Epochs without improvement: 1.
+Epoch 77 done in 497.13330268859863 seconds.
+	train acc: 0.24267578125 -- 0.36920166015625
+	train loss: 2.119640350341797 -- 2.798368215560913
+	test acc: 0.1142120361328125 -- 0.2637786865234375
+	test loss: 2.4255616664886475 -- 3.548891067504883
+Epochs without improvement: 2.
+Epoch 78 done in 498.98401832580566 seconds.
+	train acc: 0.2445068359375 -- 0.370391845703125
+	train loss: 2.1256775856018066 -- 2.770131826400757
+	test acc: 0.12872314453125 -- 0.2449188232421875
+	test loss: 2.5079843997955322 -- 3.367555618286133
+Epochs without improvement: 3.
+Epoch 79 done in 502.8093328475952 seconds.
+	train acc: 0.245758056640625 -- 0.3680419921875
+	train loss: 2.1331589221954346 -- 2.774003744125366
+	test acc: 0.1123046875 -- 0.26019287109375
+	test loss: 2.4598770141601562 -- 3.7751708030700684
+Epochs without improvement: 4.
+Epoch 80 done in 502.32687067985535 seconds.
+	train acc: 0.2454681396484375 -- 0.366790771484375
+	train loss: 2.1194050312042236 -- 2.755814790725708
+	test acc: 0.13909912109375 -- 0.2432861328125
+	test loss: 2.5706517696380615 -- 3.3993334770202637
+New best model found.
+Epoch 81 done in 496.64844036102295 seconds.
+	train acc: 0.2460479736328125 -- 0.370697021484375
+	train loss: 2.1143441200256348 -- 2.7655954360961914
+	test acc: 0.1168365478515625 -- 0.272064208984375
+	test loss: 2.393171787261963 -- 3.593384027481079
+New best model found.
+Epoch 82 done in 498.83346796035767 seconds.
+	train acc: 0.2459869384765625 -- 0.3734283447265625
+	train loss: 2.1005167961120605 -- 2.7416391372680664
+	test acc: 0.125396728515625 -- 0.22735595703125
+	test loss: 2.6502737998962402 -- 3.5073537826538086
+Epochs without improvement: 1.
+Epoch 83 done in 497.9519898891449 seconds.
+	train acc: 0.250762939453125 -- 0.3752288818359375
+	train loss: 2.0961997509002686 -- 2.744845390319824
+	test acc: 0.1258087158203125 -- 0.27801513671875
+	test loss: 2.349500894546509 -- 3.4900143146514893
+Epochs without improvement: 2.
+Epoch 84 done in 497.24529123306274 seconds.
+	train acc: 0.2521820068359375 -- 0.3713836669921875
+	train loss: 2.1095776557922363 -- 2.736311435699463
+	test acc: 0.1312713623046875 -- 0.2648773193359375
+	test loss: 2.4246151447296143 -- 3.377408027648926
+New best model found.
+Epoch 85 done in 495.9480195045471 seconds.
+	train acc: 0.25238037109375 -- 0.3705291748046875
+	train loss: 2.1099629402160645 -- 2.7272253036499023
+	test acc: 0.1147003173828125 -- 0.2572784423828125
+	test loss: 2.4578590393066406 -- 3.5487515926361084
+Epochs without improvement: 1.
+Epoch 86 done in 498.19197964668274 seconds.
+	train acc: 0.252471923828125 -- 0.3725433349609375
+	train loss: 2.1009035110473633 -- 2.7283401489257812
+	test acc: 0.1262054443359375 -- 0.2568817138671875
+	test loss: 2.4857683181762695 -- 3.5032968521118164
+New best model found.
+Epoch 87 done in 497.9326949119568 seconds.
+	train acc: 0.2574615478515625 -- 0.372406005859375
+	train loss: 2.11104154586792 -- 2.715574026107788
+	test acc: 0.1000213623046875 -- 0.2513580322265625
+	test loss: 2.4938673973083496 -- 3.655561685562134
+Epochs without improvement: 1.
+Epoch 88 done in 500.14490938186646 seconds.
+	train acc: 0.25738525390625 -- 0.3749542236328125
+	train loss: 2.1023976802825928 -- 2.7406768798828125
+	test acc: 0.1421356201171875 -- 0.2665863037109375
+	test loss: 2.4249024391174316 -- 3.355257987976074
+New best model found.
+Epoch 89 done in 500.40237259864807 seconds.
+	train acc: 0.261810302734375 -- 0.37237548828125
+	train loss: 2.0925278663635254 -- 2.708759307861328
+	test acc: 0.1248626708984375 -- 0.2552490234375
+	test loss: 2.523993968963623 -- 3.551224708557129
+Epochs without improvement: 1.
+Epoch 90 done in 500.3406310081482 seconds.
+	train acc: 0.266387939453125 -- 0.3748626708984375
+	train loss: 2.09122371673584 -- 2.697021245956421
+	test acc: 0.1397705078125 -- 0.24481201171875
+	test loss: 2.5320262908935547 -- 3.340916633605957
+Epochs without improvement: 2.
+Epoch 91 done in 499.7146666049957 seconds.
+	train acc: 0.2613677978515625 -- 0.375213623046875
+	train loss: 2.094758987426758 -- 2.699676275253296
+	test acc: 0.1234283447265625 -- 0.2429962158203125
+	test loss: 2.551820755004883 -- 3.585625648498535
+Epochs without improvement: 3.
+Epoch 92 done in 501.88999819755554 seconds.
+	train acc: 0.2655029296875 -- 0.3787994384765625
+	train loss: 2.073538303375244 -- 2.6879022121429443
+	test acc: 0.1535491943359375 -- 0.2815093994140625
+	test loss: 2.352567195892334 -- 3.1885335445404053
+New best model found.
+Epoch 93 done in 496.25336146354675 seconds.
+	train acc: 0.2654266357421875 -- 0.3743896484375
+	train loss: 2.089606285095215 -- 2.69629168510437
+	test acc: 0.1169891357421875 -- 0.2719268798828125
+	test loss: 2.3715991973876953 -- 3.724094867706299
+Epochs without improvement: 1.
+Epoch 94 done in 494.4692430496216 seconds.
+	train acc: 0.267791748046875 -- 0.380096435546875
+	train loss: 2.0754148960113525 -- 2.6780824661254883
+	test acc: 0.14556884765625 -- 0.2336578369140625
+	test loss: 2.5975759029388428 -- 3.2671549320220947
+Epochs without improvement: 2.
+Epoch 95 done in 494.455988407135 seconds.
+	train acc: 0.26849365234375 -- 0.3803558349609375
+	train loss: 2.0800867080688477 -- 2.6712656021118164
+	test acc: 0.1334991455078125 -- 0.25927734375
+	test loss: 2.4936633110046387 -- 3.4740262031555176
+Epochs without improvement: 3.
+Epoch 96 done in 487.7982175350189 seconds.
+	train acc: 0.273162841796875 -- 0.385223388671875
+	train loss: 2.058058261871338 -- 2.657222270965576
+	test acc: 0.1360015869140625 -- 0.250823974609375
+	test loss: 2.470980644226074 -- 3.5062692165374756
+Epochs without improvement: 4.
+Epoch 97 done in 501.47698068618774 seconds.
+	train acc: 0.2708740234375 -- 0.3792572021484375
+	train loss: 2.0668203830718994 -- 2.6659579277038574
+	test acc: 0.128631591796875 -- 0.2528076171875
+	test loss: 2.529959201812744 -- 3.5873219966888428
+Epochs without improvement: 5.
+Epoch 98 done in 503.1703164577484 seconds.
+	train acc: 0.2711181640625 -- 0.378448486328125
+	train loss: 2.0765724182128906 -- 2.6509995460510254
+	test acc: 0.112945556640625 -- 0.2568359375
+	test loss: 2.4987707138061523 -- 3.7848191261291504
+Epochs without improvement: 6.
+Epoch 99 done in 504.3713834285736 seconds.
+	train acc: 0.2713775634765625 -- 0.3806304931640625
+	train loss: 2.067894458770752 -- 2.651620864868164
+	test acc: 0.1428375244140625 -- 0.256103515625
+	test loss: 2.5336742401123047 -- 3.295510768890381
+Epochs without improvement: 7.
+Starting trial 2 with seed 2 and device cuda:2.
+Hyperparameters:
+{'noise_scale': 0.003417075308021127, 'weight_decay': 3.051654279698748e-05, 'max_lr': 0.00023230148647550937, 'dropout': 0.09971223401066381}
+Train dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: train
+	Trace shape: torch.Size([1, 5000])
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: SignalTransform()
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Test dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: test
+	Trace shape: (1, 5000)
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: None
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Model:
+Classifier(
+  (input_transform): Conv1d(1, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+  (feature_extractor): Sequential(
+    (0): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(16, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (1): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (2): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 128, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (3): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(256, 256, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+  )
+  (shared_head): Sequential(
+    (0): Dropout(p=0.09971223401066381, inplace=False)
+    (1): Linear(in_features=256, out_features=256, bias=False)
+    (2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (3): ReLU(inplace=True)
+  )
+  (heads): ModuleDict(
+    (bytes__sub_bytes_in__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__15): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__15): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+
+
+Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.00023230148647550937
+    weight_decay: 3.051654279698748e-05
+)
+
+
+
+Learning rate scheduler:
+None
+
+
+
+Epoch 0 done in 491.4170928001404 seconds.
+	train acc: 0.00335693359375 -- 0.00469970703125
+	train loss: 5.536615371704102 -- 5.576788425445557
+	test acc: 0.0035400390625 -- 0.008148193359375
+	test loss: 5.356602191925049 -- 5.558553695678711
+New best model found.
+Epoch 1 done in 489.2203850746155 seconds.
+	train acc: 0.0036163330078125 -- 0.01165771484375
+	train loss: 5.032999038696289 -- 5.563617706298828
+	test acc: 0.00384521484375 -- 0.014312744140625
+	test loss: 4.929294586181641 -- 5.555517673492432
+New best model found.
+Epoch 2 done in 499.57519459724426 seconds.
+	train acc: 0.0040435791015625 -- 0.0210723876953125
+	train loss: 4.626389503479004 -- 5.567188262939453
+	test acc: 0.004180908203125 -- 0.025390625
+	test loss: 4.515517711639404 -- 5.578817367553711
+New best model found.
+Epoch 3 done in 500.85533928871155 seconds.
+	train acc: 0.0050201416015625 -- 0.0314788818359375
+	train loss: 4.301159858703613 -- 5.552240371704102
+	test acc: 0.004547119140625 -- 0.03338623046875
+	test loss: 4.206235885620117 -- 5.568609714508057
+New best model found.
+Epoch 4 done in 504.5764412879944 seconds.
+	train acc: 0.0060272216796875 -- 0.038421630859375
+	train loss: 4.143660545349121 -- 5.546121597290039
+	test acc: 0.0045013427734375 -- 0.0371551513671875
+	test loss: 4.110969066619873 -- 5.582367897033691
+New best model found.
+Epoch 5 done in 501.98815870285034 seconds.
+	train acc: 0.006256103515625 -- 0.0448150634765625
+	train loss: 4.049294471740723 -- 5.540327072143555
+	test acc: 0.0045928955078125 -- 0.043182373046875
+	test loss: 4.0152788162231445 -- 5.583782196044922
+New best model found.
+Epoch 6 done in 503.08410143852234 seconds.
+	train acc: 0.008026123046875 -- 0.0682525634765625
+	train loss: 3.824622631072998 -- 5.511002540588379
+	test acc: 0.0062255859375 -- 0.0694427490234375
+	test loss: 3.6510024070739746 -- 5.559576034545898
+New best model found.
+Epoch 7 done in 502.77323174476624 seconds.
+	train acc: 0.0090179443359375 -- 0.1104278564453125
+	train loss: 3.4666175842285156 -- 5.467670440673828
+	test acc: 0.0061187744140625 -- 0.1110076904296875
+	test loss: 3.367213249206543 -- 5.560196876525879
+New best model found.
+Epoch 8 done in 503.22529768943787 seconds.
+	train acc: 0.0110626220703125 -- 0.147705078125
+	train loss: 3.2224559783935547 -- 5.447703838348389
+	test acc: 0.0066680908203125 -- 0.15179443359375
+	test loss: 3.1235768795013428 -- 5.568010330200195
+New best model found.
+Epoch 9 done in 499.5387785434723 seconds.
+	train acc: 0.0130157470703125 -- 0.1833038330078125
+	train loss: 3.0087180137634277 -- 5.400362968444824
+	test acc: 0.0081634521484375 -- 0.1744537353515625
+	test loss: 2.9712464809417725 -- 5.463998794555664
+New best model found.
+Epoch 10 done in 492.83128666877747 seconds.
+	train acc: 0.0165557861328125 -- 0.207550048828125
+	train loss: 2.848367691040039 -- 5.216839790344238
+	test acc: 0.0087738037109375 -- 0.182220458984375
+	test loss: 2.835402488708496 -- 5.399005889892578
+New best model found.
+Epoch 11 done in 501.77146220207214 seconds.
+	train acc: 0.01708984375 -- 0.2296295166015625
+	train loss: 2.725071668624878 -- 5.150838851928711
+	test acc: 0.0092926025390625 -- 0.2079925537109375
+	test loss: 2.7002220153808594 -- 5.298490524291992
+New best model found.
+Epoch 12 done in 504.9799301624298 seconds.
+	train acc: 0.02032470703125 -- 0.247100830078125
+	train loss: 2.63034987449646 -- 5.0742974281311035
+	test acc: 0.0106353759765625 -- 0.220458984375
+	test loss: 2.670058488845825 -- 5.232876300811768
+New best model found.
+Epoch 13 done in 502.81977558135986 seconds.
+	train acc: 0.0226593017578125 -- 0.2602996826171875
+	train loss: 2.5571298599243164 -- 4.995330333709717
+	test acc: 0.01043701171875 -- 0.212677001953125
+	test loss: 2.647834062576294 -- 5.197319030761719
+Epochs without improvement: 1.
+Epoch 14 done in 491.4555447101593 seconds.
+	train acc: 0.0254669189453125 -- 0.2769775390625
+	train loss: 2.481942892074585 -- 4.919811248779297
+	test acc: 0.011383056640625 -- 0.2484893798828125
+	test loss: 2.470978260040283 -- 5.118509292602539
+New best model found.
+Epoch 15 done in 490.27158522605896 seconds.
+	train acc: 0.0271148681640625 -- 0.2873992919921875
+	train loss: 2.4227941036224365 -- 4.855381011962891
+	test acc: 0.0123748779296875 -- 0.2578887939453125
+	test loss: 2.456355094909668 -- 5.100500106811523
+New best model found.
+Epoch 16 done in 497.1083288192749 seconds.
+	train acc: 0.0301971435546875 -- 0.300689697265625
+	train loss: 2.3638198375701904 -- 4.802863121032715
+	test acc: 0.01239013671875 -- 0.2687835693359375
+	test loss: 2.3706421852111816 -- 5.082315444946289
+New best model found.
+Epoch 17 done in 499.9672772884369 seconds.
+	train acc: 0.0316162109375 -- 0.3106231689453125
+	train loss: 2.3208961486816406 -- 4.749650478363037
+	test acc: 0.0138397216796875 -- 0.2630157470703125
+	test loss: 2.383118152618408 -- 4.986343860626221
+Epochs without improvement: 1.
+Epoch 18 done in 501.61799120903015 seconds.
+	train acc: 0.0364990234375 -- 0.3165740966796875
+	train loss: 2.2871627807617188 -- 4.698975563049316
+	test acc: 0.0151214599609375 -- 0.2364959716796875
+	test loss: 2.491032600402832 -- 4.977204322814941
+Epochs without improvement: 2.
+Epoch 19 done in 495.654727935791 seconds.
+	train acc: 0.0413818359375 -- 0.3191070556640625
+	train loss: 2.268127918243408 -- 4.627642631530762
+	test acc: 0.0182342529296875 -- 0.2730255126953125
+	test loss: 2.352169990539551 -- 4.935512065887451
+New best model found.
+Epoch 20 done in 501.64546823501587 seconds.
+	train acc: 0.0497894287109375 -- 0.3251190185546875
+	train loss: 2.237907886505127 -- 4.498624801635742
+	test acc: 0.020355224609375 -- 0.237091064453125
+	test loss: 2.442323684692383 -- 4.838509559631348
+New best model found.
+Epoch 21 done in 508.13350653648376 seconds.
+	train acc: 0.0554351806640625 -- 0.328369140625
+	train loss: 2.2249646186828613 -- 4.330112934112549
+	test acc: 0.023284912109375 -- 0.25433349609375
+	test loss: 2.4315834045410156 -- 4.706268310546875
+New best model found.
+Epoch 22 done in 501.0221803188324 seconds.
+	train acc: 0.055145263671875 -- 0.337738037109375
+	train loss: 2.1948227882385254 -- 4.308955192565918
+	test acc: 0.0285491943359375 -- 0.2714080810546875
+	test loss: 2.3092427253723145 -- 4.553503513336182
+New best model found.
+Epoch 23 done in 495.00785517692566 seconds.
+	train acc: 0.0562896728515625 -- 0.3392181396484375
+	train loss: 2.1780505180358887 -- 4.294397354125977
+	test acc: 0.029998779296875 -- 0.2877349853515625
+	test loss: 2.2665302753448486 -- 4.521474838256836
+New best model found.
+Epoch 24 done in 500.82535099983215 seconds.
+	train acc: 0.058197021484375 -- 0.3445892333984375
+	train loss: 2.1567862033843994 -- 4.279195785522461
+	test acc: 0.0262603759765625 -- 0.2804718017578125
+	test loss: 2.328310489654541 -- 4.566000938415527
+Epochs without improvement: 1.
+Epoch 25 done in 503.39104318618774 seconds.
+	train acc: 0.0590057373046875 -- 0.3489532470703125
+	train loss: 2.1368987560272217 -- 4.266977787017822
+	test acc: 0.026763916015625 -- 0.2880859375
+	test loss: 2.2594947814941406 -- 4.612112522125244
+New best model found.
+Epoch 26 done in 502.72455525398254 seconds.
+	train acc: 0.06097412109375 -- 0.35504150390625
+	train loss: 2.1151533126831055 -- 4.256473541259766
+	test acc: 0.022979736328125 -- 0.294891357421875
+	test loss: 2.213984489440918 -- 4.664952754974365
+New best model found.
+Epoch 27 done in 500.2357428073883 seconds.
+	train acc: 0.061676025390625 -- 0.35931396484375
+	train loss: 2.1008753776550293 -- 4.246561050415039
+	test acc: 0.024688720703125 -- 0.2809906005859375
+	test loss: 2.2878987789154053 -- 4.681028842926025
+Epochs without improvement: 1.
+Epoch 28 done in 504.52228307724 seconds.
+	train acc: 0.0633697509765625 -- 0.35980224609375
+	train loss: 2.0871238708496094 -- 4.22722864151001
+	test acc: 0.0300445556640625 -- 0.2942962646484375
+	test loss: 2.2283618450164795 -- 4.529108047485352
+Epochs without improvement: 2.
+Epoch 29 done in 498.354367017746 seconds.
+	train acc: 0.0638275146484375 -- 0.363739013671875
+	train loss: 2.0744569301605225 -- 4.2211151123046875
+	test acc: 0.029754638671875 -- 0.304168701171875
+	test loss: 2.1786751747131348 -- 4.528757095336914
+New best model found.
+Epoch 30 done in 499.63381004333496 seconds.
+	train acc: 0.064910888671875 -- 0.3678741455078125
+	train loss: 2.05885648727417 -- 4.216144561767578
+	test acc: 0.0280914306640625 -- 0.2954254150390625
+	test loss: 2.2053866386413574 -- 4.514603614807129
+Epochs without improvement: 1.
+Epoch 31 done in 500.01038336753845 seconds.
+	train acc: 0.06658935546875 -- 0.3706512451171875
+	train loss: 2.0460031032562256 -- 4.205020904541016
+	test acc: 0.0214996337890625 -- 0.2810211181640625
+	test loss: 2.2719905376434326 -- 4.72188663482666
+Epochs without improvement: 2.
+Epoch 32 done in 499.84668493270874 seconds.
+	train acc: 0.0673370361328125 -- 0.3733062744140625
+	train loss: 2.0318374633789062 -- 4.19165563583374
+	test acc: 0.023193359375 -- 0.2633819580078125
+	test loss: 2.3478198051452637 -- 4.760097503662109
+Epochs without improvement: 3.
+Epoch 33 done in 503.22424721717834 seconds.
+	train acc: 0.0673980712890625 -- 0.3729095458984375
+	train loss: 2.028665781021118 -- 4.190314292907715
+	test acc: 0.0294952392578125 -- 0.2938232421875
+	test loss: 2.2265584468841553 -- 4.547933578491211
+New best model found.
+Epoch 34 done in 507.18573117256165 seconds.
+	train acc: 0.068878173828125 -- 0.3765869140625
+	train loss: 2.0211870670318604 -- 4.183802604675293
+	test acc: 0.0188140869140625 -- 0.30853271484375
+	test loss: 2.159541606903076 -- 4.831324100494385
+New best model found.
+Epoch 35 done in 503.00808548927307 seconds.
+	train acc: 0.0688934326171875 -- 0.3817901611328125
+	train loss: 2.006908893585205 -- 4.1761980056762695
+	test acc: 0.026611328125 -- 0.2932586669921875
+	test loss: 2.239379405975342 -- 4.626211166381836
+Epochs without improvement: 1.
+Epoch 36 done in 503.55082082748413 seconds.
+	train acc: 0.0692596435546875 -- 0.379791259765625
+	train loss: 2.007474184036255 -- 4.172816753387451
+	test acc: 0.021240234375 -- 0.29620361328125
+	test loss: 2.214700222015381 -- 4.845880508422852
+New best model found.
+Epoch 37 done in 499.1789677143097 seconds.
+	train acc: 0.06939697265625 -- 0.37957763671875
+	train loss: 2.0031051635742188 -- 4.163871765136719
+	test acc: 0.028900146484375 -- 0.2863922119140625
+	test loss: 2.239900588989258 -- 4.545811176300049
+New best model found.
+Epoch 38 done in 490.56044721603394 seconds.
+	train acc: 0.072357177734375 -- 0.3830108642578125
+	train loss: 1.9945486783981323 -- 4.159714698791504
+	test acc: 0.0275421142578125 -- 0.3073272705078125
+	test loss: 2.1586616039276123 -- 4.632845878601074
+New best model found.
+Epoch 39 done in 497.65828680992126 seconds.
+	train acc: 0.073822021484375 -- 0.3871002197265625
+	train loss: 1.9780501127243042 -- 4.154177188873291
+	test acc: 0.0313873291015625 -- 0.29620361328125
+	test loss: 2.180269718170166 -- 4.519817352294922
+Epochs without improvement: 1.
+Epoch 40 done in 510.0069501399994 seconds.
+	train acc: 0.0726776123046875 -- 0.385467529296875
+	train loss: 1.9783422946929932 -- 4.152261257171631
+	test acc: 0.0313873291015625 -- 0.3013763427734375
+	test loss: 2.1822943687438965 -- 4.504538536071777
+New best model found.
+Epoch 41 done in 505.48145294189453 seconds.
+	train acc: 0.07318115234375 -- 0.38983154296875
+	train loss: 1.9725806713104248 -- 4.141439437866211
+	test acc: 0.029296875 -- 0.2947235107421875
+	test loss: 2.224677562713623 -- 4.5701904296875
+Epochs without improvement: 1.
+Epoch 42 done in 501.40385150909424 seconds.
+	train acc: 0.073974609375 -- 0.3889007568359375
+	train loss: 1.9675281047821045 -- 4.133368492126465
+	test acc: 0.0287017822265625 -- 0.309906005859375
+	test loss: 2.153008460998535 -- 4.587192058563232
+New best model found.
+Epoch 43 done in 499.6123683452606 seconds.
+	train acc: 0.0735626220703125 -- 0.3892059326171875
+	train loss: 1.964224100112915 -- 4.13790225982666
+	test acc: 0.028350830078125 -- 0.290130615234375
+	test loss: 2.2240493297576904 -- 4.633920669555664
+New best model found.
+Epoch 44 done in 501.7301986217499 seconds.
+	train acc: 0.074951171875 -- 0.38641357421875
+	train loss: 1.9653170108795166 -- 4.11669397354126
+	test acc: 0.0240020751953125 -- 0.2931671142578125
+	test loss: 2.2189598083496094 -- 4.775264739990234
+Epochs without improvement: 1.
+Epoch 45 done in 508.68298172950745 seconds.
+	train acc: 0.0790863037109375 -- 0.394073486328125
+	train loss: 1.9452520608901978 -- 4.10017728805542
+	test acc: 0.038055419921875 -- 0.2985992431640625
+	test loss: 2.185112237930298 -- 4.438421249389648
+New best model found.
+Epoch 46 done in 502.0805912017822 seconds.
+	train acc: 0.0812225341796875 -- 0.3934478759765625
+	train loss: 1.9433400630950928 -- 4.079703330993652
+	test acc: 0.0375823974609375 -- 0.2993927001953125
+	test loss: 2.1881213188171387 -- 4.445981025695801
+Epochs without improvement: 1.
+Epoch 47 done in 502.02113246917725 seconds.
+	train acc: 0.0846099853515625 -- 0.39642333984375
+	train loss: 1.9293773174285889 -- 4.0411906242370605
+	test acc: 0.0352783203125 -- 0.3030548095703125
+	test loss: 2.178628921508789 -- 4.598626136779785
+Epochs without improvement: 2.
+Epoch 48 done in 505.52339148521423 seconds.
+	train acc: 0.088897705078125 -- 0.3992462158203125
+	train loss: 1.9230172634124756 -- 4.022839069366455
+	test acc: 0.040771484375 -- 0.2981414794921875
+	test loss: 2.201014995574951 -- 4.377103805541992
+New best model found.
+Epoch 49 done in 506.7481994628906 seconds.
+	train acc: 0.0897674560546875 -- 0.4004364013671875
+	train loss: 1.9163732528686523 -- 4.001550674438477
+	test acc: 0.04046630859375 -- 0.2987213134765625
+	test loss: 2.1861610412597656 -- 4.379595756530762
+Epochs without improvement: 1.
+Epoch 50 done in 497.610148191452 seconds.
+	train acc: 0.09381103515625 -- 0.40557861328125
+	train loss: 1.9021395444869995 -- 3.958803653717041
+	test acc: 0.0439300537109375 -- 0.2890777587890625
+	test loss: 2.209839344024658 -- 4.31208610534668
+Epochs without improvement: 2.
+Epoch 51 done in 501.65576577186584 seconds.
+	train acc: 0.0972900390625 -- 0.4094696044921875
+	train loss: 1.8805513381958008 -- 3.916529655456543
+	test acc: 0.0419464111328125 -- 0.308319091796875
+	test loss: 2.127101182937622 -- 4.384740829467773
+New best model found.
+Epoch 52 done in 503.1823937892914 seconds.
+	train acc: 0.102508544921875 -- 0.411773681640625
+	train loss: 1.8619837760925293 -- 3.876680850982666
+	test acc: 0.042327880859375 -- 0.3027191162109375
+	test loss: 2.1556966304779053 -- 4.432894706726074
+Epochs without improvement: 1.
+Epoch 53 done in 498.5504558086395 seconds.
+	train acc: 0.106414794921875 -- 0.4160003662109375
+	train loss: 1.846265435218811 -- 3.8388874530792236
+	test acc: 0.0533599853515625 -- 0.31219482421875
+	test loss: 2.127772569656372 -- 4.175798416137695
+New best model found.
+Epoch 54 done in 497.176393032074 seconds.
+	train acc: 0.107177734375 -- 0.422882080078125
+	train loss: 1.8232104778289795 -- 3.821643114089966
+	test acc: 0.0511474609375 -- 0.310638427734375
+	test loss: 2.1159491539001465 -- 4.235966682434082
+Epochs without improvement: 1.
+Epoch 55 done in 494.09632873535156 seconds.
+	train acc: 0.110443115234375 -- 0.425750732421875
+	train loss: 1.8011765480041504 -- 3.7957754135131836
+	test acc: 0.0536651611328125 -- 0.322845458984375
+	test loss: 2.0425429344177246 -- 4.155509948730469
+New best model found.
+Epoch 56 done in 493.66388869285583 seconds.
+	train acc: 0.110931396484375 -- 0.4280853271484375
+	train loss: 1.7910566329956055 -- 3.7686209678649902
+	test acc: 0.05499267578125 -- 0.2997894287109375
+	test loss: 2.1568150520324707 -- 4.181441307067871
+Epochs without improvement: 1.
+Epoch 57 done in 502.5586881637573 seconds.
+	train acc: 0.112274169921875 -- 0.431884765625
+	train loss: 1.7818512916564941 -- 3.7586426734924316
+	test acc: 0.055572509765625 -- 0.32379150390625
+	test loss: 2.0687196254730225 -- 4.16598653793335
+Epochs without improvement: 2.
+Epoch 58 done in 492.24041748046875 seconds.
+	train acc: 0.1139984130859375 -- 0.4333343505859375
+	train loss: 1.7678537368774414 -- 3.741389036178589
+	test acc: 0.048553466796875 -- 0.3246002197265625
+	test loss: 2.039302349090576 -- 4.2458696365356445
+Epochs without improvement: 3.
+Epoch 59 done in 497.1423861980438 seconds.
+	train acc: 0.1175537109375 -- 0.434906005859375
+	train loss: 1.7635009288787842 -- 3.7306270599365234
+	test acc: 0.05828857421875 -- 0.3212432861328125
+	test loss: 2.0730068683624268 -- 4.106499671936035
+Epochs without improvement: 4.
+Epoch 60 done in 497.59558629989624 seconds.
+	train acc: 0.1180419921875 -- 0.4398956298828125
+	train loss: 1.74894118309021 -- 3.728173017501831
+	test acc: 0.0545501708984375 -- 0.3244171142578125
+	test loss: 2.0555882453918457 -- 4.164315223693848
+Epochs without improvement: 5.
+Epoch 61 done in 496.6163353919983 seconds.
+	train acc: 0.1174163818359375 -- 0.43695068359375
+	train loss: 1.7528741359710693 -- 3.7059082984924316
+	test acc: 0.0502777099609375 -- 0.32098388671875
+	test loss: 2.0537338256835938 -- 4.2415971755981445
+Epochs without improvement: 6.
+Epoch 62 done in 501.38223338127136 seconds.
+	train acc: 0.1177215576171875 -- 0.4388275146484375
+	train loss: 1.7446043491363525 -- 3.703162670135498
+	test acc: 0.0613250732421875 -- 0.3228759765625
+	test loss: 2.0468173027038574 -- 4.079592704772949
+New best model found.
+Epoch 63 done in 503.73515248298645 seconds.
+	train acc: 0.1175079345703125 -- 0.4402313232421875
+	train loss: 1.73580801486969 -- 3.702924966812134
+	test acc: 0.0593719482421875 -- 0.327880859375
+	test loss: 2.0339879989624023 -- 4.085935115814209
+New best model found.
+Epoch 64 done in 498.85905408859253 seconds.
+	train acc: 0.120697021484375 -- 0.44049072265625
+	train loss: 1.738713264465332 -- 3.682992935180664
+	test acc: 0.057525634765625 -- 0.3266448974609375
+	test loss: 2.039809226989746 -- 4.201022148132324
+Epochs without improvement: 1.
+Epoch 65 done in 500.4149959087372 seconds.
+	train acc: 0.1210479736328125 -- 0.4421234130859375
+	train loss: 1.7303745746612549 -- 3.676518201828003
+	test acc: 0.03363037109375 -- 0.3253173828125
+	test loss: 2.044776201248169 -- 4.602643966674805
+Epochs without improvement: 2.
+Epoch 66 done in 494.7096917629242 seconds.
+	train acc: 0.1231842041015625 -- 0.4444427490234375
+	train loss: 1.7209951877593994 -- 3.6641504764556885
+	test acc: 0.0460052490234375 -- 0.3218994140625
+	test loss: 2.0778801441192627 -- 4.291064739227295
+Epochs without improvement: 3.
+Epoch 67 done in 500.2873258590698 seconds.
+	train acc: 0.1226959228515625 -- 0.444488525390625
+	train loss: 1.7221758365631104 -- 3.667423725128174
+	test acc: 0.058197021484375 -- 0.3357696533203125
+	test loss: 2.01792311668396 -- 4.114050388336182
+Epochs without improvement: 4.
+Epoch 68 done in 497.81121468544006 seconds.
+	train acc: 0.1233367919921875 -- 0.446868896484375
+	train loss: 1.7145050764083862 -- 3.657803535461426
+	test acc: 0.0625152587890625 -- 0.33294677734375
+	test loss: 2.0085058212280273 -- 4.063875198364258
+New best model found.
+Epoch 69 done in 488.56114411354065 seconds.
+	train acc: 0.1236114501953125 -- 0.4493560791015625
+	train loss: 1.7151131629943848 -- 3.6490325927734375
+	test acc: 0.0607452392578125 -- 0.33447265625
+	test loss: 2.0026488304138184 -- 4.061798095703125
+Epochs without improvement: 1.
+Epoch 70 done in 497.9831221103668 seconds.
+	train acc: 0.1242218017578125 -- 0.45001220703125
+	train loss: 1.703441858291626 -- 3.649268865585327
+	test acc: 0.05670166015625 -- 0.3300323486328125
+	test loss: 2.060762643814087 -- 4.170585632324219
+Epochs without improvement: 2.
+Epoch 71 done in 488.8339078426361 seconds.
+	train acc: 0.126983642578125 -- 0.4495086669921875
+	train loss: 1.6996729373931885 -- 3.64138126373291
+	test acc: 0.0546417236328125 -- 0.318695068359375
+	test loss: 2.0778963565826416 -- 4.236547470092773
+New best model found.
+Epoch 72 done in 488.92417883872986 seconds.
+	train acc: 0.1237945556640625 -- 0.449676513671875
+	train loss: 1.7024317979812622 -- 3.6399691104888916
+	test acc: 0.0556182861328125 -- 0.3368988037109375
+	test loss: 2.0100157260894775 -- 4.166424751281738
+New best model found.
+Epoch 73 done in 500.7626450061798 seconds.
+	train acc: 0.129241943359375 -- 0.4480743408203125
+	train loss: 1.7047542333602905 -- 3.6230967044830322
+	test acc: 0.0633697509765625 -- 0.335540771484375
+	test loss: 1.9990692138671875 -- 4.0514960289001465
+New best model found.
+Epoch 74 done in 510.6001875400543 seconds.
+	train acc: 0.126739501953125 -- 0.4492034912109375
+	train loss: 1.7017645835876465 -- 3.622704267501831
+	test acc: 0.0654449462890625 -- 0.336761474609375
+	test loss: 2.02341890335083 -- 4.020505905151367
+New best model found.
+Epoch 75 done in 507.38269901275635 seconds.
+	train acc: 0.1279449462890625 -- 0.4507904052734375
+	train loss: 1.6979198455810547 -- 3.617398262023926
+	test acc: 0.06243896484375 -- 0.338348388671875
+	test loss: 2.007458209991455 -- 4.077168941497803
+Epochs without improvement: 1.
+Epoch 76 done in 505.57319927215576 seconds.
+	train acc: 0.1278839111328125 -- 0.4580078125
+	train loss: 1.689476490020752 -- 3.6169471740722656
+	test acc: 0.065765380859375 -- 0.3429107666015625
+	test loss: 2.0006234645843506 -- 4.024785995483398
+New best model found.
+Epoch 77 done in 503.56329369544983 seconds.
+	train acc: 0.12860107421875 -- 0.45269775390625
+	train loss: 1.695346713066101 -- 3.6104798316955566
+	test acc: 0.0655059814453125 -- 0.3387451171875
+	test loss: 2.0213682651519775 -- 4.005975723266602
+Epochs without improvement: 1.
+Epoch 78 done in 501.41527700424194 seconds.
+	train acc: 0.1290435791015625 -- 0.453155517578125
+	train loss: 1.693008303642273 -- 3.6164395809173584
+	test acc: 0.05828857421875 -- 0.3475341796875
+	test loss: 1.9615795612335205 -- 4.132232666015625
+Epochs without improvement: 2.
+Epoch 79 done in 489.0382947921753 seconds.
+	train acc: 0.1284942626953125 -- 0.455413818359375
+	train loss: 1.6866974830627441 -- 3.610222578048706
+	test acc: 0.06842041015625 -- 0.3404541015625
+	test loss: 2.0040297508239746 -- 3.99868106842041
+Epochs without improvement: 3.
+Epoch 80 done in 501.5588450431824 seconds.
+	train acc: 0.1314239501953125 -- 0.4576873779296875
+	train loss: 1.6851327419281006 -- 3.604168176651001
+	test acc: 0.056854248046875 -- 0.3345947265625
+	test loss: 2.029771327972412 -- 4.188969612121582
+Epochs without improvement: 4.
+Epoch 81 done in 501.78343415260315 seconds.
+	train acc: 0.1292572021484375 -- 0.4543914794921875
+	train loss: 1.687949299812317 -- 3.6053082942962646
+	test acc: 0.06787109375 -- 0.34063720703125
+	test loss: 1.9906036853790283 -- 3.9879140853881836
+New best model found.
+Epoch 82 done in 508.00111532211304 seconds.
+	train acc: 0.1284027099609375 -- 0.455169677734375
+	train loss: 1.6878257989883423 -- 3.601708173751831
+	test acc: 0.064544677734375 -- 0.3377532958984375
+	test loss: 2.033290147781372 -- 4.030086517333984
+Epochs without improvement: 1.
+Epoch 83 done in 503.12360739707947 seconds.
+	train acc: 0.1331787109375 -- 0.4579925537109375
+	train loss: 1.6777503490447998 -- 3.5933005809783936
+	test acc: 0.0649261474609375 -- 0.3410797119140625
+	test loss: 1.9898045063018799 -- 4.076528549194336
+Epochs without improvement: 2.
+Epoch 84 done in 502.7002582550049 seconds.
+	train acc: 0.130828857421875 -- 0.4571685791015625
+	train loss: 1.6763015985488892 -- 3.597794532775879
+	test acc: 0.0605621337890625 -- 0.340972900390625
+	test loss: 2.0009546279907227 -- 4.063186168670654
+Epochs without improvement: 3.
+Epoch 85 done in 503.1393656730652 seconds.
+	train acc: 0.1321258544921875 -- 0.45709228515625
+	train loss: 1.677196741104126 -- 3.5866947174072266
+	test acc: 0.06634521484375 -- 0.3358306884765625
+	test loss: 2.014674663543701 -- 4.059340953826904
+Epochs without improvement: 4.
+Epoch 86 done in 504.7272925376892 seconds.
+	train acc: 0.1349029541015625 -- 0.458404541015625
+	train loss: 1.6721704006195068 -- 3.5852415561676025
+	test acc: 0.0548095703125 -- 0.3347015380859375
+	test loss: 2.0192813873291016 -- 4.202296257019043
+Epochs without improvement: 5.
+Epoch 87 done in 505.00100564956665 seconds.
+	train acc: 0.1324310302734375 -- 0.458038330078125
+	train loss: 1.675142526626587 -- 3.586057662963867
+	test acc: 0.0672149658203125 -- 0.33807373046875
+	test loss: 2.0082528591156006 -- 4.0261006355285645
+Epochs without improvement: 6.
+Epoch 88 done in 499.9717609882355 seconds.
+	train acc: 0.1351318359375 -- 0.4598846435546875
+	train loss: 1.6702542304992676 -- 3.582791328430176
+	test acc: 0.0634765625 -- 0.3434600830078125
+	test loss: 1.9768006801605225 -- 4.062494277954102
+New best model found.
+Epoch 89 done in 502.94959688186646 seconds.
+	train acc: 0.1349029541015625 -- 0.4603271484375
+	train loss: 1.665986180305481 -- 3.569628953933716
+	test acc: 0.0715789794921875 -- 0.3358306884765625
+	test loss: 2.032741069793701 -- 3.93925404548645
+Epochs without improvement: 1.
+Epoch 90 done in 506.69446563720703 seconds.
+	train acc: 0.13763427734375 -- 0.459930419921875
+	train loss: 1.66251802444458 -- 3.5625996589660645
+	test acc: 0.06610107421875 -- 0.3404083251953125
+	test loss: 2.0041568279266357 -- 4.012677192687988
+New best model found.
+Epoch 91 done in 506.8465461730957 seconds.
+	train acc: 0.1349945068359375 -- 0.46240234375
+	train loss: 1.6675885915756226 -- 3.5661911964416504
+	test acc: 0.0695343017578125 -- 0.3342132568359375
+	test loss: 2.0295021533966064 -- 3.998516082763672
+Epochs without improvement: 1.
+Epoch 92 done in 506.7817614078522 seconds.
+	train acc: 0.138214111328125 -- 0.460235595703125
+	train loss: 1.666717290878296 -- 3.5568222999572754
+	test acc: 0.0597076416015625 -- 0.338714599609375
+	test loss: 2.025099992752075 -- 4.181994915008545
+Epochs without improvement: 2.
+Epoch 93 done in 501.4385850429535 seconds.
+	train acc: 0.137420654296875 -- 0.462646484375
+	train loss: 1.6655972003936768 -- 3.5433812141418457
+	test acc: 0.0738372802734375 -- 0.33489990234375
+	test loss: 2.026500701904297 -- 3.9669857025146484
+New best model found.
+Epoch 94 done in 503.24343037605286 seconds.
+	train acc: 0.1424407958984375 -- 0.46160888671875
+	train loss: 1.663823127746582 -- 3.5270655155181885
+	test acc: 0.0721435546875 -- 0.3427276611328125
+	test loss: 1.9912484884262085 -- 4.012290954589844
+Epochs without improvement: 1.
+Epoch 95 done in 502.9616324901581 seconds.
+	train acc: 0.1457672119140625 -- 0.4652252197265625
+	train loss: 1.6543101072311401 -- 3.504469394683838
+	test acc: 0.0729827880859375 -- 0.3350677490234375
+	test loss: 2.0324833393096924 -- 3.9702041149139404
+Epochs without improvement: 2.
+Epoch 96 done in 501.3029749393463 seconds.
+	train acc: 0.1471405029296875 -- 0.4623260498046875
+	train loss: 1.6626532077789307 -- 3.498575210571289
+	test acc: 0.074066162109375 -- 0.3466033935546875
+	test loss: 1.9755922555923462 -- 3.9750571250915527
+Epochs without improvement: 3.
+Epoch 97 done in 499.00181698799133 seconds.
+	train acc: 0.1493377685546875 -- 0.464447021484375
+	train loss: 1.6615688800811768 -- 3.4632508754730225
+	test acc: 0.0789337158203125 -- 0.33782958984375
+	test loss: 2.02177095413208 -- 3.8880531787872314
+New best model found.
+Epoch 98 done in 505.4671287536621 seconds.
+	train acc: 0.1533966064453125 -- 0.4640960693359375
+	train loss: 1.653559923171997 -- 3.4489948749542236
+	test acc: 0.057098388671875 -- 0.3458709716796875
+	test loss: 1.9707430601119995 -- 4.177854537963867
+Epochs without improvement: 1.
+Epoch 99 done in 502.96780133247375 seconds.
+	train acc: 0.159027099609375 -- 0.464080810546875
+	train loss: 1.6536672115325928 -- 3.414895534515381
+	test acc: 0.089324951171875 -- 0.34576416015625
+	test loss: 1.982223629951477 -- 3.7779793739318848
+New best model found.
+Starting trial 3 with seed 2 and device cuda:2.
+Hyperparameters:
+{'noise_scale': 0.014913993724076516, 'weight_decay': 0.0, 'max_lr': 0.0005104469172041387, 'dropout': 0.09884736747638556}
+Train dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: train
+	Trace shape: torch.Size([1, 5000])
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: SignalTransform()
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Test dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: test
+	Trace shape: (1, 5000)
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([]), 'sub_bytes_out__0': torch.Size([]), 'sub_bytes_out__1': torch.Size([]), 'sub_bytes_out__2': torch.Size([]), 'sub_bytes_out__3': torch.Size([]), 'sub_bytes_out__4': torch.Size([]), 'sub_bytes_out__5': torch.Size([]), 'sub_bytes_out__6': torch.Size([]), 'sub_bytes_out__7': torch.Size([]), 'sub_bytes_out__8': torch.Size([]), 'sub_bytes_out__9': torch.Size([]), 'sub_bytes_out__10': torch.Size([]), 'sub_bytes_out__11': torch.Size([]), 'sub_bytes_out__12': torch.Size([]), 'sub_bytes_out__13': torch.Size([]), 'sub_bytes_out__14': torch.Size([]), 'sub_bytes_out__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: None
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in', 'sub_bytes_out']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Model:
+Classifier(
+  (input_transform): Conv1d(1, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+  (feature_extractor): Sequential(
+    (0): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(16, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 8, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(8, 8, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(8, 32, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (1): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(32, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 16, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(16, 16, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (2): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(64, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (3): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 32, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 128, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+    (3): Sequential(
+      (0): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(128, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(128, 256, kernel_size=(1,), stride=(1,))
+        )
+      )
+      (1): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential()
+      )
+      (2): ResidualBlock(
+        (residual_connection): Sequential(
+          (0): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (1): ReLU(inplace=True)
+          (2): Conv1d(256, 64, kernel_size=(1,), stride=(1,), bias=False)
+          (3): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (4): ReLU(inplace=True)
+          (5): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,), bias=False)
+          (6): BatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+          (7): ReLU(inplace=True)
+          (8): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        )
+        (shortcut_connection): Sequential(
+          (0): Conv1d(256, 256, kernel_size=(3,), stride=(2,), padding=(1,))
+        )
+      )
+    )
+  )
+  (shared_head): Sequential(
+    (0): Dropout(p=0.09884736747638556, inplace=False)
+    (1): Linear(in_features=256, out_features=256, bias=False)
+    (2): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (3): ReLU(inplace=True)
+  )
+  (heads): ModuleDict(
+    (bytes__sub_bytes_in__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__15): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_out__15): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+
+
+
+Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    lr: 0.0005104469172041387
+    weight_decay: 0.0
+)
+
+
+
+Learning rate scheduler:
+None
+
+
+
+Epoch 0 done in 497.9958016872406 seconds.
+	train acc: 0.003265380859375 -- 0.0044708251953125
+	train loss: 5.566661834716797 -- 5.572709083557129
+	test acc: 0.003692626953125 -- 0.005859375
+	test loss: 5.531765460968018 -- 5.546480178833008
+New best model found.
+Epoch 1 done in 498.14813256263733 seconds.
+	train acc: 0.0032806396484375 -- 0.0085601806640625
+	train loss: 5.275217056274414 -- 5.556107521057129
+	test acc: 0.003448486328125 -- 0.013397216796875
+	test loss: 5.094987392425537 -- 5.554834365844727
+New best model found.
+Epoch 2 done in 500.3604555130005 seconds.
+	train acc: 0.0038604736328125 -- 0.0159912109375
+	train loss: 4.820584774017334 -- 5.560173034667969
+	test acc: 0.0042572021484375 -- 0.024566650390625
+	test loss: 4.546256065368652 -- 5.566327095031738
+New best model found.
+Epoch 3 done in 492.2534132003784 seconds.
+	train acc: 0.0045166015625 -- 0.0338592529296875
+	train loss: 4.299098014831543 -- 5.56398868560791
+	test acc: 0.0041961669921875 -- 0.039459228515625
+	test loss: 4.0876264572143555 -- 5.603443622589111
+New best model found.
+Epoch 4 done in 498.5434205532074 seconds.
+	train acc: 0.00567626953125 -- 0.0563507080078125
+	train loss: 3.912682056427002 -- 5.551339626312256
+	test acc: 0.0043792724609375 -- 0.0530853271484375
+	test loss: 3.841139554977417 -- 5.60284423828125
+New best model found.
+Epoch 5 done in 499.1718816757202 seconds.
+	train acc: 0.0062713623046875 -- 0.08428955078125
+	train loss: 3.5960655212402344 -- 5.548614501953125
+	test acc: 0.004425048828125 -- 0.0769500732421875
+	test loss: 3.5985565185546875 -- 5.6256937980651855
+New best model found.
+Epoch 6 done in 498.7818033695221 seconds.
+	train acc: 0.0067138671875 -- 0.125701904296875
+	train loss: 3.2337889671325684 -- 5.54752254486084
+	test acc: 0.00396728515625 -- 0.1360015869140625
+	test loss: 3.091952085494995 -- 5.6437087059021
+New best model found.
+Epoch 7 done in 494.28505063056946 seconds.
+	train acc: 0.00732421875 -- 0.1503448486328125
+	train loss: 3.037273406982422 -- 5.546256065368652
+	test acc: 0.00360107421875 -- 0.1269073486328125
+	test loss: 3.1128780841827393 -- 5.665200710296631
+New best model found.
+Epoch 8 done in 500.2546670436859 seconds.
+	train acc: 0.007965087890625 -- 0.1775054931640625
+	train loss: 2.8797178268432617 -- 5.535866737365723
+	test acc: 0.0038299560546875 -- 0.1798248291015625
+	test loss: 2.808269500732422 -- 5.67226505279541
+New best model found.
+Epoch 9 done in 494.9999523162842 seconds.
+	train acc: 0.009185791015625 -- 0.2073211669921875
+	train loss: 2.732166290283203 -- 5.513713836669922
+	test acc: 0.0041656494140625 -- 0.1989898681640625
+	test loss: 2.6738691329956055 -- 5.701662540435791
+New best model found.
+Epoch 10 done in 494.4614317417145 seconds.
+	train acc: 0.0108184814453125 -- 0.2245330810546875
+	train loss: 2.6359238624572754 -- 5.484289646148682
+	test acc: 0.0053253173828125 -- 0.191802978515625
+	test loss: 2.6755990982055664 -- 5.666214942932129
+New best model found.
+Epoch 11 done in 494.5089900493622 seconds.
+	train acc: 0.012298583984375 -- 0.2416534423828125
+	train loss: 2.5584897994995117 -- 5.443270683288574
+	test acc: 0.0054779052734375 -- 0.168731689453125
+	test loss: 2.787415027618408 -- 5.676910877227783
+Epochs without improvement: 1.
+Epoch 12 done in 498.54154109954834 seconds.
+	train acc: 0.0141754150390625 -- 0.253509521484375
+	train loss: 2.496792793273926 -- 5.434401988983154
+	test acc: 0.0054473876953125 -- 0.2207489013671875
+	test loss: 2.5385749340057373 -- 5.7390666007995605
+New best model found.
+Epoch 13 done in 495.57626485824585 seconds.
+	train acc: 0.0133056640625 -- 0.265350341796875
+	train loss: 2.4504079818725586 -- 5.447779655456543
+	test acc: 0.0054931640625 -- 0.25286865234375
+	test loss: 2.396836996078491 -- 5.732853889465332
+New best model found.
+Epoch 14 done in 495.9767951965332 seconds.
+	train acc: 0.0139312744140625 -- 0.2734375
+	train loss: 2.417091131210327 -- 5.44239616394043
+	test acc: 0.005035400390625 -- 0.202606201171875
+	test loss: 2.5753822326660156 -- 5.718823432922363
+Epochs without improvement: 1.
+Epoch 15 done in 497.8011965751648 seconds.
+	train acc: 0.01483154296875 -- 0.2832489013671875
+	train loss: 2.384521484375 -- 5.403008937835693
+	test acc: 0.0057373046875 -- 0.2423095703125
+	test loss: 2.447010040283203 -- 5.715310573577881
+New best model found.
+Epoch 16 done in 501.03591084480286 seconds.
+	train acc: 0.0189208984375 -- 0.2856292724609375
+	train loss: 2.3595151901245117 -- 5.304126739501953
+	test acc: 0.007568359375 -- 0.250396728515625
+	test loss: 2.413755416870117 -- 5.5505242347717285
+New best model found.
+Epoch 17 done in 496.0252492427826 seconds.
+	train acc: 0.022003173828125 -- 0.2929840087890625
+	train loss: 2.3347840309143066 -- 5.153960227966309
+	test acc: 0.0076904296875 -- 0.24609375
+	test loss: 2.4139583110809326 -- 5.504487991333008
+Epochs without improvement: 1.
+Epoch 18 done in 500.49634075164795 seconds.
+	train acc: 0.023223876953125 -- 0.2992095947265625
+	train loss: 2.3108713626861572 -- 5.124909400939941
+	test acc: 0.0081787109375 -- 0.1860809326171875
+	test loss: 2.766541004180908 -- 5.478913307189941
+Epochs without improvement: 2.
+Epoch 19 done in 499.4999408721924 seconds.
+	train acc: 0.024322509765625 -- 0.30511474609375
+	train loss: 2.290931224822998 -- 5.103024482727051
+	test acc: 0.0078887939453125 -- 0.2693328857421875
+	test loss: 2.31428599357605 -- 5.488625526428223
+New best model found.
+Epoch 20 done in 494.4314079284668 seconds.
+	train acc: 0.0257110595703125 -- 0.3094635009765625
+	train loss: 2.262448787689209 -- 5.0735063552856445
+	test acc: 0.0069732666015625 -- 0.2316131591796875
+	test loss: 2.510066509246826 -- 5.5711350440979
+New best model found.
+Epoch 21 done in 497.5388650894165 seconds.
+	train acc: 0.026519775390625 -- 0.3161773681640625
+	train loss: 2.252725124359131 -- 5.053309440612793
+	test acc: 0.0086669921875 -- 0.2705841064453125
+	test loss: 2.2943062782287598 -- 5.457674980163574
+New best model found.
+Epoch 22 done in 495.0304524898529 seconds.
+	train acc: 0.0283966064453125 -- 0.3171539306640625
+	train loss: 2.2434608936309814 -- 5.031855583190918
+	test acc: 0.0089569091796875 -- 0.25909423828125
+	test loss: 2.3738667964935303 -- 5.440763473510742
+New best model found.
+Epoch 23 done in 495.932062625885 seconds.
+	train acc: 0.0298004150390625 -- 0.3214263916015625
+	train loss: 2.2346527576446533 -- 5.00545597076416
+	test acc: 0.009490966796875 -- 0.2682342529296875
+	test loss: 2.3404898643493652 -- 5.4380693435668945
+New best model found.
+Epoch 24 done in 498.5165786743164 seconds.
+	train acc: 0.0304107666015625 -- 0.323974609375
+	train loss: 2.2180702686309814 -- 4.983656406402588
+	test acc: 0.0098419189453125 -- 0.2589874267578125
+	test loss: 2.385011911392212 -- 5.434629440307617
+Epochs without improvement: 1.
+Epoch 25 done in 492.3651032447815 seconds.
+	train acc: 0.031768798828125 -- 0.3250732421875
+	train loss: 2.2114429473876953 -- 4.963737487792969
+	test acc: 0.0093841552734375 -- 0.2735595703125
+	test loss: 2.3177742958068848 -- 5.451131820678711
+New best model found.
+Epoch 26 done in 487.5864293575287 seconds.
+	train acc: 0.0339813232421875 -- 0.33343505859375
+	train loss: 2.176600933074951 -- 4.925477504730225
+	test acc: 0.01141357421875 -- 0.2778472900390625
+	test loss: 2.306049346923828 -- 5.3698930740356445
+New best model found.
+Epoch 27 done in 498.6647114753723 seconds.
+	train acc: 0.0360565185546875 -- 0.331146240234375
+	train loss: 2.191009044647217 -- 4.896759986877441
+	test acc: 0.0116119384765625 -- 0.2734527587890625
+	test loss: 2.30014705657959 -- 5.34045934677124
+Epochs without improvement: 1.
+Epoch 28 done in 500.5341820716858 seconds.
+	train acc: 0.0377655029296875 -- 0.33880615234375
+	train loss: 2.1590609550476074 -- 4.856540203094482
+	test acc: 0.012115478515625 -- 0.280548095703125
+	test loss: 2.2594852447509766 -- 5.35876989364624
+New best model found.
+Epoch 29 done in 492.23388171195984 seconds.
+	train acc: 0.0410308837890625 -- 0.3379058837890625
+	train loss: 2.1568894386291504 -- 4.817360877990723
+	test acc: 0.01312255859375 -- 0.2399749755859375
+	test loss: 2.467801809310913 -- 5.375815391540527
+Epochs without improvement: 1.
+Epoch 30 done in 489.63940620422363 seconds.
+	train acc: 0.0430908203125 -- 0.3428955078125
+	train loss: 2.1370482444763184 -- 4.778023719787598
+	test acc: 0.013885498046875 -- 0.2544097900390625
+	test loss: 2.3912296295166016 -- 5.285083770751953
+Epochs without improvement: 2.
+Epoch 31 done in 489.0364248752594 seconds.
+	train acc: 0.043792724609375 -- 0.344482421875
+	train loss: 2.1354312896728516 -- 4.756297588348389
+	test acc: 0.0133056640625 -- 0.2666778564453125
+	test loss: 2.3510797023773193 -- 5.3910393714904785
+New best model found.
+Epoch 32 done in 490.7033689022064 seconds.
+	train acc: 0.04620361328125 -- 0.350982666015625
+	train loss: 2.116109848022461 -- 4.72756290435791
+	test acc: 0.0150299072265625 -- 0.2748260498046875
+	test loss: 2.277510166168213 -- 5.245277404785156
+Epochs without improvement: 1.
+Epoch 33 done in 493.24693751335144 seconds.
+	train acc: 0.04827880859375 -- 0.3532562255859375
+	train loss: 2.1060943603515625 -- 4.701861381530762
+	test acc: 0.015350341796875 -- 0.2298126220703125
+	test loss: 2.530543565750122 -- 5.234377861022949
+Epochs without improvement: 2.
+Epoch 34 done in 486.87360739707947 seconds.
+	train acc: 0.050994873046875 -- 0.35491943359375
+	train loss: 2.0949721336364746 -- 4.666252136230469
+	test acc: 0.0157012939453125 -- 0.2849578857421875
+	test loss: 2.2387735843658447 -- 5.29827356338501
+New best model found.
+Epoch 35 done in 490.8308608531952 seconds.
+	train acc: 0.053314208984375 -- 0.3560943603515625
+	train loss: 2.087982416152954 -- 4.6069416999816895
+	test acc: 0.017425537109375 -- 0.2634735107421875
+	test loss: 2.3808393478393555 -- 5.174588203430176
+Epochs without improvement: 1.
+Epoch 36 done in 494.5198836326599 seconds.
+	train acc: 0.05987548828125 -- 0.3562164306640625
+	train loss: 2.084318161010742 -- 4.511932373046875
+	test acc: 0.020751953125 -- 0.198272705078125
+	test loss: 2.7026376724243164 -- 5.006801128387451
+Epochs without improvement: 2.
+Epoch 37 done in 498.64469146728516 seconds.
+	train acc: 0.066375732421875 -- 0.35906982421875
+	train loss: 2.0786519050598145 -- 4.394993782043457
+	test acc: 0.0241241455078125 -- 0.277008056640625
+	test loss: 2.302215099334717 -- 4.9265923500061035
+New best model found.
+Epoch 38 done in 493.1352508068085 seconds.
+	train acc: 0.0708465576171875 -- 0.3611907958984375
+	train loss: 2.0479636192321777 -- 4.287928581237793
+	test acc: 0.02789306640625 -- 0.2745208740234375
+	test loss: 2.3140366077423096 -- 4.828374862670898
+New best model found.
+Epoch 39 done in 493.5516686439514 seconds.
+	train acc: 0.0706634521484375 -- 0.364501953125
+	train loss: 2.05562686920166 -- 4.21343994140625
+	test acc: 0.0252227783203125 -- 0.2791595458984375
+	test loss: 2.297071695327759 -- 4.861180305480957
+Epochs without improvement: 1.
+Epoch 40 done in 499.877334356308 seconds.
+	train acc: 0.0720672607421875 -- 0.3702392578125
+	train loss: 2.0452139377593994 -- 4.146312713623047
+	test acc: 0.028900146484375 -- 0.2797393798828125
+	test loss: 2.2843196392059326 -- 4.7885870933532715
+New best model found.
+Epoch 41 done in 495.58412861824036 seconds.
+	train acc: 0.0727996826171875 -- 0.3686370849609375
+	train loss: 2.0436878204345703 -- 4.1370134353637695
+	test acc: 0.02349853515625 -- 0.254302978515625
+	test loss: 2.457206964492798 -- 4.807727813720703
+New best model found.
+Epoch 42 done in 496.9401128292084 seconds.
+	train acc: 0.07452392578125 -- 0.3706512451171875
+	train loss: 2.030733585357666 -- 4.120675563812256
+	test acc: 0.028167724609375 -- 0.2750244140625
+	test loss: 2.316755771636963 -- 4.665343761444092
+New best model found.
+Epoch 43 done in 495.39864349365234 seconds.
+	train acc: 0.074920654296875 -- 0.3714447021484375
+	train loss: 2.0248801708221436 -- 4.115455627441406
+	test acc: 0.0310211181640625 -- 0.2973785400390625
+	test loss: 2.1807403564453125 -- 4.545098304748535
+New best model found.
+Epoch 44 done in 496.02861642837524 seconds.
+	train acc: 0.075042724609375 -- 0.37701416015625
+	train loss: 2.0116326808929443 -- 4.101061820983887
+	test acc: 0.0216217041015625 -- 0.263092041015625
+	test loss: 2.4148917198181152 -- 4.879729270935059
+Epochs without improvement: 1.
+Epoch 45 done in 500.9533679485321 seconds.
+	train acc: 0.0766754150390625 -- 0.3775787353515625
+	train loss: 1.9998877048492432 -- 4.098155498504639
+	test acc: 0.0286407470703125 -- 0.299896240234375
+	test loss: 2.179668664932251 -- 4.601426124572754
+New best model found.
+Epoch 46 done in 502.47427463531494 seconds.
+	train acc: 0.0765380859375 -- 0.37811279296875
+	train loss: 2.000533103942871 -- 4.089026927947998
+	test acc: 0.0302581787109375 -- 0.300689697265625
+	test loss: 2.1875405311584473 -- 4.590578079223633
+Epochs without improvement: 1.
+Epoch 47 done in 499.9799361228943 seconds.
+	train acc: 0.076324462890625 -- 0.3834991455078125
+	train loss: 1.9822677373886108 -- 4.080984592437744
+	test acc: 0.0307769775390625 -- 0.2937164306640625
+	test loss: 2.223263740539551 -- 4.5694899559021
+Epochs without improvement: 2.
+Epoch 48 done in 500.8046431541443 seconds.
+	train acc: 0.078765869140625 -- 0.384124755859375
+	train loss: 1.978516697883606 -- 4.072484016418457
+	test acc: 0.0279693603515625 -- 0.28857421875
+	test loss: 2.2600836753845215 -- 4.680904388427734
+Epochs without improvement: 3.
+Epoch 49 done in 494.345153093338 seconds.
+	train acc: 0.07794189453125 -- 0.3834075927734375
+	train loss: 1.977557897567749 -- 4.066637992858887
+	test acc: 0.03094482421875 -- 0.2945556640625
+	test loss: 2.202239990234375 -- 4.555686950683594
+Epochs without improvement: 4.
+Epoch 50 done in 503.26686787605286 seconds.
+	train acc: 0.0788421630859375 -- 0.3805999755859375
+	train loss: 1.978637933731079 -- 4.072689056396484
+	test acc: 0.032684326171875 -- 0.2895050048828125
+	test loss: 2.247501850128174 -- 4.480859756469727
+Epochs without improvement: 5.
+Epoch 51 done in 496.1612808704376 seconds.
+	train acc: 0.0806884765625 -- 0.3857879638671875
+	train loss: 1.9620542526245117 -- 4.060374736785889
+	test acc: 0.0296478271484375 -- 0.26788330078125
+	test loss: 2.3366079330444336 -- 4.591914653778076
+Epochs without improvement: 6.
+Epoch 52 done in 492.83809304237366 seconds.
+	train acc: 0.077911376953125 -- 0.3891143798828125
+	train loss: 1.9593348503112793 -- 4.059760570526123
+	test acc: 0.0306396484375 -- 0.298583984375
+	test loss: 2.1781668663024902 -- 4.593114376068115
+New best model found.
+Epoch 53 done in 504.4570517539978 seconds.
+	train acc: 0.081207275390625 -- 0.38983154296875
+	train loss: 1.9547280073165894 -- 4.051601409912109
+	test acc: 0.026275634765625 -- 0.30560302734375
+	test loss: 2.158686876296997 -- 4.74580192565918
+Epochs without improvement: 1.
+Epoch 54 done in 502.7923536300659 seconds.
+	train acc: 0.08074951171875 -- 0.3950347900390625
+	train loss: 1.9402692317962646 -- 4.046751976013184
+	test acc: 0.034271240234375 -- 0.307220458984375
+	test loss: 2.1471800804138184 -- 4.467550277709961
+New best model found.
+Epoch 55 done in 495.61135697364807 seconds.
+	train acc: 0.0816650390625 -- 0.3937225341796875
+	train loss: 1.9366469383239746 -- 4.037678241729736
+	test acc: 0.0271148681640625 -- 0.3060760498046875
+	test loss: 2.159792900085449 -- 4.649160385131836
+Epochs without improvement: 1.
+Epoch 56 done in 500.559205532074 seconds.
+	train acc: 0.0829010009765625 -- 0.3947601318359375
+	train loss: 1.9386235475540161 -- 4.036900520324707
+	test acc: 0.0341949462890625 -- 0.287384033203125
+	test loss: 2.290579319000244 -- 4.461658954620361
+Epochs without improvement: 2.
+Epoch 57 done in 497.2762234210968 seconds.
+	train acc: 0.0828399658203125 -- 0.3950958251953125
+	train loss: 1.9304349422454834 -- 4.0201640129089355
+	test acc: 0.0338592529296875 -- 0.2977294921875
+	test loss: 2.2164525985717773 -- 4.505094051361084
+New best model found.
+Epoch 58 done in 497.6287703514099 seconds.
+	train acc: 0.0839691162109375 -- 0.4010009765625
+	train loss: 1.915010929107666 -- 4.005904197692871
+	test acc: 0.030059814453125 -- 0.29937744140625
+	test loss: 2.2126269340515137 -- 4.597713947296143
+Epochs without improvement: 1.
+Epoch 59 done in 492.767703294754 seconds.
+	train acc: 0.0839996337890625 -- 0.3982391357421875
+	train loss: 1.9068975448608398 -- 3.997434139251709
+	test acc: 0.028564453125 -- 0.300689697265625
+	test loss: 2.217608690261841 -- 4.616521835327148
+Epochs without improvement: 2.
+Epoch 60 done in 493.08064365386963 seconds.
+	train acc: 0.085174560546875 -- 0.4007415771484375
+	train loss: 1.9125804901123047 -- 3.977971076965332
+	test acc: 0.03448486328125 -- 0.310516357421875
+	test loss: 2.13820743560791 -- 4.4163713455200195
+Epochs without improvement: 3.
+Epoch 61 done in 495.61199712753296 seconds.
+	train acc: 0.0841217041015625 -- 0.4001922607421875
+	train loss: 1.9109196662902832 -- 3.9742650985717773
+	test acc: 0.033660888671875 -- 0.3126373291015625
+	test loss: 2.131129026412964 -- 4.496484756469727
+New best model found.
+Epoch 62 done in 500.4056465625763 seconds.
+	train acc: 0.0847015380859375 -- 0.4000701904296875
+	train loss: 1.9122347831726074 -- 3.963425636291504
+	test acc: 0.03570556640625 -- 0.3018341064453125
+	test loss: 2.1942551136016846 -- 4.466689586639404
+Epochs without improvement: 1.
+Epoch 63 done in 501.15000796318054 seconds.
+	train acc: 0.0868988037109375 -- 0.4036407470703125
+	train loss: 1.8999766111373901 -- 3.9569602012634277
+	test acc: 0.0324554443359375 -- 0.3013153076171875
+	test loss: 2.2054195404052734 -- 4.556442737579346
+Epochs without improvement: 2.

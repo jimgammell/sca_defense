@@ -42,7 +42,7 @@ class SignalTransform(nn.Module):
 def main(
     target_repr='bytes', #'bits',
     target_bytes='all',
-    target_attack_pts=['sub_bytes_in', 'sub_bytes_out'],
+    target_attack_pts='sub_bytes_in', #['sub_bytes_in', 'sub_bytes_out'],
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.00,
     #signal_length=25000, crop_length=20000, noise_scale=0.01,
     num_epochs=100, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
@@ -106,9 +106,13 @@ def main(
     print('\n\n')
     
     results = {}
+    learning_rates = {0: 2e-4, 5: 1e-3, 10: 5e-3, 15: 2.5e-2, 20: 12.5e-1, 25: 2.5e-2, 30: 5e-3, 35: 1e-3, 50: 2e-4, 75: 5e-5}
     best_state_dict, best_test_acc, epochs_without_improvement = None, -np.inf, 0
     for epoch_idx in range(num_epochs):
         t0 = time.time()
+        if epoch_idx in learning_rates.keys():
+            for g in optimizer.param_groups:
+                g['lr'] = learning_rates[epoch_idx]
         train_rv = train_epoch(train_dataloader, classifier, optimizer, lr_scheduler, device)
         test_rv = eval_epoch(test_dataloader, classifier, device)
         for key, item in train_rv.items():

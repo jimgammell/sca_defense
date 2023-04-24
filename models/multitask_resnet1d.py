@@ -350,12 +350,16 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         x_rc = self.residual_connection(x)
         x_sc = self.shortcut_connection(x)
+        if x_sc.size(-1) > x_rc.size(-1):
+            x_sc = x_sc[:, :, :x_rc.size(-1)]
+        elif x_sc.size(-1) < x_rc.size(-1):
+            x_sc = nn.functional.pad(x_sc, x_rc.size(-1)-x_sc.size(-1), mode='constant', value=0)
         out = x_rc + x_sc
         return out
 
 class Classifier(nn.Module):
     def __init__(self, input_shape, head_sizes,
-                 initial_filters=16, block_kernel_size=3,
+                 initial_filters=64, block_kernel_size=3,
                  activation=lambda: nn.ReLU(inplace=True), dense_dropout=0.1,
                  num_blocks=[3, 4, 4, 3], use_bn=True, use_sn=False):
         super().__init__()
