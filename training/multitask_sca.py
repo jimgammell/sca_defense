@@ -47,7 +47,7 @@ def calculate_mean_accuracy(dataloader, gen, disc, device):
     return acc_orig_labels, acc_rec_labels
 
 def mean_val(d):
-    return torch.mean(torch.tensor(list(d.values())))
+    return torch.mean(torch.tensor(list(d.values()))).detach().cpu().numpy()
 
 def apply_elementwise(fn, logits, labels):
     rv = {}
@@ -105,8 +105,8 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
         rv.update({
             'disc_loss_realism': val(disc_loss_realism),
             'disc_loss_leakage': val(disc_loss_leakage),
-            'disc_loss_orig_leakage': val(disc_loss_orig_leakage),
-            'disc_loss_rec_leakage': val(disc_loss_rec_leakage),
+            'disc_loss_orig_leakage': {key: val(item) for key, item in disc_loss_orig_leakage.items()},
+            'disc_loss_rec_leakage': {key: val(item) for key, item in disc_loss_rec_leakage.items()},
             'disc_loss': val(disc_loss),
             'disc_acc_realism': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
             'disc_acc_orig_leakage': apply_elementwise(bin_acc, disc_logits_orig_leakage, labels),
@@ -152,7 +152,7 @@ def train_step_cyclegan(batch, gen, gen_opt, disc, disc_opt, device,
             'gen_loss': val(gen_loss),
             'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
             'gen_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels_rec),
-            'reconstruction_diff_l1': val((trace-trace_rec).norm(p=1))
+            'reconstruction_diff_l1': val(nn.functional.l1_loss(trace, trace_rec))
         })
         rv.update({'gen_acc_leakage': mean_val(rv['gen_acc_rec_leakage'])})
     if return_example:
@@ -198,7 +198,7 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     disc_logits_rec_realism = disc.classify_realism(disc_features_rec, labels_rec)
     disc_loss_orig_realism = hinge_loss(disc_logits_orig_realism, 1)
     disc_loss_rec_realism = hinge_loss(disc_logits_rec_realism, -1)
-    disc_loss_realism = 0.5*disc_loss_orig_realism, 0.5*disc_loss_rec_realism
+    disc_loss_realism = 0.5*disc_loss_orig_realism + 0.5*disc_loss_rec_realism
     
     disc_loss = 0.5*disc_loss_leakage + 0.5*disc_loss_realism
     
@@ -216,8 +216,8 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     rv.update({
         'disc_loss_realism': val(disc_loss_realism),
         'disc_loss_leakage': val(disc_loss_leakage),
-        'disc_loss_orig_leakage': val(disc_loss_orig_leakage),
-        'disc_loss_rec_leakage': val(disc_loss_rec_leakage),
+        'disc_loss_orig_leakage': {key: val(item) for key, item in disc_loss_orig_leakage.items()},
+        'disc_loss_rec_leakage': {key: val(item) for key, item in disc_loss_rec_leakage.items()},
         'disc_loss': val(disc_loss),
         'disc_acc_realism': 0.5*hinge_acc(disc_logits_orig_realism, 1) + 0.5*hinge_acc(disc_logits_rec_realism, -1),
         'disc_acc_orig_leakage': apply_elementwise(bin_acc, disc_logits_orig_leakage, labels),
@@ -227,13 +227,12 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
     rv.update({
         'gen_loss_realism': val(gen_loss_realism),
         'gen_loss_leakage': val(gen_loss_leakage),
-        'gen_loss_rec_leakage': {key: val(item) for key, item in gen_loss_reg_leakage.items()},
+        'gen_loss_rec_leakage': {key: val(item) for key, item in gen_loss_rec_leakage.items()},
         'gen_l1_loss': val(gen_l1_loss),
-        'gen_avg_departure_loss': val(gen_avg_departure_penalty),
         'gen_loss': val(gen_loss),
         'gen_acc_realism': hinge_acc(disc_logits_rec_realism, 1),
         'gen_acc_rec_leakage': apply_elementwise(bin_acc, disc_logits_rec_leakage, labels_rec),
-        'reconstruction_diff_l1': val((trace-trace-rec).norm(p=1))
+        'reconstruction_diff_l1': val(nn.functional.l1_loss(trace, trace_rec))
     })
     rv.update({'gen_acc_leakage': mean_val(rv['gen_acc_rec_leakage'])})
     if return_example:
@@ -241,8 +240,8 @@ def eval_step_cyclegan(batch, gen, disc, device, l1_rec_coefficient=0.0, gen_cla
             'orig_example': val(trace),
             'rec_example': val(trace_rec)
         })
-    if l1_rec_coefficient > 0:
-        rv.update({'crec_example': val(trace_crec)})
+        if l1_rec_coefficient > 0:
+            rv.update({'crec_example': val(trace_crec)})
     return rv
 
 def train_step(batch, model, optimizer, lr_scheduler, device):
@@ -328,7 +327,7 @@ def train_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, disc_s
     rv = {}
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx) == int else return_example_idx
     disc_steps = gen_steps = 0
-    for bidx, batch in enumerate(dataloader):
+    for bidx, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
         if disc_steps_per_gen_step > 1:
             disc_steps += 1
             train_disc = True
@@ -348,24 +347,44 @@ def train_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, disc_s
             return_example=bidx in re_indices, train_gen=train_gen, train_disc=train_disc, **step_kwargs
         )
         for key, item in step_rv.items():
-            if not key in rv.keys():
-                rv[key] = []
-            rv[key].append(item)
+            if type(item) == dict:
+                if not key in rv.keys():
+                    rv[key] = {}
+                for ki in item.keys():
+                    if not ki in rv[key]:
+                        rv[key][ki] = []
+                    rv[key][ki].append(item[ki])
+            else:
+                if not key in rv.keys():
+                    rv[key] = []
+                rv[key].append(item)
     for key, item in rv.items():
         if not 'example' in key:
-            rv[key] = np.nanmean(item)
+            if type(rv[key]) == dict:
+                for sub_key, value in rv[key].items():
+                    rv[key][sub_key] = np.nanmean(value)
+            else:
+                rv[key] = np.nanmean(item)
     return rv
 
 def eval_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, posttrain=False,
                         leakage_eval_disc=None, **step_kwargs):
     rv = {}
     re_indices = [] if return_example_idx is None else [return_example_idx] if type(return_example_idx) == int else return_example_idx
-    for bidx, batch in enumerate(dataloader):
-        step_rv = eval_step_cyclegan(batch, *step_args, return_example_idx=bidx in re_indices, **step_kwargs)
+    for bidx, batch in tqdm(enumerate(dataloader), total=len(dataloader)):
+        step_rv = eval_step_cyclegan(batch, *step_args, return_example=bidx==0 in re_indices, **step_kwargs)
         for key, item in step_rv.items():
-            if not key in rv.keys():
-                rv[key] = []
-            rv[key].append(item)
+            if type(item) == dict:
+                if not key in rv.keys():
+                    rv[key] = {}
+                for ki in item.keys():
+                    if not ki in rv[key]:
+                        rv[key][ki] = []
+                    rv[key][ki].append(item[ki])
+            else:
+                if not key in rv.keys():
+                    rv[key] = []
+                rv[key].append(item)
     if leakage_eval_disc is not None:
         gen = step_args[0]
         device = step_args[-1]
@@ -374,5 +393,9 @@ def eval_cyclegan_epoch(dataloader, *step_args, return_example_idx=None, posttra
         rv['acc_leakage_rec_labels'] = acc_rec_labels
     for key, item in rv.items():
         if not 'example' in key:
-            rv[key] = np.nanmean(item)
+            if type(rv[key]) == dict:
+                for sub_key, value in rv[key].items():
+                    rv[key][sub_key] = np.nanmean(value)
+            else:
+                rv[key] = np.nanmean(item)
     return rv

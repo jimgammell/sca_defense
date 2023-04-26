@@ -361,7 +361,7 @@ class ResidualBlock(nn.Module):
 
 class Classifier(nn.Module):
     def __init__(self, input_shape, head_sizes,
-                 initial_filters=64, block_kernel_size=3,
+                 initial_filters=32, block_kernel_size=3,
                  activation=lambda: nn.ReLU(inplace=True), dense_dropout=0.1,
                  num_blocks=[3, 4, 4, 3], use_bn=True, use_sn=False):
         super().__init__()

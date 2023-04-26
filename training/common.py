@@ -22,10 +22,7 @@ def run_epoch(step_fn, dataloader, *args, **kwargs):
     return results
 
 def val(tensor):
-    try:
-        return tensor.detach().cpu().numpy()
-    except:
-        return np.nan
+    return tensor.detach().cpu().numpy()
 
 def acc(logits, y):
     logits, y = val(logits), val(y)

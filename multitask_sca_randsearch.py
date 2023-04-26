@@ -40,7 +40,7 @@ def main():
         print('Starting trial {} with seed {} and device {}.'.format(trial_idx, seed, device))
         print('Hyperparameters:')
         print(hparams)
-        run_trial(save_dir=os.path.join(save_dir, 'trial_{}'.format(trial_idx)), trial_info=hparams, **hparams)
+        run_trial(save_dir=os.path.join(save_dir, 'trial_{}'.format(trial_idx)), device=device, trial_info=hparams, **hparams)
         print('\n\n')
 
 if __name__ == '__main__':

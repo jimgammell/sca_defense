@@ -61,8 +61,9 @@ def run_trial(
     target_repr='bits',
     target_bytes='all',
     target_attack_pts='sub_bytes_in',
-    signal_length=20500, crop_length=20000, downsample_ratio=4, noise_scale=0.0,
+    signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.0,
     epochs=100,
+    device=None,
     posttrain_epochs=25,
     batch_size=32,
     l1_rec_coefficient=0.0,
@@ -83,7 +84,8 @@ def run_trial(
     for s in ['train', 'test']:
         os.makedirs(os.path.join(results_dir, s), exist_ok=True)
     
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     if target_repr == 'all':
         target_repr = VALID_TARGET_REPR
@@ -171,26 +173,26 @@ def run_trial(
         print('Done with testing phase. Results:')
         print_d(test_rv)
         
-        if 'example' in test_rv.keys():
+        if any('example' in key for key in test_rv.keys()):
             num_rows = int(np.sqrt(batch_size))
             num_cols = (batch_size//num_rows) + int(batch_size%num_rows!=0)
             fig, axes = plt.subplots(num_rows, num_cols, figsize=(4*num_cols, 4*num_rows))
             if len(axes.shape) == 1:
                 axes = np.expand_dims(axes, 0)
-            for orig_eg, rec_eg, crec_eg, ax in zip(test_rv['orig_example'], test_rv['rec_example'], test_rv['crec_example'], axes.flatten()):
+            for orig_eg, rec_eg, crec_eg, ax in zip(test_rv['orig_example'][0], test_rv['rec_example'][0], test_rv['crec_example'][0], axes.flatten()):
                 rec_diff = rec_eg - orig_eg
                 crec_diff = crec_eg - orig_eg
-                ax.plot(rec_diff, color='blue')
-                ax.plot(crec_diff, color='red')
+                ax.plot(rec_diff.flatten(), linestyle='none', marker='.', color='blue')
+                ax.plot(crec_diff.flatten(), linestyle='none', marker='.', color='red')
                 ax.set_ylim(-2, 2)
                 ax.set_yscale('symlog', linthresh=1e-2)
             fig.suptitle('Epoch {}'.format(current_epoch))
             plt.tight_layout()
             fig.savefig(os.path.join(eg_frames_dir, 'frame_{}.jpg'.format(current_epoch)), dpi=50)
             plt.close()
-            for key in val_rv.keys():
+            for key in deepcopy(list(test_rv.keys())):
                 if 'example' in key:
-                    del val_rv[key]
+                    del test_rv[key]
         
         with open(os.path.join(results_dir, 'train', 'epoch_{}.pickle'.format(current_epoch)), 'wb') as F:
             pickle.dump(train_rv, F)

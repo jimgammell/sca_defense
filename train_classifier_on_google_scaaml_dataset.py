@@ -106,7 +106,7 @@ def main(
     print('\n\n')
     
     results = {}
-    learning_rates = {0: 2e-4, 5: 1e-3, 10: 5e-3, 15: 2.5e-2, 20: 12.5e-1, 25: 2.5e-2, 30: 5e-3, 35: 1e-3, 50: 2e-4, 75: 5e-5}
+    learning_rates = {0: 2e-4, 50: 1e-5}
     best_state_dict, best_test_acc, epochs_without_improvement = None, -np.inf, 0
     for epoch_idx in range(num_epochs):
         t0 = time.time()
