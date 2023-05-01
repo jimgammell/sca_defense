@@ -7,10 +7,10 @@ import argparse
 from multitask_sca_trial import run_trial
 
 HPARAM_SAMPLERS = {
-    'disc_steps_per_gen_step': lambda: np.random.choice((1.0, 2.0, 3.0)),
+    #'disc_steps_per_gen_step': lambda: np.random.choice((1.0, 5.0)),
     'l1_rec_coefficient': lambda: 10**np.random.uniform(-5, 0),
     'gen_classification_coefficient': lambda: np.random.choice((2**np.random.uniform(-3, -1), 1-2**np.random.uniform(-3, -1))),
-    'average_deviation_penalty': lambda: np.random.choice((0.0, 10**np.random.uniform(-2, 0)))
+    #'average_deviation_penalty': lambda: np.random.choice((0.0, 10**np.random.uniform(-2, 0)))
 }
 
 def main():

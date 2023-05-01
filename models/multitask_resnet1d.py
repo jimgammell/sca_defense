@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 import torch
 from torch import nn
 from torch.nn.utils import spectral_norm
@@ -26,6 +27,7 @@ class ConditionalBatchNorm(nn.Module):
     def __init__(self, num_features, class_embedding_size, eps=1e-4, momentum=0.1, affine=True, track_running_stats=True):
         super().__init__()
         
+        num_features = num_features
         self.num_features = num_features
         self.class_embedding_size = class_embedding_size
         self.eps = eps
@@ -128,9 +130,12 @@ class LeakageDiscriminator(nn.Module):
         sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         bn = None
         
-        channels_per_group = initial_channels//2
-        total_channels = 3*channels_per_group
-        self.class_embedding = sn(nn.Linear(sum(head_sizes.values()), 1024))
+        #channels_per_group = initial_channels//2
+        #total_channels = 3*channels_per_group
+        embedding_dims = 256
+        total_channels = initial_channels
+        self.target_classes = sum(head_sizes.values())//len(head_sizes)
+        self.class_embedding = sn(nn.Linear(sum(head_sizes.values()), embedding_dims))
         self.input_transform = sn(nn.Conv1d(input_shape[0], total_channels, kernel_size=3, stride=1, padding=1))
         feature_extractor_modules = []
         for n in range(downsample_blocks):
@@ -147,16 +152,16 @@ class LeakageDiscriminator(nn.Module):
         self.feature_extractor = nn.Sequential(*feature_extractor_modules)
         
         shared_head_modules = []
-        shared_head_modules.append(sn(nn.Linear(total_channels*2**downsample_blocks, 1024)))
+        shared_head_modules.append(sn(nn.Linear(total_channels*2**downsample_blocks, embedding_dims)))
         shared_head_modules.append(activation())
         self.shared_head = nn.Sequential(*shared_head_modules)
         
         self.classifier_heads = nn.ModuleDict({})
         for head_key, head_size in head_sizes.items():
-            head = sn(nn.Linear(1024, head_size))
+            head = sn(nn.Linear(embedding_dims, head_size))
             self.classifier_heads.update({str(head_key): head})
             
-        self.realism_head = sn(nn.Linear(1024, 1))
+        self.realism_head = sn(nn.Linear(embedding_dims, 1))
         
     def extract_features(self, x):
         x_i = self.input_transform(x)
@@ -170,7 +175,9 @@ class LeakageDiscriminator(nn.Module):
     
     def classify_realism(self, x, y):
         x = self.shared_head(x)
-        y = torch.cat(list(y.values()), dim=-1).to(torch.float)
+        if len(list(y.values())[0].shape) < 2:
+            y = OrderedDict({key: nn.functional.one_hot(value, self.target_classes).to(torch.float) for key, value in y.items()})
+        y = torch.cat(list(y.values()), dim=-1)
         embedded_y = self.class_embedding(y)
         out = self.realism_head(x) + (x*embedded_y).sum(dim=-1, keepdim=True)
         return out
@@ -266,10 +273,11 @@ class Generator(nn.Module):
         
         sn = lambda x: spectral_norm(x, eps=1e-4) if use_sn else lambda x: x
         activation = lambda: nn.ReLU(inplace=True)
-        class_embedding_size = 1024
+        class_embedding_size = 256
         self.class_embedding_size = class_embedding_size
         
-        self.class_embedding = sn(nn.Linear(sum(head_sizes.values()), class_embedding_size))
+        self.target_classes = sum(head_sizes.values())//len(head_sizes)
+        self.class_embedding = sn(nn.Linear(self.target_classes*len(head_sizes), class_embedding_size))
         self.class_conditional_bias = sn(nn.ConvTranspose1d(
             class_embedding_size, input_shape[0], kernel_size=input_shape[1], stride=1, padding=0
         ))
@@ -295,7 +303,9 @@ class Generator(nn.Module):
         self.output_transform = sn(nn.Conv1d(initial_channels, input_shape[0], kernel_size=1, stride=1, padding=0))
     
     def forward(self, x, y):
-        y = torch.cat(list(y.values()), dim=-1).to(torch.float)
+        if len(list(y.values())[0].shape) < 2:
+            y = OrderedDict({key: nn.functional.one_hot(value, self.target_classes).to(torch.float) for key, value in y.items()})
+        y = torch.cat(list(y.values()), dim=-1)
         embedded_y = self.class_embedding(y)
         class_conditional_bias = self.class_conditional_bias(embedded_y.view(x.size(0), self.class_embedding_size, 1))
         x_i = self.input_transform(x + class_conditional_bias)
@@ -309,7 +319,7 @@ class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels,
                  kernel_size=3, stride=1,
                  activation=lambda: nn.ReLU(inplace=True),
-                 use_bn=False, use_sn=False):
+                 use_bn=False, use_sn=False, groups=1):
         super().__init__()
         
         residual_modules = []
@@ -317,19 +327,19 @@ class ResidualBlock(nn.Module):
             residual_modules.append(nn.BatchNorm1d(in_channels))
         residual_modules.append(activation())
         residual_modules.append(
-            nn.Conv1d(in_channels, out_channels//4, kernel_size=1, stride=1, padding=0, bias=False)
+            nn.Conv1d(in_channels, out_channels//4, kernel_size=1, stride=1, padding=0, bias=False, groups=groups)
         )
         if use_bn:
             residual_modules.append(nn.BatchNorm1d(out_channels//4))
         residual_modules.append(activation())
         residual_modules.append(
-            nn.Conv1d(out_channels//4, out_channels//4, kernel_size=kernel_size, stride=stride, padding=kernel_size//2, bias=False)
+            nn.Conv1d(out_channels//4, out_channels//4, kernel_size=kernel_size, stride=stride, padding=kernel_size//2, bias=False, groups=groups)
         )
         if use_bn:
             residual_modules.append(nn.BatchNorm1d(out_channels//4))
         residual_modules.append(activation())
         residual_modules.append(
-            nn.Conv1d(out_channels//4, out_channels, kernel_size=1, stride=1, padding=0)
+            nn.Conv1d(out_channels//4, out_channels, kernel_size=1, stride=1, padding=0, groups=groups)
         )
         if use_sn:
             apply_sn(residual_modules)
@@ -337,11 +347,11 @@ class ResidualBlock(nn.Module):
         shortcut_modules = []
         if stride != 1:
             shortcut_modules.append(
-                nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride, padding=kernel_size//2)
+                nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride, padding=kernel_size//2, groups=groups)
             )
         elif in_channels != out_channels:
             shortcut_modules.append(
-                nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+                nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, groups=groups)
             )
         if use_sn:
             apply_sn(shortcut_modules)
@@ -360,11 +370,22 @@ class ResidualBlock(nn.Module):
         return out
 
 class Classifier(nn.Module):
-    def __init__(self, input_shape, head_sizes,
-                 initial_filters=32, block_kernel_size=3,
+    def __init__(self, input_shape, head_sizes, use_groups=False,
+                 initial_filters=16, block_kernel_size=3,
                  activation=lambda: nn.ReLU(inplace=True), dense_dropout=0.1,
                  num_blocks=[3, 4, 4, 3], use_bn=True, use_sn=False):
         super().__init__()
+        
+        self.use_groups = use_groups
+        groups = 2*len(head_sizes) if use_groups else 1
+        
+        class RecombineBlock(nn.Module):
+            def __init__(self, in_channels, out_channels):
+                super().__init__()
+                self.shared_mixer = nn.Conv1d(in_channels//2, out_channels//2, kernel_size=1)
+            def forward(self, x):
+                out = torch.cat((self.shared_mixer(x[:, :x.size(1)//2, :]), x[:, x.size(1)//2:, :]), dim=1)
+                return out
         
         def get_stack(in_channels, out_channels, blocks,
                       kernel_size=3, stride=2, activation=lambda: nn.ReLU(inplace=True),
@@ -372,17 +393,23 @@ class Classifier(nn.Module):
             modules = []
             modules.append(
                 ResidualBlock(in_channels, out_channels, kernel_size=kernel_size,
-                              activation=activation, use_sn=use_sn, use_bn=use_bn)
+                              activation=activation, use_sn=use_sn, use_bn=use_bn, groups=groups)
             )
+            if use_groups:
+                modules.append(RecombineBlock(out_channels, out_channels))
             for _ in range(2, blocks):
                 modules.append(
                     ResidualBlock(out_channels, out_channels, kernel_size=kernel_size,
-                                  activation=activation, use_sn=use_sn, use_bn=use_bn)
+                                  activation=activation, use_sn=use_sn, use_bn=use_bn, groups=groups)
                 )
+                if use_groups:
+                    modules.append(RecombineBlock(out_channels, out_channels))
             modules.append(
                 ResidualBlock(out_channels, out_channels, kernel_size=kernel_size,
-                              activation=activation, stride=stride, use_sn=use_sn, use_bn=use_bn)
+                              activation=activation, stride=stride, use_sn=use_sn, use_bn=use_bn, groups=groups)
             )
+            if use_groups:
+                modules.append(RecombineBlock(out_channels, out_channels))
             stack = nn.Sequential(*modules)
             return stack
         
@@ -403,7 +430,7 @@ class Classifier(nn.Module):
         
         shared_head_modules = []
         shared_head_modules.append(nn.Dropout(dense_dropout))
-        shared_head_modules.append(nn.Linear(filters, 256, bias=False))
+        shared_head_modules.append(nn.Linear(filters//2 if use_groups else filters, 256, bias=False))
         if use_bn:
             shared_head_modules.append(nn.BatchNorm1d(256))
         shared_head_modules.append(activation())
@@ -413,16 +440,46 @@ class Classifier(nn.Module):
         
         self.heads = nn.ModuleDict({})
         for head_key, head_size in head_sizes.items():
-            if use_sn:
-                head = spectral_norm(nn.Linear(256, head_size))
+            if use_groups:
+                head = nn.ModuleList([
+                    nn.Sequential(
+                        nn.Dropout(dense_dropout),
+                        nn.Linear(filters//(2*len(head_sizes)), 256//len(head_sizes), bias=False),
+                        nn.BatchNorm1d(256//len(head_sizes)),
+                        activation()
+                    ),
+                    nn.Linear(256 + 256//len(head_sizes), head_size)
+                ])
             else:
                 head = nn.Linear(256, head_size)
             self.heads.update({str(head_key): head})
+        
+        self.register_buffer('scale_parameters', torch.zeros(len(head_sizes), dtype=torch.float, requires_grad=False))
     
-    def forward(self, x):
+    def get_features(self, x):
         x_i = self.input_transform(x)
         x_fe = self.feature_extractor(x_i)
         features = torch.mean(x_fe, dim=2).view(x_fe.size(0), x_fe.size(1))
-        features_sh = self.shared_head(features)
-        logits = {head_name: head(features_sh) for head_name, head in self.heads.items()}
+        return features
+    
+    def classify_features(self, features):
+        if self.use_groups:
+            features_sh = self.shared_head(features[:, :features.size(1)//2])
+        else:
+            features_sh = self.shared_head(features)
+        logits = {}
+        for hidx, (head_name, head) in enumerate(self.heads.items()):
+            if self.use_groups:
+                base_idx = (hidx*features.size(1)//(2*len(self.heads))) + (features.size(1)//2)
+                head_features = features[:, base_idx : base_idx+features.size(1)//(2*len(self.heads))]
+                head_logits = torch.cat((features_sh, head[0](head_features)), dim=-1)
+                head_logits = head[1](head_logits)
+            else:
+                head_logits = head(features_sh)
+            logits[head_name] = head_logits
+        return logits
+    
+    def forward(self, x):
+        features = self.get_features(x)
+        logits = self.classify_features(features)
         return logits

@@ -1,0 +1,359 @@
+Starting trial 0 with seed 2 and device cuda:2.
+Hyperparameters:
+{'l1_rec_coefficient': 0.0015134724182275531, 'gen_classification_coefficient': 0.1295743861029141}
+Train dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: train
+	Trace shape: torch.Size([1, 5000])
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: SignalTransform()
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+Test dataset:
+Google SCAAML TinyAES power trace dataset
+	Training phase: test
+	Trace shape: (1, 5000)
+	Label shapes: {'sub_bytes_in__0': torch.Size([]), 'sub_bytes_in__1': torch.Size([]), 'sub_bytes_in__2': torch.Size([]), 'sub_bytes_in__3': torch.Size([]), 'sub_bytes_in__4': torch.Size([]), 'sub_bytes_in__5': torch.Size([]), 'sub_bytes_in__6': torch.Size([]), 'sub_bytes_in__7': torch.Size([]), 'sub_bytes_in__8': torch.Size([]), 'sub_bytes_in__9': torch.Size([]), 'sub_bytes_in__10': torch.Size([]), 'sub_bytes_in__11': torch.Size([]), 'sub_bytes_in__12': torch.Size([]), 'sub_bytes_in__13': torch.Size([]), 'sub_bytes_in__14': torch.Size([]), 'sub_bytes_in__15': torch.Size([])}
+	Number of shards: 256
+	Samples per shard: 256
+	Transform: None
+	Bytes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+	Attack points: ['sub_bytes_in']
+	Interval to use: [0, 20000]
+	Downsampling ratio: 4
+	Whiten traces: True
+
+
+
+AveragedModel(
+  (input_transform): Conv1d(1, 16, kernel_size=(1,), stride=(1,))
+  (downsample_blocks): ModuleList(
+    (0): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (4): InstanceNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (5): ReLU(inplace=True)
+        (6): Conv1d(16, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (1): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (4): InstanceNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (5): ReLU(inplace=True)
+        (6): Conv1d(32, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (2): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (4): InstanceNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (5): ReLU(inplace=True)
+        (6): Conv1d(64, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (3): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (4): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (5): ReLU(inplace=True)
+        (6): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+  )
+  (pre_endo_blocks): ModuleList(
+    (0): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (4): ReLU(inplace=True)
+        (5): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList()
+    )
+    (1): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): InstanceNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=False)
+        (4): ReLU(inplace=True)
+        (5): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList()
+    )
+  )
+  (post_endo_blocks): ModuleList(
+    (0): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (4): ReLU(inplace=True)
+        (5): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList()
+    )
+    (1): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (4): ReLU(inplace=True)
+        (5): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList()
+    )
+  )
+  (upsample_blocks): ModuleList(
+    (0): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): Upsample(scale_factor=2.0, mode=nearest)
+        (4): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (5): ReLU(inplace=True)
+        (6): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Upsample(scale_factor=2.0, mode=nearest)
+      )
+    )
+    (1): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): Upsample(scale_factor=2.0, mode=nearest)
+        (4): AdaptiveInstanceNorm1d(
+          128, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=256, bias=True)
+        )
+        (5): ReLU(inplace=True)
+        (6): Conv1d(128, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(128, 64, kernel_size=(1,), stride=(1,))
+        (1): Upsample(scale_factor=2.0, mode=nearest)
+      )
+    )
+    (2): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          64, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=128, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): Upsample(scale_factor=2.0, mode=nearest)
+        (4): AdaptiveInstanceNorm1d(
+          64, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=128, bias=True)
+        )
+        (5): ReLU(inplace=True)
+        (6): Conv1d(64, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 32, kernel_size=(1,), stride=(1,))
+        (1): Upsample(scale_factor=2.0, mode=nearest)
+      )
+    )
+    (3): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): AdaptiveInstanceNorm1d(
+          32, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=64, bias=True)
+        )
+        (1): ReLU(inplace=True)
+        (2): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+        (3): Upsample(scale_factor=2.0, mode=nearest)
+        (4): AdaptiveInstanceNorm1d(
+          32, eps=1e-05, momentum=0.1, affine=False, track_running_stats=False
+          (get_affine): Linear(in_features=256, out_features=64, bias=True)
+        )
+        (5): ReLU(inplace=True)
+        (6): Conv1d(32, 16, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 16, kernel_size=(1,), stride=(1,))
+        (1): Upsample(scale_factor=2.0, mode=nearest)
+      )
+    )
+  )
+  (output_transform): Conv1d(16, 1, kernel_size=(1,), stride=(1,))
+  (class_embedding): Linear(in_features=144, out_features=256, bias=True)
+)
+Discriminator(
+  (input_transform): Conv1d(1, 16, kernel_size=(1,), stride=(1,))
+  (downsample_blocks): ModuleList(
+    (0): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(16, 16, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(16, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(16, 32, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (1): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(32, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 64, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (2): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(64, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 128, kernel_size=(1,), stride=(1,))
+        (1): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (3): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (4): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+    (5): ResidualBlock(
+      (residual_modules): ModuleList(
+        (0): LeakyReLU(negative_slope=0.1)
+        (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+        (2): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+        (3): LeakyReLU(negative_slope=0.1)
+        (4): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): AvgPool1d(kernel_size=(2,), stride=(2,), padding=(0,))
+      )
+    )
+  )
+  (output_transform): Sequential(
+    (0): LeakyReLU(negative_slope=0.1)
+    (1): Conv1d(128, 128, kernel_size=(78,), stride=(1,), groups=128)
+    (2): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+    (3): LeakyReLU(negative_slope=0.1)
+  )
+  (classifier_heads): ModuleDict(
+    (hamming_weight__sub_bytes_in__0): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__1): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__2): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__3): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__4): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__5): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__6): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__7): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__8): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__9): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__10): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__11): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__12): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__13): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__14): Linear(in_features=128, out_features=9, bias=True)
+    (hamming_weight__sub_bytes_in__15): Linear(in_features=128, out_features=9, bias=True)
+  )
+  (class_embedding): Linear(in_features=144, out_features=128, bias=True)
+  (realism_head): Linear(in_features=128, out_features=1, bias=True)
+)
+
+Generator parameters: 1423201
+Discriminator parameters: 419297
+
+
+
+Starting epoch 1.

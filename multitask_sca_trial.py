@@ -1,4 +1,6 @@
 import time
+import argparse
+import random
 import os
 from collections import OrderedDict
 import sys
@@ -9,14 +11,17 @@ from matplotlib import pyplot as plt
 import imageio
 import torch
 from torch import nn, optim
+from training.common import *
 from training.multitask_sca import *
-from models.multitask_resnet1d import *
+from models.multitask_resnet1d import Classifier
+from models.stargan2_architecture import Generator, Discriminator as LeakageDiscriminator
 from models.averaged_model import get_averaged_model
 from datasets.google_scaaml import GoogleScaamlDataset
 
 VALID_TARGET_REPR = [
     'bits',
-    'bytes'
+    'bytes',
+    'hamming_weight'
 ]
 VALID_TARGET_BYTES = [
     *list(range(16))
@@ -46,24 +51,75 @@ class SignalTransform(nn.Module):
         x = x + noise
         return x
 
+@torch.no_grad()
+def int_to_bytes(x):
+    assert x.dtype == torch.long
+    if not isinstance(x, torch.tensor):
+        x = torch.tensor(x)
+    return x
+    
+@torch.no_grad()
+def int_to_binary(x):
+    assert x.dtype == torch.long
+    x = x.clone()
+    out = torch.zeros(x.size(0), 8, dtype=torch.float, device=x.device)
+    for n in range(7, -1, -1):
+        high = torch.ge(x, 2**n)
+        out[:, n] = high
+        x -= high*2**n
+    return out
+
+@torch.no_grad()
+def int_to_hamming_weight(x):
+    assert x.dtype == torch.long
+    x_bin = int_to_binary(x)
+    x_hw = torch.sum(x_bin, dim=-1).to(torch.long)
+    return x_hw
+
+@torch.no_grad()
+def acc_bytes(x, y):
+    x, y = val(x), val(y)
+    return np.mean(np.equal(np.argmax(x, axis=-1), y))
+
+@torch.no_grad()
+def acc_bits(x, y):
+    x, y = val(x), val(y)
+    return np.mean(np.equal(x>0, y))
+
+@torch.no_grad()
+def acc_hw(x, y):
+    x, y = val(x), val(y)
+    return np.mean(np.equal(np.argmax(x, axis=-1), np.argmax(y, axis=-1)))
+
+def loss_bytes(x, y):
+    return nn.functional.cross_entropy(x, y)
+
+def loss_bits(x, y):
+    return nn.functional.binary_cross_entropy(torch.sigmoid(x), y)
+
+def loss_hw(x, y):
+    return nn.functional.cross_entropy(x, y)
+    
 def run_trial(
     dataset=GoogleScaamlDataset,
     dataset_kwargs={},
     gen_constructor=Generator,
     gen_kwargs={},
+    eval_classifier_constructor=Classifier,
     gen_opt=optim.Adam,
     gen_opt_kwargs={'lr': 1e-4, 'betas': (0.5, 0.999)},
     disc_constructor=LeakageDiscriminator,
     disc_kwargs={},
     disc_opt=optim.Adam,
     disc_opt_kwargs={'lr': 4e-4, 'betas': (0.5, 0.999)},
-    disc_steps_per_gen_step=3.0,
-    target_repr='bits',
+    disc_steps_per_gen_step=5.0,
+    target_repr='hamming_weight',
     target_bytes='all',
     target_attack_pts='sub_bytes_in',
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.0,
-    epochs=100,
+    epochs=10,
     device=None,
+    pretrain=False,
     posttrain_epochs=25,
     batch_size=32,
     l1_rec_coefficient=0.0,
@@ -73,6 +129,14 @@ def run_trial(
     calculate_weight_norms=True,
     calculate_grad_norms=True,
     save_dir=None, trial_info=None):
+    
+    if pretrain:
+        gen_opt = optim.Adam
+        gen_opt_kwargs = {'lr': 2e-4}
+        disc_opt = optim.Adam
+        disc_opt_kwargs = {'lr': 2e-4}
+        disc_steps_per_gen_step = 1.0
+        average_deviation_penalty = 0.0
     
     if save_dir is None:
         save_dir = os.path.join('.', 'results', 'multitask_sca_trial')
@@ -87,19 +151,14 @@ def run_trial(
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    if target_repr == 'all':
-        target_repr = VALID_TARGET_REPR
     if target_bytes == 'all':
         target_bytes = VALID_TARGET_BYTES
     if target_attack_pts == 'all':
         target_attack_pts = VALID_ATTACK_PTS
-    if not isinstance(target_repr, list):
-        target_repr = [target_repr]
     if not isinstance(target_bytes, list):
         target_bytes = [target_bytes]
     if not isinstance(target_attack_pts, list):
         target_attack_pts = [target_attack_pts]
-    assert all(x in VALID_TARGET_REPR for x in target_repr)
     assert all(x in VALID_TARGET_BYTES for x in target_bytes)
     assert all(x in VALID_ATTACK_PTS for x in target_attack_pts)
     
@@ -110,8 +169,8 @@ def run_trial(
     test_dataset = dataset(transform=None, train=False, download=True, whiten_traces=True,
                                        interval_to_use=[0, crop_length], downsample_ratio=downsample_ratio,
                                        bytes=target_bytes, store_in_ram=False, attack_points=target_attack_pts)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=batch_size, num_workers=8)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=batch_size, num_workers=8)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=batch_size, num_workers=8, pin_memory=True)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=batch_size, num_workers=8, pin_memory=True)
     print('Train dataset:')
     print(train_dataset)
     print('\n\n')
@@ -120,11 +179,14 @@ def run_trial(
     print('\n\n')
     
     head_sizes = OrderedDict({})
-    for tr in target_repr:
-        for tap in target_attack_pts:
-            for tb in target_bytes:
-                head_name = '{}__{}__{}'.format(tr, tap, tb)
-                head_sizes[head_name] = 8 if tr == 'bits' else 256
+    for tap in target_attack_pts:
+        for tb in target_bytes:
+            head_name = '{}__{}__{}'.format(target_repr, tap, tb)
+            head_sizes[head_name] = {
+                'bits': 8,
+                'hamming_weight': 9,
+                'bytes': 256
+            }[target_repr]
                 
     if average_deviation_penalty > 0.0:
         avg_fn = lambda x1, x2: (1-average_update_coefficient)*x1 + average_update_coefficient*x2
@@ -136,6 +198,29 @@ def run_trial(
     disc_opt = disc_opt(disc.parameters(), **disc_opt_kwargs)
     gen_opt_scheduler = None
     disc_opt_scheduler = None
+    
+    print(gen)
+    print(disc)
+    print()
+    print('Generator parameters:', sum(p.numel() for p in gen.parameters() if p.requires_grad))
+    print('Discriminator parameters:', sum(p.numel() for p in disc.parameters() if p.requires_grad))
+    
+    eval_head_sizes = OrderedDict({})
+    for tap in target_attack_pts:
+        for tb in target_bytes:
+            head_name = '{}__{}__{}'.format('bytes', tap, tb)
+            eval_head_sizes[head_name] = 256
+    
+    eval_classifier = eval_classifier_constructor((1, crop_length//downsample_ratio), eval_head_sizes)
+    eval_classifier_state = torch.load(os.path.join('.', 'trained_models', 'google_scaaml_classifier.pth'))
+    eval_classifier.load_state_dict(eval_classifier_state)
+    eval_classifier = eval_classifier.to(device)
+    
+    to_repr_fn = {
+        'bytes': (int_to_bytes, acc_bytes, loss_bytes),
+        'bits': (int_to_binary, acc_bits, loss_bits),
+        'hamming_weight': (int_to_hamming_weight, acc_hw, loss_hw)
+    }[target_repr]
     
     if trial_info is not None:
         with open(os.path.join(results_dir, 'trial_info.pickle'), 'wb') as F:
@@ -151,6 +236,7 @@ def run_trial(
         print('Starting epoch {}.'.format(current_epoch))
         
         kwargs = {
+            'pretrain': pretrain,
             'gen_opt_scheduler': gen_opt_scheduler,
             'disc_opt_scheduler': disc_opt_scheduler,
             'l1_rec_coefficient': l1_rec_coefficient,
@@ -158,7 +244,9 @@ def run_trial(
             'return_weight_norms': calculate_weight_norms,
             'return_grad_norms': calculate_grad_norms,
             'average_deviation_penalty': average_deviation_penalty,
-            'disc_steps_per_gen_step': disc_steps_per_gen_step
+            'disc_steps_per_gen_step': disc_steps_per_gen_step,
+            'leakage_eval_disc': eval_classifier,
+            'to_repr_fn': to_repr_fn
         }
         
         t0 = time.time()
@@ -179,11 +267,17 @@ def run_trial(
             fig, axes = plt.subplots(num_rows, num_cols, figsize=(4*num_cols, 4*num_rows))
             if len(axes.shape) == 1:
                 axes = np.expand_dims(axes, 0)
-            for orig_eg, rec_eg, crec_eg, ax in zip(test_rv['orig_example'][0], test_rv['rec_example'][0], test_rv['crec_example'][0], axes.flatten()):
+            images = [test_rv['orig_example'][0], test_rv['rec_example'][0]]
+            if not pretrain:
+                images.append(test_rv['crec_example'][0])
+            for *egs, ax in zip(*images, axes.flatten()):
+                orig_eg, rec_eg = egs[0], egs[1]
                 rec_diff = rec_eg - orig_eg
-                crec_diff = crec_eg - orig_eg
                 ax.plot(rec_diff.flatten(), linestyle='none', marker='.', color='blue')
-                ax.plot(crec_diff.flatten(), linestyle='none', marker='.', color='red')
+                if not pretrain:
+                    crec_eg = egs[2]
+                    crec_diff = crec_eg - orig_eg
+                    ax.plot(crec_diff.flatten(), linestyle='none', marker='.', color='red')
                 ax.set_ylim(-2, 2)
                 ax.set_yscale('symlog', linthresh=1e-2)
             fig.suptitle('Epoch {}'.format(current_epoch))
@@ -199,6 +293,24 @@ def run_trial(
         with open(os.path.join(results_dir, 'test', 'epoch_{}.pickle'.format(current_epoch)), 'wb') as F:
             pickle.dump(test_rv, F)
     
-    for epoch_idx in range(1, epochs):
+    for epoch_idx in range(1, epochs+1):
         update_results(epoch_idx)
     
+    if pretrain:
+        model_save_dir = os.path.join('.', 'trained_models')
+        os.makedirs(model_save_dir, exist_ok=True)
+        gen_state_dict = {k: v.cpu() for k, v in gen.state_dict().items()}
+        torch.save(gen_state_dict, os.path.join(model_save_dir, 'pretrained_generator.pth'))
+        disc_state_dict = {k: v.cpu() for k, v in disc.state_dict().items()}
+        torch.save(disc_state_dict, os.path.join(model_save_dir, 'pretrained_discriminator.pth'))
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', default=None, type=int, help='Random seed to use for this trial.')
+    parser.add_argument('--device', default=None, type=str, help='Device to use for this trial.')
+    args = parser.parse_args()
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+    run_trial(pretrain=True, device=args.device)

@@ -1,5 +1,9 @@
 import numpy as np
+import random
 import time
+import os
+import pickle
+import argparse
 from copy import deepcopy
 import torch
 from torch import nn, optim
@@ -45,7 +49,7 @@ def main(
     target_attack_pts='sub_bytes_in', #['sub_bytes_in', 'sub_bytes_out'],
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.00,
     #signal_length=25000, crop_length=20000, noise_scale=0.01,
-    num_epochs=100, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
+    num_epochs=150, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
     device=None
 ):
     if target_repr == 'all':
@@ -106,7 +110,7 @@ def main(
     print('\n\n')
     
     results = {}
-    learning_rates = {0: 2e-4, 50: 1e-5}
+    learning_rates = {0: 1e-3, 50: 2e-4, 100: 1e-5}
     best_state_dict, best_test_acc, epochs_without_improvement = None, -np.inf, 0
     for epoch_idx in range(num_epochs):
         t0 = time.time()
@@ -133,8 +137,10 @@ def main(
             ))
         print_stats('train', 'acc')
         print_stats('train', 'loss')
+        print_stats('train', 'total_loss')
         print_stats('test', 'acc')
         print_stats('test', 'loss')
+        print_stats('train', 'scaling_factor')
         test_acc = np.mean([item for key, item in test_rv.items() if 'acc' in key])
         if test_acc > best_test_acc:
             best_test_acc = test_acc
@@ -147,4 +153,21 @@ def main(
     return results, best_state_dict
     
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', default=None, type=int, help='Random seed to use for this trial.')
+    parser.add_argument('--device', default=None, type=str, help='Device to use for this trial.')
+    args = parser.parse_args()
+    if args.seed is not None:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+    
+    results, best_state_dict = main(device=args.device)
+    
+    results_dir = os.path.join('.', 'results', 'google_scaaml_classifier')
+    os.makedirs(results_dir, exist_ok=True)
+    with open(os.path.join(results_dir, 'results.pickle'), 'wb') as F:
+        pickle.dump(results, F)
+    model_dir = os.path.join('.', 'trained_models')
+    os.makedirs(model_dir, exist_ok=True)
+    torch.save(best_state_dict, os.path.join(model_dir, 'google_scaaml_classifier.pth'))
