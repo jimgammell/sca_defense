@@ -54,7 +54,7 @@ class SignalTransform(nn.Module):
 @torch.no_grad()
 def int_to_bytes(x):
     assert x.dtype == torch.long
-    if not isinstance(x, torch.tensor):
+    if not isinstance(x, torch.Tensor):
         x = torch.tensor(x)
     return x
     
@@ -89,7 +89,7 @@ def acc_bits(x, y):
 @torch.no_grad()
 def acc_hw(x, y):
     x, y = val(x), val(y)
-    return np.mean(np.equal(np.argmax(x, axis=-1), np.argmax(y, axis=-1)))
+    return np.mean(np.equal(np.argmax(x, axis=-1), y))
 
 def loss_bytes(x, y):
     return nn.functional.cross_entropy(x, y)
@@ -117,7 +117,7 @@ def run_trial(
     target_bytes='all',
     target_attack_pts='sub_bytes_in',
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.0,
-    epochs=10,
+    epochs=100,
     device=None,
     pretrain=False,
     posttrain_epochs=25,

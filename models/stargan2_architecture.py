@@ -2,13 +2,15 @@ from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn
+from torch.nn.utils import spectral_norm
 
 # Based on this implementation:
 #   https://github.com/clovaai/stargan-v2/blob/master/core/model.py
 class AdaptiveInstanceNorm1d(nn.InstanceNorm1d):
-    def __init__(self, embedding_dim, num_features, *args, **kwargs):
+    def __init__(self, embedding_dim, num_features, *args, use_sn=False, **kwargs):
         super().__init__(num_features, *args, affine=False, **kwargs)
         self.get_affine = nn.Linear(embedding_dim, 2*num_features)
+        self.use_sn = use_sn
     
     def forward(self, x, y):
         batch_size, channels, _ = x.size()
@@ -16,13 +18,38 @@ class AdaptiveInstanceNorm1d(nn.InstanceNorm1d):
         gamma, beta = torch.split(affine_params, channels, dim=1)
         gamma, beta = gamma.view(batch_size, channels, 1), beta.view(batch_size, channels, 1)
         x_norm = super().forward(x)
-        out = (1 + gamma) * x_norm + beta
+        if self.use_sn:
+            scalar = torch.clip(1 + gamma, -1, 1)
+        else:
+            scalar = 1 + gamma
+        out = scalar * x_norm + beta
         return out
+    
+class SnBatchNorm1d(nn.BatchNorm1d):
+    def __init__(self, *args, use_sn=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.use_sn = use_sn
+        
+    def forward(self, *args, **kwargs):
+        if self.weight is not None and self.use_sn:
+            self.weight.data = torch.clip(self.weight.data, -1, 1)
+        return super().forward(*args, **kwargs)
+
+class SnInstanceNorm1d(nn.InstanceNorm1d):
+    def __init__(self, *args, use_sn=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.use_sn = use_sn
+        
+    def forward(self, *args, **kwargs):
+        if self.weight is not None and self.use_sn:
+            self.weight.data = torch.clip(self.weight.data, -1, 1)
+        return super().forward(*args, **kwargs)
     
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels,
                  embedding_dim=None,
                  activation=lambda: 'relu',
+                 use_sn=False,
                  resample_layer='none', norm_layer='none'):
         
         if norm_layer == 'adaptive_instance_norm':
@@ -33,8 +60,9 @@ class ResidualBlock(nn.Module):
         }[activation]
         norm_layer_constructor = {
             'none':                   None,
-            'instance_norm':          lambda features: nn.InstanceNorm1d(features, affine=True),
-            'adaptive_instance_norm': lambda features: AdaptiveInstanceNorm1d(embedding_dim, features)
+            'batch_norm':             lambda features: SnBatchNorm1d(features, affine=True, use_sn=use_sn),
+            'instance_norm':          lambda features: SnInstanceNorm1d(features, affine=True, use_sn=use_sn),
+            'adaptive_instance_norm': lambda features: AdaptiveInstanceNorm1d(embedding_dim, features, use_sn=use_sn)
         }[norm_layer]
         resample_layer_constructor = {
             'none':      None,
@@ -62,6 +90,14 @@ class ResidualBlock(nn.Module):
         if resample_layer_constructor is not None:
             self.shortcut_modules.append(resample_layer_constructor())
         
+        if use_sn:
+            for mod_idx, mod in enumerate(self.residual_modules):
+                if isinstance(mod, nn.Conv1d):
+                    self.residual_modules[mod_idx] = spectral_norm(mod)
+            for mod_idx, mod in enumerate(self.shortcut_modules):
+                if isinstance(mod, nn.Conv1d):
+                    self.shortcut_modules[mod_idx] = spectral_norm(mod)
+        
     def forward(self, *args):
         if len(args) == 1:
             (x,) = args
@@ -87,25 +123,26 @@ class ResidualBlock(nn.Module):
         return out
 
 class Generator(nn.Module):
-    def __init__(self, input_shape, head_sizes, embedding_dim=256, base_channels=16):
+    def __init__(self, input_shape, head_sizes, use_sn=True, embedding_dim=256, base_channels=16):
         super().__init__()
         
+        apply_sn_fn = spectral_norm if use_sn else lambda x: x
         self.head_sizes = head_sizes
-        self.input_transform = nn.Conv1d(in_channels=input_shape[0], out_channels=base_channels, kernel_size=1, stride=1, padding=0)
-        downsample_kwargs = {'activation': 'relu', 'resample_layer': 'avg_pool', 'norm_layer': 'instance_norm'}
+        self.input_transform = apply_sn_fn(nn.Conv1d(in_channels=input_shape[0], out_channels=base_channels, kernel_size=1, stride=1, padding=0))
+        downsample_kwargs = {'activation': 'relu', 'resample_layer': 'avg_pool', 'norm_layer': 'instance_norm', 'use_sn': use_sn}
         self.downsample_blocks = nn.ModuleList([
             ResidualBlock(1*base_channels, 2*base_channels,  **downsample_kwargs),
             ResidualBlock(2*base_channels, 4*base_channels, **downsample_kwargs),
             ResidualBlock(4*base_channels, 8*base_channels, **downsample_kwargs),
             ResidualBlock(8*base_channels, 8*base_channels, **downsample_kwargs)
         ])
-        pre_endo_kwargs = {'activation': 'relu', 'resample_layer': 'none', 'norm_layer': 'instance_norm'}
+        pre_endo_kwargs = {'activation': 'relu', 'resample_layer': 'none', 'norm_layer': 'instance_norm', 'use_sn': use_sn}
         self.pre_endo_blocks = nn.ModuleList([
             ResidualBlock(8*base_channels, 8*base_channels, **pre_endo_kwargs),
             ResidualBlock(8*base_channels, 8*base_channels, **pre_endo_kwargs)
         ])
         post_endo_kwargs = {
-            'activation': 'relu', 'resample_layer': 'none',
+            'activation': 'relu', 'resample_layer': 'none', 'use_sn': use_sn,
             'norm_layer': 'adaptive_instance_norm', 'embedding_dim': embedding_dim
         }
         self.post_endo_blocks = nn.ModuleList([
@@ -113,7 +150,7 @@ class Generator(nn.Module):
             ResidualBlock(8*base_channels, 8*base_channels, **post_endo_kwargs)
         ])
         upsample_kwargs = {
-            'activation': 'relu', 'resample_layer': 'nn_interp',
+            'activation': 'relu', 'resample_layer': 'nn_interp', 'use_sn': use_sn,
             'norm_layer': 'adaptive_instance_norm', 'embedding_dim': embedding_dim
         }
         self.upsample_blocks = nn.ModuleList([
@@ -122,8 +159,8 @@ class Generator(nn.Module):
             ResidualBlock(4*base_channels, 2*base_channels, **upsample_kwargs),
             ResidualBlock(2*base_channels, 1*base_channels,  **upsample_kwargs)
         ])
-        self.output_transform = nn.Conv1d(in_channels=base_channels, out_channels=input_shape[0], kernel_size=1, stride=1, padding=0)
-        self.class_embedding = nn.Linear(sum(head_sizes.values()), embedding_dim)
+        self.output_transform = apply_sn_fn(nn.Conv1d(in_channels=base_channels, out_channels=input_shape[0], kernel_size=1, stride=1, padding=0))
+        self.class_embedding = apply_sn_fn(nn.Linear(sum(head_sizes.values()), embedding_dim))
         
     def forward(self, x, y):
         y = deepcopy(y)
@@ -151,12 +188,13 @@ class Generator(nn.Module):
         return x
 
 class Discriminator(nn.Module):
-    def __init__(self, input_shape, head_sizes, base_channels=16):
+    def __init__(self, input_shape, head_sizes, base_channels=16, use_sn=True):
         super().__init__()
         
+        apply_sn_fn = spectral_norm if use_sn else lambda x: x
         self.head_sizes = head_sizes
-        self.input_transform = nn.Conv1d(1, base_channels, kernel_size=input_shape[0], stride=1, padding=0)
-        ds_kwargs = {'activation': 'leaky_relu', 'resample_layer': 'avg_pool', 'norm_layer': 'none'}
+        self.input_transform = apply_sn_fn(nn.Conv1d(1, base_channels, kernel_size=input_shape[0], stride=1, padding=0))
+        ds_kwargs = {'activation': 'leaky_relu', 'resample_layer': 'avg_pool', 'norm_layer': 'instance_norm', 'use_sn': use_sn}
         self.downsample_blocks = nn.ModuleList([
             ResidualBlock(1*base_channels, 2*base_channels, **ds_kwargs),
             ResidualBlock(2*base_channels, 4*base_channels, **ds_kwargs),
@@ -171,17 +209,17 @@ class Discriminator(nn.Module):
         pre_pool_kernel_size = int(np.sqrt(remaining_dims))
         self.output_transform = nn.Sequential(
             nn.LeakyReLU(0.1),
-            nn.Conv1d(8*base_channels, 8*base_channels, groups=8*base_channels, kernel_size=remaining_dims, stride=1, padding=0),
-            nn.Conv1d(8*base_channels, 8*base_channels, kernel_size=1, stride=1, padding=0),
+            apply_sn_fn(nn.Conv1d(8*base_channels, 8*base_channels, groups=8*base_channels, kernel_size=remaining_dims, stride=1, padding=0)),
+            apply_sn_fn(nn.Conv1d(8*base_channels, 8*base_channels, kernel_size=1, stride=1, padding=0)),
             nn.LeakyReLU(0.1)
         )
         self.classifier_heads = nn.ModuleDict({
-            head_key: nn.Linear(8*base_channels, head_size)
+            head_key: apply_sn_fn(nn.Linear(8*base_channels, head_size))
             for head_key, head_size in head_sizes.items()
         })
         embedding_dim = 8*base_channels
-        self.class_embedding = nn.Linear(sum(head_sizes.values()), embedding_dim)
-        self.realism_head = nn.Linear(embedding_dim, 1)
+        self.class_embedding = apply_sn_fn(nn.Linear(sum(head_sizes.values()), embedding_dim))
+        self.realism_head = apply_sn_fn(nn.Linear(embedding_dim, 1))
         
     def extract_features(self, x):
         x = self.input_transform(x)
