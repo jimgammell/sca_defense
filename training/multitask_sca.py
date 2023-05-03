@@ -292,46 +292,22 @@ def train_step(batch, model, optimizer, lr_scheduler, device):
     trace, labels = batch
     trace, labels = trace.to(device), {key: item.to(device) for key, item in labels.items()}
     
-    features = model.get_features(trace)
-    features.retain_grad()
-    logits = model.classify_features(features)
-    losses = []
-    gradients = []
-    scaled_gradients = []
+    logits = model(trace)
+    loss, accuracy = 0.0, 0.0
     for hidx, (head_name, head_logits) in enumerate(logits.items()):
         tr, tap, tb = head_name.split('__')
         target = labels['{}__{}'.format(tap, tb)]
-        loss = nn.functional.cross_entropy(head_logits, target)
-        scale_parameter = model.scale_parameters[hidx]
-        scaled_loss = torch.exp(scale_parameter)*loss - scale_parameter
-        model.scale_parameters[hidx] -= 1e-3*(loss * torch.exp(scale_parameter) - 1).detach()
-        grad = torch.autograd.grad(outputs=scaled_loss, inputs=features, retain_graph=True)[0]
-        grad = grad.clone().detach().flatten()
-        scaled_grad = grad / grad.norm(p=2)
-        losses.append(scaled_loss)
-        gradients.append(grad)
-        scaled_gradients.append(scaled_grad)
-        rv[head_name+'__loss'] = loss.detach().cpu().numpy()
-        rv[head_name+'__acc'] = acc(head_logits, target)
-    D, U = [], []
-    for g in gradients[1:]:
-        D.append(gradients[0] - g)
-    for g in scaled_gradients[1:]:
-        U.append(scaled_gradients[0] - g)
-    D, U = torch.stack(D), torch.stack(U)
-    scaling_factors = (gradients[0].unsqueeze(0) @ U.transpose(0, 1) @ torch.linalg.pinv(D @ U.transpose(0, 1))).squeeze().detach()
-    scaling_factors = torch.cat((torch.tensor([0], dtype=torch.float, device=device), scaling_factors))
-    scaling_factors[0] = 1 - scaling_factors[1:].sum()
-    total_loss = (scaling_factors*torch.stack(losses)).sum()
+        loss_ = nn.functional.cross_entropy(head_logits, target)
+        acc_ = acc(head_logits, target)
+        loss += loss_
+        accuracy += acc_
+    accuracy /= len(logits)
     optimizer.zero_grad()
-    total_loss.backward()
+    loss.backward()
     optimizer.step()
     
-    if lr_scheduler is not None:
-        lr_scheduler.step()
-    
-    rv['total_loss'] = val(total_loss)
-    rv['scaling_factor'] = scaling_factors.detach().cpu().numpy()
+    rv['loss'] = val(loss)
+    rv['acc'] = accuracy
         
     return rv
 
@@ -365,7 +341,7 @@ def eval_step(batch, model, device):
 
 def run_epoch(dataloader, step_fn, *step_args):
     rv = {}
-    for batch in tqdm(dataloader):
+    for bidx, batch in tqdm(enumerate(dataloader)):
         batch_rv = step_fn(batch, *step_args)
         for key, item in batch_rv.items():
             if not key in rv.keys():

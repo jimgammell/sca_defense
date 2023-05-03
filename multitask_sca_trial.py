@@ -14,7 +14,7 @@ from torch import nn, optim
 from training.common import *
 from training.multitask_sca import *
 from models.multitask_resnet1d import Classifier
-from models.stargan2_architecture import Generator, Discriminator as LeakageDiscriminator
+from models.stargan2_architecture import UnetGenerator as Generator, Discriminator as LeakageDiscriminator
 from models.averaged_model import get_averaged_model
 from datasets.google_scaaml import GoogleScaamlDataset
 
@@ -171,12 +171,12 @@ def run_trial(
                                        bytes=target_bytes, store_in_ram=False, attack_points=target_attack_pts)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=batch_size, num_workers=8, pin_memory=True)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=batch_size, num_workers=8, pin_memory=True)
-    print('Train dataset:')
-    print(train_dataset)
-    print('\n\n')
-    print('Test dataset:')
-    print(test_dataset)
-    print('\n\n')
+    #print('Train dataset:')
+    #print(train_dataset)
+    #print('\n\n')
+    #print('Test dataset:')
+    #print(test_dataset)
+    #print('\n\n')
     
     head_sizes = OrderedDict({})
     for tap in target_attack_pts:

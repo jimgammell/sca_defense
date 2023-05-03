@@ -1,0 +1,223 @@
+Starting trial with settings {'activation': 'relu', 'norm_layer': 'batch_norm', 'kernel_size': 3, 'block': 'convnext'}
+
+Model with 3874240 parameters:
+Classifier(
+  (input_transform): Conv1d(1, 16, kernel_size=(1,), stride=(1,))
+  (feature_extractor): Sequential(
+    (0): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(16, 16, kernel_size=(3,), stride=(2,), padding=(1,), groups=16)
+        (1): SnBatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(16, 64, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(64, 32, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(16, 32, kernel_size=(1,), stride=(2,))
+      )
+    )
+    (1): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), groups=32)
+        (1): SnBatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (2): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), groups=32)
+        (1): SnBatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (3): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,), groups=32)
+        (1): SnBatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(128, 32, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (4): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(32, 32, kernel_size=(3,), stride=(2,), padding=(1,), groups=32)
+        (1): SnBatchNorm1d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(32, 128, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(128, 64, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(32, 64, kernel_size=(1,), stride=(2,))
+      )
+    )
+    (5): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), groups=64)
+        (1): SnBatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(256, 64, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (6): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), groups=64)
+        (1): SnBatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(256, 64, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (7): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,), groups=64)
+        (1): SnBatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(256, 64, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (8): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(64, 64, kernel_size=(3,), stride=(2,), padding=(1,), groups=64)
+        (1): SnBatchNorm1d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(64, 256, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(256, 128, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(64, 128, kernel_size=(1,), stride=(2,))
+      )
+    )
+    (9): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,), groups=128)
+        (1): SnBatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(128, 512, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(512, 128, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (10): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,), groups=128)
+        (1): SnBatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(128, 512, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(512, 128, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (11): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,), groups=128)
+        (1): SnBatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(128, 512, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(512, 128, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (12): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(128, 128, kernel_size=(3,), stride=(2,), padding=(1,), groups=128)
+        (1): SnBatchNorm1d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(128, 512, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(512, 256, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(128, 256, kernel_size=(1,), stride=(2,))
+      )
+    )
+    (13): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,), groups=256)
+        (1): SnBatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(256, 1024, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(1024, 256, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (14): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,), groups=256)
+        (1): SnBatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(256, 1024, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(1024, 256, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (15): ConvNextBlock(
+      (residual_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,), groups=256)
+        (1): SnBatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): Conv1d(256, 1024, kernel_size=(1,), stride=(1,))
+        (3): ReLU(inplace=True)
+        (4): Conv1d(1024, 256, kernel_size=(1,), stride=(1,))
+      )
+      (shortcut_modules): ModuleList(
+        (0): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+      )
+    )
+    (16): ReLU(inplace=True)
+    (17): Conv1d(256, 256, kernel_size=(313,), stride=(1,), groups=256)
+    (18): Conv1d(256, 256, kernel_size=(1,), stride=(1,))
+    (19): ReLU(inplace=True)
+  )
+  (classifier_heads): ModuleDict(
+    (bytes__sub_bytes_in__0): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__1): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__2): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__3): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__4): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__5): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__6): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__7): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__8): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__9): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__10): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__11): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__12): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__13): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__14): Linear(in_features=256, out_features=256, bias=True)
+    (bytes__sub_bytes_in__15): Linear(in_features=256, out_features=256, bias=True)
+  )
+)
+Epoch 0 done in 665.8173925876617 seconds.

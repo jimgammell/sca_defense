@@ -8,7 +8,7 @@ from copy import deepcopy
 import torch
 from torch import nn, optim
 from datasets.google_scaaml import GoogleScaamlDataset
-from models.multitask_resnet1d import Classifier
+from models.stargan2_architecture import Classifier
 from training.multitask_sca import train_epoch, eval_epoch
 
 VALID_TARGET_REPR = [
@@ -46,10 +46,11 @@ class SignalTransform(nn.Module):
 def main(
     target_repr='bytes', #'bits',
     target_bytes='all',
+    classifier_kwargs={},
     target_attack_pts='sub_bytes_in', #['sub_bytes_in', 'sub_bytes_out'],
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.00,
     #signal_length=25000, crop_length=20000, noise_scale=0.01,
-    num_epochs=150, weight_decay=0.0, max_lr=1e-2, pct_start=0.3, dropout=0.1,
+    num_epochs=10, weight_decay=1e-4, max_lr=2e-4,
     device=None
 ):
     if target_repr == 'all':
@@ -80,12 +81,12 @@ def main(
                                        store_in_ram=False, attack_points=target_attack_pts)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=32, num_workers=8)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=32, num_workers=8)
-    print('Train dataset:')
-    print(train_dataset)
-    print('\n\n')
-    print('Test dataset:')
-    print(test_dataset)
-    print('\n\n')
+    #print('Train dataset:')
+    #print(train_dataset)
+    #print('\n\n')
+    #print('Test dataset:')
+    #print(test_dataset)
+    #print('\n\n')
     
     head_sizes = {}
     for tr in target_repr:
@@ -93,30 +94,26 @@ def main(
             for tb in target_bytes:
                 head_name = '{}__{}__{}'.format(tr, tap, tb)
                 head_sizes[head_name] = 8 if tr == 'bits' else 256
-    classifier = Classifier((1, crop_length), head_sizes, dense_dropout=dropout).to(device)
+    classifier = Classifier((1, crop_length//downsample_ratio), head_sizes, **classifier_kwargs).to(device)
     optimizer = optim.Adam(classifier.parameters(), lr=max_lr, weight_decay=weight_decay)
     #lr_scheduler = optim.lr_scheduler.OneCycleLR(
     #    optimizer, max_lr, epochs=num_epochs, steps_per_epoch=len(train_dataloader), pct_start=pct_start
     #)
     lr_scheduler = None
-    print('Model:')
+    print('Model with {} parameters:'.format(sum(p.numel() for p in classifier.parameters() if p.requires_grad)))
     print(classifier)
-    print('\n\n')
-    print('Optimizer:')
-    print(optimizer)
-    print('\n\n')
-    print('Learning rate scheduler:')
-    print(lr_scheduler)
-    print('\n\n')
+    #print('\n\n')
+    #print('Optimizer:')
+    #print(optimizer)
+    #print('\n\n')
+    #print('Learning rate scheduler:')
+    #print(lr_scheduler)
+    #print('\n\n')
     
     results = {}
-    learning_rates = {0: 1e-3, 50: 2e-4, 100: 1e-5}
     best_state_dict, best_test_acc, epochs_without_improvement = None, -np.inf, 0
     for epoch_idx in range(num_epochs):
         t0 = time.time()
-        if epoch_idx in learning_rates.keys():
-            for g in optimizer.param_groups:
-                g['lr'] = learning_rates[epoch_idx]
         train_rv = train_epoch(train_dataloader, classifier, optimizer, lr_scheduler, device)
         test_rv = eval_epoch(test_dataloader, classifier, device)
         for key, item in train_rv.items():
@@ -137,10 +134,8 @@ def main(
             ))
         print_stats('train', 'acc')
         print_stats('train', 'loss')
-        print_stats('train', 'total_loss')
         print_stats('test', 'acc')
         print_stats('test', 'loss')
-        print_stats('train', 'scaling_factor')
         test_acc = np.mean([item for key, item in test_rv.items() if 'acc' in key])
         if test_acc > best_test_acc:
             best_test_acc = test_acc
