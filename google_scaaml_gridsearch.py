@@ -6,10 +6,10 @@ import itertools
 from train_classifier_on_google_scaaml_dataset import main as run_trial
 
 hparams = {
-    'activation': ['relu', 'gelu'],
-    'norm_layer': ['batch_norm', 'instance_norm'],
-    'kernel_size': [3, 5, 7],
-    'block': ['convnext', 'resnet', 'stargan']
+    'activation': ['gelu'],
+    'norm_layer': ['instance_norm'],
+    'kernel_size': [7],
+    'block': ['convnext']
 }
 
 def unwrap_config_dict(config_dict):

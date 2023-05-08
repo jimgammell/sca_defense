@@ -13,8 +13,7 @@ import torch
 from torch import nn, optim
 from training.common import *
 from training.multitask_sca import *
-from models.multitask_resnet1d import Classifier
-from models.stargan2_architecture import UnetGenerator as Generator, Discriminator as LeakageDiscriminator
+from models.stargan2_architecture import UnetGenerator as Generator, Discriminator as LeakageDiscriminator, Classifier
 from models.averaged_model import get_averaged_model
 from datasets.google_scaaml import GoogleScaamlDataset
 
@@ -117,7 +116,7 @@ def run_trial(
     target_bytes='all',
     target_attack_pts='sub_bytes_in',
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.0,
-    epochs=100,
+    epochs=5,
     device=None,
     pretrain=False,
     posttrain_epochs=25,
@@ -205,13 +204,13 @@ def run_trial(
     print('Generator parameters:', sum(p.numel() for p in gen.parameters() if p.requires_grad))
     print('Discriminator parameters:', sum(p.numel() for p in disc.parameters() if p.requires_grad))
     
-    eval_head_sizes = OrderedDict({})
-    for tap in target_attack_pts:
-        for tb in target_bytes:
-            head_name = '{}__{}__{}'.format('bytes', tap, tb)
-            eval_head_sizes[head_name] = 256
+    #eval_head_sizes = OrderedDict({})
+    #for tap in target_attack_pts:
+    #    for tb in target_bytes:
+    #        head_name = '{}__{}__{}'.format('bytes', tap, tb)
+    #        eval_head_sizes[head_name] = 256
     
-    eval_classifier = eval_classifier_constructor((1, crop_length//downsample_ratio), eval_head_sizes)
+    eval_classifier = eval_classifier_constructor((1, crop_length//downsample_ratio), head_sizes)
     eval_classifier_state = torch.load(os.path.join('.', 'trained_models', 'google_scaaml_classifier.pth'))
     eval_classifier.load_state_dict(eval_classifier_state)
     eval_classifier = eval_classifier.to(device)

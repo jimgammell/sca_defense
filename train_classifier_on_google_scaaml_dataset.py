@@ -13,7 +13,8 @@ from training.multitask_sca import train_epoch, eval_epoch
 
 VALID_TARGET_REPR = [
     'bits',
-    'bytes'
+    'bytes',
+    'hamming_weight'
 ]
 VALID_TARGET_BYTES = [
     *list(range(16))
@@ -23,6 +24,31 @@ VALID_ATTACK_PTS = [
     'sub_bytes_out',
     'key'
 ]
+
+@torch.no_grad()
+def int_to_binary(x):
+    assert x.dtype == torch.long
+    x = x.clone()
+    if x.dim() == 0:
+        x = x.view(1)
+        non_batched = True
+    else:
+        non_batched = False
+    out = torch.zeros(x.size(0), 8, dtype=torch.float, device=x.device)
+    for n in range(7, -1, -1):
+        high = torch.ge(x, 2**n)
+        out[:, n] = high
+        x -= high*2**n
+    if non_batched:
+        out = out.view(8)
+    return out
+
+@torch.no_grad()
+def int_to_hamming_weight(x):
+    assert x.dtype == torch.long
+    x_bin = int_to_binary(x)
+    x_hw = torch.sum(x_bin, dim=-1).to(torch.long)
+    return x_hw
 
 class SignalTransform(nn.Module):
     def __init__(self, input_length, cropped_length, noise_scale):
@@ -44,13 +70,13 @@ class SignalTransform(nn.Module):
         return x
 
 def main(
-    target_repr='bytes', #'bits',
+    target_repr='hamming_weight',
     target_bytes='all',
     classifier_kwargs={},
     target_attack_pts='sub_bytes_in', #['sub_bytes_in', 'sub_bytes_out'],
     signal_length=20000, crop_length=20000, downsample_ratio=4, noise_scale=0.00,
     #signal_length=25000, crop_length=20000, noise_scale=0.01,
-    num_epochs=10, weight_decay=1e-4, max_lr=2e-4,
+    num_epochs=50, weight_decay=1e-4, max_lr=2e-4,
     device=None
 ):
     if target_repr == 'all':
@@ -73,12 +99,13 @@ def main(
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     train_transform = SignalTransform(signal_length//downsample_ratio, crop_length//downsample_ratio, noise_scale)
+    target_transform = int_to_hamming_weight if 'hamming_weight' in target_repr else None
     train_dataset = GoogleScaamlDataset(transform=train_transform, train=True, download=True, whiten_traces=True,
                                         interval_to_use=[0, signal_length], downsample_ratio=downsample_ratio, bytes=target_bytes,
-                                        store_in_ram=False, attack_points=target_attack_pts)
+                                        store_in_ram=False, attack_points=target_attack_pts, target_transform=target_transform)
     test_dataset = GoogleScaamlDataset(transform=None, train=False, download=True, whiten_traces=True,
                                        interval_to_use=[0, crop_length], downsample_ratio=downsample_ratio, bytes=target_bytes,
-                                       store_in_ram=False, attack_points=target_attack_pts)
+                                       store_in_ram=False, attack_points=target_attack_pts, target_transform=target_transform)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=32, num_workers=8)
     test_dataloader = torch.utils.data.DataLoader(test_dataset, shuffle=False, batch_size=32, num_workers=8)
     #print('Train dataset:')
@@ -93,7 +120,7 @@ def main(
         for tap in target_attack_pts:
             for tb in target_bytes:
                 head_name = '{}__{}__{}'.format(tr, tap, tb)
-                head_sizes[head_name] = 8 if tr == 'bits' else 256
+                head_sizes[head_name] = 8 if tr == 'bits' else 256 if tr == 'bytes' else 9 if tr == 'hamming_weight' else None
     classifier = Classifier((1, crop_length//downsample_ratio), head_sizes, **classifier_kwargs).to(device)
     optimizer = optim.Adam(classifier.parameters(), lr=max_lr, weight_decay=weight_decay)
     #lr_scheduler = optim.lr_scheduler.OneCycleLR(
@@ -145,6 +172,8 @@ def main(
         else:
             epochs_without_improvement += 1
             print('Epochs without improvement: {}.'.format(epochs_without_improvement))
+    model_save_dir = os.path.join('.', 'trained_models', 'google_scaaml_classifier.pth')
+    torch.save(best_state_dict, model_save_dir)
     return results, best_state_dict
     
 if __name__ == '__main__':

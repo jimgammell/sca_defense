@@ -12,6 +12,7 @@ from tqdm import tqdm
 class GoogleScaamlDataset(Dataset):
     def __init__(self,
                  transform=None,
+                 target_transform=None,
                  train=True,
                  download=True,
                  whiten_traces=True,
@@ -79,6 +80,7 @@ class GoogleScaamlDataset(Dataset):
         self.num_shards = len(self.shard_filenames)
         self.samples_per_shard = len(self.get_shard(0)['traces'])
         self.transform = transform
+        self.target_transform = target_transform
         self.bytes = bytes
         self.attack_points = attack_points
         self.interval_to_use = interval_to_use
@@ -106,6 +108,8 @@ class GoogleScaamlDataset(Dataset):
         }
         if use_transform and (self.transform is not None):
             trace = self.transform(trace)
+        if use_transform and (self.target_transform is not None):
+            labels = {key: self.target_transform(value) for key, value in labels.items()}
         return trace, labels
     
     def __len__(self):

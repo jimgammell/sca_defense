@@ -8,9 +8,9 @@ from multitask_sca_trial import run_trial
 
 HPARAM_SAMPLERS = {
     #'disc_steps_per_gen_step': lambda: np.random.choice((1.0, 5.0)),
-    'l1_rec_coefficient': lambda: 10**np.random.uniform(-5, 0),
+    'l1_rec_coefficient': lambda: 10**np.random.uniform(-3, 3),
     'gen_classification_coefficient': lambda: 10**np.random.uniform(-3, 3),
-    'target_repr': lambda: np.random.choice(('hamming_weight', 'bytes'))
+    'target_repr': lambda: 'hamming_weight' #np.random.choice(('hamming_weight', 'bytes'))
     #'average_deviation_penalty': lambda: np.random.choice((0.0, 10**np.random.uniform(-2, 0)))
 }
 
@@ -42,6 +42,7 @@ def main():
         print('Hyperparameters:')
         print(hparams)
         run_trial(save_dir=os.path.join(save_dir, 'trial_{}'.format(trial_idx)), device=device, trial_info=hparams, **hparams)
+        trial_idx += 1
         print('\n\n')
 
 if __name__ == '__main__':
